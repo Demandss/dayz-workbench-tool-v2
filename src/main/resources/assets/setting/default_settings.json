@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "game_path": "",
+  "work_drive_path": "P:\\\\",
+  "workbench_path": "",
+  "client_arguments": "-connect=127.0.0.1:2302 -profiles=DebugLogs\\\\Client -window -name=Survivor -filePatching -dologs -password=ok",
+  "client_sandbox_arguments": "-connect=127.0.0.1:2302 -profiles=DebugLogs\\\\Client -window -name=Sandbox -filePatching -dologs -password=ok",
+  "server_arguments": "-server -freezecheck -DoLogs -noPause -port=2302 -config=serverDZ.cfg -filePatching -profiles=DebugLogs\\\\Server",
+  "client_mods": [],
+  "server_mods": [],
+  "task_kill_list": ["workbenchApp.exe","DayZDiag_x64.exe"]
+}
