@@ -74,6 +74,62 @@ fun MainWindow(state: AppState, onCloseRequest: () -> Unit) {
             }
             if (!state.config.setupDone) {
                 InitialSetupDialog(state)
+            } else {
+                WorkDriveCheck(state, onCloseRequest)
+            }
+        }
+    }
+}
+
+@Composable
+private fun WorkDriveCheck(state: AppState, onClose: () -> Unit) {
+    var missing by remember { mutableStateOf(false) }
+
+    LaunchedEffect(state.config.workDrivePath) {
+        val path = state.config.workDrivePath
+        missing = if (path.isBlank()) false
+                  else withContext(Dispatchers.IO) { !File(path).exists() }
+    }
+
+    if (missing) {
+        WorkDriveMissingDialog(
+            path = state.config.workDrivePath,
+            onSelect = { newPath ->
+                state.updateConfig(state.config.copy(workDrivePath = newPath))
+                missing = false
+            },
+            onClose = onClose
+        )
+    }
+}
+
+@Composable
+private fun WorkDriveMissingDialog(path: String, onSelect: (String) -> Unit, onClose: () -> Unit) {
+    val scope = rememberCoroutineScope()
+    Dialog(onDismissRequest = {}) {
+        Column(
+            modifier = Modifier
+                .width(320.dp)
+                .background(FrameBackground)
+                .border(1.dp, DarkenedBorder)
+                .padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Text("Work drive not found", color = TextForeground, fontSize = 13.sp)
+            Text(
+                "\"$path\" is missing or not mounted.\nSelect another folder or close the app.",
+                color = GhostlyText,
+                fontSize = 11.sp,
+                lineHeight = 15.sp
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                DarkButton("Select another", modifier = Modifier.weight(1f), onClick = {
+                    scope.launch {
+                        val picked = pickDirectory("Select work drive folder", null)
+                        picked?.let { onSelect(it) }
+                    }
+                })
+                DarkButton("Close", modifier = Modifier.weight(1f), onClick = onClose)
             }
         }
     }
