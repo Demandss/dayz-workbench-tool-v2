@@ -33,7 +33,7 @@ fun PoweredByFooter() {
                 .clickable(
                     interactionSource = remember { MutableInteractionSource() },
                     indication = null,
-                    onClick = { runCatching { Desktop.getDesktop().browse(URI("https://demands.su")) } }
+                    onClick = { runCatching { Desktop.getDesktop().browse(URI("https://github.com/Demandss/dayz-workbench-tool-v2")) } }
                 ),
             color = PoweredByColor,
             fontSize = 11.sp
