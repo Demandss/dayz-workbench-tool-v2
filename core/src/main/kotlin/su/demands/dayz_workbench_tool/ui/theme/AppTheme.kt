@@ -7,14 +7,13 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
-// DarkSwing exact color palette
-val FrameBackground  = Color(0xFF2B2D30)
+val FrameBackground    = Color(0xFF2B2D30)
 val ElementsBackground = Color(0xFF43454A)
-val SelectColor      = Color(0xFF2E436E)
-val SubSelectColor   = Color(0xFF346BD8)
-val DarkenedBorder   = Color(0xFF1E1F22)
-val TextForeground   = Color(0xFFDCD4CF)
-val GhostlyText      = Color(0xFF6F737A)
+val SelectColor        = Color(0xFF2E436E)
+val SubSelectColor     = Color(0xFF346BD8)
+val DarkenedBorder     = Color(0xFF1E1F22)
+val TextForeground     = Color(0xFFDCD4CF)
+val GhostlyText        = Color(0xFF6F737A)
 
 private val DarkSwingColorScheme = darkColorScheme(
     primary          = SubSelectColor,

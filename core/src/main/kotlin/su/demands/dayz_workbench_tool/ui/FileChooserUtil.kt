@@ -104,7 +104,7 @@ public class FolderPicker {
 [FolderPicker]::Pick('$title', '${initialDir ?: ""}')
 """.trimIndent()
 
-private fun runPs(vararg args: String): String? {
+fun runPs(vararg args: String): String? {
     val cmd = arrayOf("powershell", "-NoProfile", "-NonInteractive", "-STA") + args
     val process = ProcessBuilder(*cmd).redirectErrorStream(true).start()
     val output = process.inputStream.bufferedReader().readText().trim()

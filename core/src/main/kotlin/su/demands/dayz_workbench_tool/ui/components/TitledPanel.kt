@@ -1,5 +1,6 @@
 package su.demands.dayz_workbench_tool.ui.components
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,7 +15,6 @@ import androidx.compose.ui.unit.sp
 import su.demands.dayz_workbench_tool.ui.theme.ElementsBackground
 import su.demands.dayz_workbench_tool.ui.theme.FrameBackground
 import su.demands.dayz_workbench_tool.ui.theme.TextForeground
-import androidx.compose.foundation.background
 
 @Composable
 fun TitledPanel(
@@ -26,13 +26,12 @@ fun TitledPanel(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 7.dp)          // space so border starts below title center
+                .padding(top = 7.dp)
                 .border(1.dp, ElementsBackground)
                 .padding(top = 9.dp, start = 5.dp, end = 5.dp, bottom = 5.dp)
         ) {
             content()
         }
-        // Title overlaps the top border line
         Text(
             text = title,
             color = TextForeground,
