@@ -5,7 +5,7 @@ import androidx.compose.ui.window.application
 import su.demands.dayz_workbench_tool.config.ConfigManager
 
 fun main() = application {
-    val workDrivePath = remember { ConfigManager.load().workDrivePath }
+    val workDrivePath = remember { ConfigManager.App.load().workDrivePath }
 
     LayoutEditorWindow(
         workDrivePath = workDrivePath,

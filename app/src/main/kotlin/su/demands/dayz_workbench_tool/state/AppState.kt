@@ -11,7 +11,7 @@ import su.demands.dayz_workbench_tool.model.ModType
 enum class Screen { MAIN, SETTINGS, MODS }
 
 class AppState {
-    var config by mutableStateOf(ConfigManager.load())
+    var config by mutableStateOf(ConfigManager.App.load())
         private set
 
     val mods = mutableStateListOf<Modification>()
@@ -24,7 +24,7 @@ class AppState {
 
     fun updateConfig(newConfig: AppConfig) {
         config = newConfig
-        ConfigManager.save(newConfig)
+        ConfigManager.App.save(newConfig)
         loadModsFromConfig()
     }
 
@@ -64,7 +64,7 @@ class AppState {
         val clientEntries = mods.filter { it.side == ModSide.CLIENT }.map { it.toEntry() }
         val serverEntries = mods.filter { it.side == ModSide.SERVER }.map { it.toEntry() }
         config = config.copy(clientMods = clientEntries, serverMods = serverEntries)
-        ConfigManager.save(config)
+        ConfigManager.App.save(config)
     }
 
     private fun ModEntry.toModification(side: ModSide) = Modification(
