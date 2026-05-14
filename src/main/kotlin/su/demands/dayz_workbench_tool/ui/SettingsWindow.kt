@@ -3,7 +3,9 @@ package su.demands.dayz_workbench_tool.ui
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.hoverable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -19,12 +21,17 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import java.io.File
+import java.util.stream.Collectors
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import su.demands.dayz_workbench_tool.config.AppConfig
 import su.demands.dayz_workbench_tool.state.AppState
 import su.demands.dayz_workbench_tool.state.Screen
@@ -117,13 +124,7 @@ private fun AdvancedTab(config: AppConfig, onChange: (AppConfig) -> Unit) {
         AdvancedRow("Client args", config.clientArgs, "exe args") { onChange(config.copy(clientArgs = it)) }
         AdvancedRow("Sandbox args", config.sandboxArgs, "exe args") { onChange(config.copy(sandboxArgs = it)) }
         AdvancedRow("Server args", config.serverArgs, "exe args") { onChange(config.copy(serverArgs = it)) }
-        AdvancedRow(
-            label = "Auto kill list",
-            value = config.autoKillTasks.joinToString(", "),
-            placeholder = "workbenchApp.exe, DayZDiag_x64.exe"
-        ) { raw ->
-            onChange(config.copy(autoKillTasks = raw.split(",").map { it.trim() }.filter { it.isNotBlank() }))
-        }
+        KillListRow(config.autoKillTasks) { onChange(config.copy(autoKillTasks = it)) }
     }
 }
 
@@ -236,6 +237,256 @@ private fun AdvancedRow(label: String, value: String, placeholder: String = "", 
             onDismiss = { showDialog = false },
             onSave = { onChange(it); showDialog = false }
         )
+    }
+}
+
+@Composable
+private fun KillListRow(tasks: List<String>, onChange: (List<String>) -> Unit) {
+    var showDialog by remember { mutableStateOf(false) }
+
+    SettingRow("Auto kill list") {
+        Row(modifier = Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .height(20.dp)
+                    .border(1.dp, SubSelectColor)
+                    .background(FrameBackground)
+                    .padding(horizontal = 4.dp),
+                contentAlignment = Alignment.CenterStart
+            ) {
+                Text(
+                    text = if (tasks.isEmpty()) "No tasks" else tasks.joinToString(", "),
+                    color = if (tasks.isEmpty()) GhostlyText else TextForeground,
+                    fontSize = 11.sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+            Spacer(Modifier.width(3.dp))
+            val editSource = remember { MutableInteractionSource() }
+            val isEditPressed by editSource.collectIsPressedAsState()
+            Box(
+                modifier = Modifier
+                    .size(20.dp)
+                    .background(if (isEditPressed) SelectColor else ElementsBackground)
+                    .border(1.dp, SubSelectColor)
+                    .clickable(interactionSource = editSource, indication = null) { showDialog = true },
+                contentAlignment = Alignment.Center
+            ) {
+                Text("<>", color = TextForeground, fontSize = 9.sp, lineHeight = 10.sp)
+            }
+        }
+    }
+
+    if (showDialog) {
+        KillListDialog(
+            tasks = tasks,
+            onDismiss = { showDialog = false },
+            onSave = { onChange(it); showDialog = false }
+        )
+    }
+}
+
+@Composable
+private fun KillListDialog(tasks: List<String>, onDismiss: () -> Unit, onSave: (List<String>) -> Unit) {
+    var localTasks by remember { mutableStateOf(tasks) }
+    var showProcessPicker by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+
+    Dialog(onDismissRequest = onDismiss) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(FrameBackground)
+                .border(1.dp, DarkenedBorder)
+                .padding(10.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text("Auto kill list", color = TextForeground, fontSize = 12.sp)
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 40.dp, max = 180.dp)
+                    .border(1.dp, SubSelectColor)
+                    .background(ElementsBackground)
+                    .verticalScroll(rememberScrollState())
+                    .padding(4.dp),
+                verticalArrangement = Arrangement.spacedBy(3.dp)
+            ) {
+                if (localTasks.isEmpty()) {
+                    Text("No tasks added", color = GhostlyText, fontSize = 11.sp, modifier = Modifier.padding(4.dp))
+                } else {
+                    localTasks.forEach { task ->
+                        KillTaskItem(name = task, onRemove = { localTasks = localTasks - task })
+                    }
+                }
+            }
+
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                DarkButton("+ Browse .exe", modifier = Modifier.weight(1f), onClick = {
+                    scope.launch {
+                        val picked = pickFile("Select executable", "exe", null)
+                        picked?.let {
+                            val name = File(it).name
+                            if (name !in localTasks) localTasks = localTasks + name
+                        }
+                    }
+                })
+                DarkButton("+ Running", modifier = Modifier.weight(1f), onClick = {
+                    showProcessPicker = true
+                })
+            }
+
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                DarkButton("Save", onClick = { onSave(localTasks) }, modifier = Modifier.weight(1f))
+                DarkButton("Cancel", onClick = onDismiss, modifier = Modifier.weight(1f))
+            }
+        }
+    }
+
+    if (showProcessPicker) {
+        ProcessPickerDialog(
+            existing = localTasks,
+            onDismiss = { showProcessPicker = false },
+            onSelect = { name ->
+                if (name !in localTasks) localTasks = localTasks + name
+                showProcessPicker = false
+            }
+        )
+    }
+}
+
+@Composable
+private fun KillTaskItem(name: String, onRemove: () -> Unit) {
+    val rowSource = remember { MutableInteractionSource() }
+    val isHovered by rowSource.collectIsHoveredAsState()
+    val removeSource = remember { MutableInteractionSource() }
+    val isRemovePressed by removeSource.collectIsPressedAsState()
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(if (isHovered) SelectColor.copy(alpha = 0.3f) else Color.Transparent)
+            .hoverable(rowSource)
+            .padding(horizontal = 4.dp, vertical = 2.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(
+            text = name,
+            color = TextForeground,
+            fontSize = 11.sp,
+            modifier = Modifier.weight(1f)
+        )
+        Spacer(Modifier.width(6.dp))
+        Box(
+            modifier = Modifier
+                .size(16.dp)
+                .background(if (isRemovePressed) SelectColor else Color.Transparent)
+                .border(1.dp, SubSelectColor)
+                .clickable(interactionSource = removeSource, indication = null, onClick = onRemove),
+            contentAlignment = Alignment.Center
+        ) {
+            Text("×", color = TextForeground, fontSize = 12.sp, lineHeight = 13.sp)
+        }
+    }
+}
+
+@Composable
+private fun ProcessPickerDialog(existing: List<String>, onDismiss: () -> Unit, onSelect: (String) -> Unit) {
+    var processes by remember { mutableStateOf<List<String>>(emptyList()) }
+    var filter by remember { mutableStateOf("") }
+
+    LaunchedEffect(Unit) {
+        withContext(Dispatchers.IO) {
+            try {
+                processes = ProcessHandle.allProcesses()
+                    .filter { it.info().command().isPresent }
+                    .map { File(it.info().command().get()).name }
+                    .distinct()
+                    .sorted()
+                    .collect(Collectors.toList())
+            } catch (_: Exception) {}
+        }
+    }
+
+    val filtered = if (filter.isBlank()) processes else processes.filter { it.contains(filter, ignoreCase = true) }
+
+    Dialog(onDismissRequest = onDismiss) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(FrameBackground)
+                .border(1.dp, DarkenedBorder)
+                .padding(10.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text("Running processes", color = TextForeground, fontSize = 12.sp)
+
+            BasicTextField(
+                value = filter,
+                onValueChange = { filter = it },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(20.dp)
+                    .border(1.dp, SubSelectColor)
+                    .background(ElementsBackground)
+                    .padding(start = 4.dp),
+                textStyle = TextStyle(color = TextForeground, fontSize = 11.sp, lineHeight = 11.sp),
+                singleLine = true,
+                decorationBox = { inner ->
+                    Box(contentAlignment = Alignment.CenterStart) {
+                        if (filter.isEmpty()) Text("Filter...", color = GhostlyText, fontSize = 11.sp)
+                        inner()
+                    }
+                }
+            )
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(200.dp)
+                    .border(1.dp, SubSelectColor)
+                    .background(ElementsBackground)
+                    .verticalScroll(rememberScrollState())
+                    .padding(4.dp),
+                verticalArrangement = Arrangement.spacedBy(2.dp)
+            ) {
+                if (processes.isEmpty()) {
+                    Box(Modifier.fillMaxWidth().padding(8.dp), contentAlignment = Alignment.Center) {
+                        Text("Loading...", color = GhostlyText, fontSize = 11.sp)
+                    }
+                } else {
+                    filtered.forEach { proc ->
+                        val alreadyAdded = proc in existing
+                        val source = remember(proc) { MutableInteractionSource() }
+                        val isHovered by source.collectIsHoveredAsState()
+                        Text(
+                            text = if (alreadyAdded) "$proc  ✓" else proc,
+                            color = if (alreadyAdded) GhostlyText else TextForeground,
+                            fontSize = 11.sp,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(if (isHovered && !alreadyAdded) SelectColor.copy(alpha = 0.5f) else Color.Transparent)
+                                .hoverable(source)
+                                .clickable(
+                                    interactionSource = source,
+                                    indication = null,
+                                    enabled = !alreadyAdded,
+                                    onClick = { onSelect(proc) }
+                                )
+                                .padding(horizontal = 4.dp, vertical = 2.dp)
+                        )
+                    }
+                }
+            }
+
+            DarkButton("Cancel", onClick = onDismiss, modifier = Modifier.fillMaxWidth())
+        }
     }
 }
 
