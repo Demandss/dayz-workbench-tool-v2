@@ -12,7 +12,7 @@ kotlin {
 }
 
 group = "su.demands"
-version = "1.0-SNAPSHOT"
+version = findProperty("version")?.toString() ?: "1.0.0"
 
 repositories {
     mavenCentral()
@@ -46,7 +46,7 @@ compose.desktop {
         nativeDistributions {
             targetFormats(TargetFormat.Exe)
             packageName = "Dayz Workbench Tool"
-            packageVersion = "1.0.0"
+            packageVersion = version.toString()
             modules(
                 "java.base",
                 "java.desktop",
