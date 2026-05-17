@@ -17,6 +17,7 @@ class AppState {
     val mods = mutableStateListOf<Modification>()
 
     var currentScreen by mutableStateOf(Screen.MAIN)
+    var showLayoutEditor by mutableStateOf(false)
 
     init { loadModsFromConfig() }
 

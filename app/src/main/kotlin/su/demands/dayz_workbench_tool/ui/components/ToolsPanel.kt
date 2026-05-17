@@ -12,7 +12,7 @@ fun ToolsPanel(state: AppState) {
     TitledPanel(title = "Tools", modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(3.dp)) {
             DarkButton(text = "Workbench",     onClick = { runCatching { ProcessManager.launchWorkbench(state.config) } }, modifier = Modifier.fillMaxWidth())
-            DarkButton(text = "Layout Editor", onClick = {}, modifier = Modifier.fillMaxWidth(), enabled = false)
+            DarkButton(text = "Layout Editor", onClick = { state.showLayoutEditor = true }, modifier = Modifier.fillMaxWidth())
             DarkButton(text = "Addon Builder", onClick = {}, modifier = Modifier.fillMaxWidth(), enabled = false)
         }
     }

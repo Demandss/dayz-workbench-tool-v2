@@ -1,9 +1,9 @@
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 
 plugins {
-    kotlin("jvm") version "2.1.21"
-    id("org.jetbrains.compose") version "1.8.2"
-    id("org.jetbrains.kotlin.plugin.compose") version "2.1.21"
+    kotlin("jvm")
+    id("org.jetbrains.compose")
+    id("org.jetbrains.kotlin.plugin.compose")
 }
 
 kotlin {
@@ -53,6 +53,9 @@ compose.desktop {
                 "java.net.http",
                 "jdk.unsupported"
             )
+            windows {
+                iconFile.set(project.file("src/main/resources/assets/logo/logo.ico"))
+            }
         }
     }
 }
