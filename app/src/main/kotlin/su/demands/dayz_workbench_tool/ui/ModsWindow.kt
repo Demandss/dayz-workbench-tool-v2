@@ -22,14 +22,19 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import su.demands.dayz_workbench_tool.model.Modification
 import su.demands.dayz_workbench_tool.model.ModSide
 import su.demands.dayz_workbench_tool.state.AppState
 import su.demands.dayz_workbench_tool.state.Screen
+import su.demands.dayz_workbench_tool.ui.components.DarkButton
 import su.demands.dayz_workbench_tool.ui.components.ModListPanel
 import su.demands.dayz_workbench_tool.ui.components.PoweredByFooter
 import su.demands.dayz_workbench_tool.ui.theme.*
+import java.io.File
 
 private enum class ModFilter { ALL, CLIENT, SERVER }
 
@@ -37,20 +42,60 @@ private enum class ModFilter { ALL, CLIENT, SERVER }
 fun ModsScreen(state: AppState) {
     val scope = rememberCoroutineScope()
     var filter by remember { mutableStateOf(ModFilter.ALL) }
-    var selected by remember { mutableStateOf<Modification?>(null) }
-    var path by remember { mutableStateOf("") }
+    var search by remember { mutableStateOf("") }
     var filterMenuOpen by remember { mutableStateOf(false) }
 
-    val visibleMods = remember(state.mods.toList(), filter) {
-        when (filter) {
-            ModFilter.ALL    -> state.mods.toList()
-            ModFilter.CLIENT -> state.mods.filter { it.side == ModSide.CLIENT }
-            ModFilter.SERVER -> state.mods.filter { it.side == ModSide.SERVER }
+    var selectedMods by remember { mutableStateOf(emptySet<Modification>()) }
+    var selectionAnchor by remember { mutableStateOf<Modification?>(null) }
+    var infoMod by remember { mutableStateOf<Modification?>(null) }
+
+    var missingPaths by remember { mutableStateOf(emptySet<String>()) }
+
+    LaunchedEffect(state.mods.toList()) {
+        missingPaths = withContext(Dispatchers.IO) {
+            state.mods.filter { !File(it.path).exists() }.map { it.path }.toSet()
+        }
+    }
+
+    val visibleMods = remember(state.mods.toList(), filter, search) {
+        state.mods
+            .filter {
+                when (filter) {
+                    ModFilter.ALL    -> true
+                    ModFilter.CLIENT -> it.side == ModSide.CLIENT
+                    ModFilter.SERVER -> it.side == ModSide.SERVER
+                }
+            }
+            .filter { search.isBlank() || it.name.contains(search, ignoreCase = true) }
+    }
+
+    LaunchedEffect(filter, search) {
+        selectedMods = emptySet()
+        selectionAnchor = null
+    }
+
+    fun handleSelect(mod: Modification, isShift: Boolean, isCtrl: Boolean) {
+        when {
+            isShift && selectionAnchor != null -> {
+                val a = visibleMods.indexOfFirst { it.path == selectionAnchor!!.path && it.side == selectionAnchor!!.side }
+                val b = visibleMods.indexOfFirst { it.path == mod.path && it.side == mod.side }
+                if (a >= 0 && b >= 0) {
+                    val lo = minOf(a, b); val hi = maxOf(a, b)
+                    selectedMods = visibleMods.subList(lo, hi + 1).toSet()
+                }
+            }
+            isCtrl -> {
+                selectedMods = if (mod in selectedMods) selectedMods - mod else selectedMods + mod
+                selectionAnchor = mod
+            }
+            else -> {
+                selectedMods = if (selectedMods.size == 1 && mod in selectedMods) emptySet() else setOf(mod)
+                selectionAnchor = mod
+            }
         }
     }
 
     Column(modifier = Modifier.fillMaxSize().background(FrameBackground)) {
-        // Header: ← Back | Mods                     Filter ▾
         val borderColor = DarkenedBorder
         Row(
             modifier = Modifier
@@ -75,7 +120,6 @@ fun ModsScreen(state: AppState) {
             }
             Spacer(Modifier.weight(1f))
 
-            // Filter dropdown button
             Box {
                 val filterSource = remember { MutableInteractionSource() }
                 val isFilterPressed by filterSource.collectIsPressedAsState()
@@ -97,7 +141,7 @@ fun ModsScreen(state: AppState) {
                     ModFilter.entries.forEach { f ->
                         DropdownMenuItem(
                             text = { Text(f.name, color = TextForeground, fontSize = 10.sp) },
-                            onClick = { filter = f; selected = null; filterMenuOpen = false },
+                            onClick = { filter = f; filterMenuOpen = false },
                             modifier = Modifier.background(FrameBackground).height(28.dp)
                         )
                     }
@@ -106,7 +150,6 @@ fun ModsScreen(state: AppState) {
         }
         HorizontalDivider(color = DarkenedBorder)
 
-        // Control row: [path field "mod folder.."] [...] [+] [-]
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -115,8 +158,8 @@ fun ModsScreen(state: AppState) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             BasicTextField(
-                value = path,
-                onValueChange = { path = it },
+                value = search,
+                onValueChange = { search = it },
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxHeight()
@@ -125,35 +168,24 @@ fun ModsScreen(state: AppState) {
                     .padding(start = 5.dp),
                 textStyle = TextStyle(color = TextForeground, fontSize = 10.sp),
                 singleLine = true,
-                decorationBox = { innerTextField ->
+                decorationBox = { inner ->
                     Box(contentAlignment = Alignment.CenterStart) {
-                        if (path.isEmpty()) Text("mod folder..", color = GhostlyText, fontSize = 10.sp)
-                        innerTextField()
+                        if (search.isEmpty()) Text("search mods..", color = GhostlyText, fontSize = 10.sp)
+                        inner()
                     }
                 }
             )
             Spacer(Modifier.width(3.dp))
             ModControlButton(onClick = {
                 scope.launch {
-                    val dir = path.takeIf { it.isNotBlank() }
-                    pickDirectory("Select Mod Directory", dir)?.let { path = it }
+                    val side = if (filter == ModFilter.SERVER) ModSide.SERVER else ModSide.CLIENT
+                    pickDirectory("Select Mod Directory", null)?.let { path ->
+                        state.addMod(Modification(path = path.trim(), side = side))
+                    }
                 }
             }) {
                 Icon(Icons.Default.FolderOpen, contentDescription = null, tint = TextForeground, modifier = Modifier.size(14.dp))
             }
-            Spacer(Modifier.width(3.dp))
-            ModControlButton(label = "+", onClick = {
-                if (path.isNotBlank()) {
-                    val side = if (filter == ModFilter.SERVER) ModSide.SERVER else ModSide.CLIENT
-                    state.addMod(Modification(path = path.trim(), side = side))
-                    path = ""
-                    selected = null
-                }
-            })
-            Spacer(Modifier.width(3.dp))
-            ModControlButton(label = "-", onClick = {
-                selected?.let { state.removeMod(it); selected = null; path = "" }
-            })
         }
         HorizontalDivider(color = DarkenedBorder)
 
@@ -162,18 +194,114 @@ fun ModsScreen(state: AppState) {
             onToggleEnabled = { state.toggleEnabled(it) },
             onSwitchSide = { state.switchSide(it) },
             modifier = Modifier.weight(1f).padding(horizontal = 5.dp, vertical = 3.dp),
-            selected = selected,
-            onSelect = { mod ->
-                if (selected == mod) {
-                    selected = null
-                } else {
-                    selected = mod
-                    path = mod.path
+            selectedMods = selectedMods,
+            onSelect = { mod, isShift, isCtrl -> handleSelect(mod, isShift, isCtrl) },
+            missingPaths = missingPaths,
+            contextMenuContent = { clickedMod, dismiss ->
+                val targets = if (clickedMod in selectedMods) selectedMods else setOf(clickedMod)
+                val liveMods = state.mods.filter { m -> targets.any { t -> t.path == m.path && t.side == m.side } }
+
+                DropdownMenuItem(
+                    text = { Text("Enable", color = TextForeground, fontSize = 10.sp) },
+                    onClick = {
+                        liveMods.filter { !it.enabled }.forEach { state.toggleEnabled(it) }
+                        selectedMods = emptySet(); dismiss()
+                    },
+                    modifier = Modifier.background(FrameBackground).height(28.dp)
+                )
+                DropdownMenuItem(
+                    text = { Text("Disable", color = TextForeground, fontSize = 10.sp) },
+                    onClick = {
+                        liveMods.filter { it.enabled }.forEach { state.toggleEnabled(it) }
+                        selectedMods = emptySet(); dismiss()
+                    },
+                    modifier = Modifier.background(FrameBackground).height(28.dp)
+                )
+                DropdownMenuItem(
+                    text = { Text("Remove", color = TextForeground, fontSize = 10.sp) },
+                    onClick = {
+                        liveMods.forEach { state.removeMod(it) }
+                        selectedMods = emptySet(); dismiss()
+                    },
+                    modifier = Modifier.background(FrameBackground).height(28.dp)
+                )
+                if (targets.size == 1) {
+                    DropdownMenuItem(
+                        text = { Text("Info", color = TextForeground, fontSize = 10.sp) },
+                        onClick = { infoMod = liveMods.firstOrNull(); dismiss() },
+                        modifier = Modifier.background(FrameBackground).height(28.dp)
+                    )
                 }
-            },
+            }
         )
 
         PoweredByFooter()
+    }
+
+    infoMod?.let { mod ->
+        ModInfoDialog(
+            mod = mod,
+            isMissing = mod.path in missingPaths,
+            onDismiss = { infoMod = null },
+            onToggleEnabled = {
+                state.mods.find { it.path == mod.path && it.side == mod.side }?.let { state.toggleEnabled(it) }
+                infoMod = null
+            },
+            onSwitchSide = {
+                state.mods.find { it.path == mod.path && it.side == mod.side }?.let { state.switchSide(it) }
+                infoMod = null
+            },
+            onRemove = {
+                state.mods.find { it.path == mod.path && it.side == mod.side }?.let { state.removeMod(it) }
+                selectedMods = emptySet()
+                infoMod = null
+            }
+        )
+    }
+}
+
+@Composable
+private fun ModInfoDialog(
+    mod: Modification,
+    isMissing: Boolean,
+    onDismiss: () -> Unit,
+    onToggleEnabled: () -> Unit,
+    onSwitchSide: () -> Unit,
+    onRemove: () -> Unit,
+) {
+    Dialog(onDismissRequest = onDismiss) {
+        Column(
+            modifier = Modifier
+                .width(320.dp)
+                .background(FrameBackground)
+                .border(1.dp, DarkenedBorder)
+                .padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text(mod.name, color = TextForeground, fontSize = 12.sp)
+            Text(mod.path, color = GhostlyText, fontSize = 10.sp, lineHeight = 14.sp)
+            Text(
+                if (isMissing) "✗ Directory not found" else "✓ Directory found",
+                color = if (isMissing) GhostlyText else TextForeground,
+                fontSize = 10.sp
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                DarkButton(
+                    text = if (mod.enabled) "Disable" else "Enable",
+                    onClick = onToggleEnabled,
+                    modifier = Modifier.weight(1f)
+                )
+                DarkButton(
+                    text = if (mod.side == ModSide.CLIENT) "→ Server" else "→ Client",
+                    onClick = onSwitchSide,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                DarkButton("Remove", onClick = onRemove, modifier = Modifier.weight(1f))
+                DarkButton("Close", onClick = onDismiss, modifier = Modifier.weight(1f))
+            }
+        }
     }
 }
 

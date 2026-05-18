@@ -1,3 +1,5 @@
+@file:OptIn(androidx.compose.ui.ExperimentalComposeUiApi::class)
+
 package su.demands.dayz_workbench_tool.ui.components
 
 import androidx.compose.foundation.Image
@@ -8,23 +10,33 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Text
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.input.pointer.PointerButton
+import androidx.compose.ui.input.pointer.isCtrlPressed
+import androidx.compose.ui.input.pointer.isShiftPressed
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import su.demands.dayz_workbench_tool.model.Modification
 import su.demands.dayz_workbench_tool.model.ModSide
 import su.demands.dayz_workbench_tool.model.ModType
+import su.demands.dayz_workbench_tool.model.Modification
 import su.demands.dayz_workbench_tool.ui.theme.*
 
 @Composable
 fun ModItem(
     mod: Modification,
     isSelected: Boolean = false,
-    onSelect: (() -> Unit)? = null,
+    isMissing: Boolean = false,
+    onSelect: ((isShift: Boolean, isCtrl: Boolean) -> Unit)? = null,
+    onRightClick: (() -> Unit)? = null,
     onToggleEnabled: () -> Unit,
     onSwitchSide: () -> Unit,
 ) {
@@ -32,7 +44,29 @@ fun ModItem(
     val bg = if (isSelected) SelectColor else FrameBackground
 
     Row(
-        modifier = Modifier.fillMaxWidth().background(bg).padding(horizontal = 4.dp, vertical = 2.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(bg)
+            .padding(horizontal = 4.dp, vertical = 2.dp)
+            .then(
+                if (onRightClick != null) Modifier.pointerInput(onRightClick) {
+                    awaitPointerEventScope {
+                        var secondaryDown = false
+                        while (true) {
+                            val event = awaitPointerEvent()
+                            if (event.button == PointerButton.Secondary) {
+                                if (!secondaryDown) {
+                                    secondaryDown = true
+                                    event.changes.forEach { it.consume() }
+                                    onRightClick()
+                                } else {
+                                    secondaryDown = false
+                                }
+                            }
+                        }
+                    }
+                } else Modifier
+            ),
         verticalAlignment = Alignment.CenterVertically
     ) {
         SideButton(mod.side, colors, onSwitchSide)
@@ -51,11 +85,25 @@ fun ModItem(
                     .weight(1f)
                     .fillMaxHeight()
                     .then(
-                        if (onSelect != null) Modifier.clickable(
-                            interactionSource = remember { MutableInteractionSource() },
-                            indication = null,
-                            onClick = onSelect
-                        ) else Modifier
+                        if (onSelect != null) Modifier.pointerInput(onSelect) {
+                            awaitPointerEventScope {
+                                var primaryDown = false
+                                while (true) {
+                                    val event = awaitPointerEvent()
+                                    if (event.button == PointerButton.Primary) {
+                                        if (!primaryDown) {
+                                            primaryDown = true
+                                            val isShift = event.keyboardModifiers.isShiftPressed
+                                            val isCtrl = event.keyboardModifiers.isCtrlPressed
+                                            event.changes.forEach { it.consume() }
+                                            onSelect(isShift, isCtrl)
+                                        } else {
+                                            primaryDown = false
+                                        }
+                                    }
+                                }
+                            }
+                        } else Modifier
                     ),
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -72,9 +120,12 @@ fun ModItem(
                 Text(
                     text = mod.name,
                     modifier = Modifier.weight(1f).padding(horizontal = 2.dp),
-                    color = if (mod.enabled) TextForeground else GhostlyText,
-                    fontSize = 11.sp,
-                    lineHeight = 11.sp,
+                    color = if (mod.enabled && !isMissing) TextForeground else GhostlyText,
+                    style = TextStyle(
+                        fontSize = 11.sp,
+                        lineHeight = 11.sp,
+                        textDecoration = if (isMissing) TextDecoration.LineThrough else TextDecoration.None
+                    ),
                     maxLines = 1
                 )
             }
@@ -86,7 +137,7 @@ fun ModItem(
 }
 
 @Composable
-private fun SideButton(side: ModSide, colors: su.demands.dayz_workbench_tool.ui.theme.AppColors, onClick: () -> Unit) {
+private fun SideButton(side: ModSide, colors: AppColors, onClick: () -> Unit) {
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
 
@@ -110,7 +161,7 @@ private fun SideButton(side: ModSide, colors: su.demands.dayz_workbench_tool.ui.
 }
 
 @Composable
-private fun EnableButton(enabled: Boolean, colors: su.demands.dayz_workbench_tool.ui.theme.AppColors, onToggle: () -> Unit) {
+private fun EnableButton(enabled: Boolean, colors: AppColors, onToggle: () -> Unit) {
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
 
