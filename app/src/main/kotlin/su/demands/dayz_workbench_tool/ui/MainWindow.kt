@@ -27,6 +27,7 @@ import androidx.compose.ui.window.rememberWindowState
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import su.demands.dayz_workbench_tool.config.ConfigManager
 import su.demands.dayz_workbench_tool.manager.ModificationManager
 import su.demands.dayz_workbench_tool.manager.ProcessManager
 import su.demands.dayz_workbench_tool.state.AppState
@@ -61,11 +62,23 @@ fun MainWindow(state: AppState, onCloseRequest: () -> Unit) {
         resolveTheme(state.config.selectedTheme, state.config.customThemes)
     }
 
+    val windowState = rememberWindowState(
+        width = state.config.windowWidth.dp,
+        height = state.config.windowHeight.dp
+    )
+
     Window(
-        onCloseRequest = onCloseRequest,
+        onCloseRequest = {
+            val w = windowState.size.width.value
+            val h = windowState.size.height.value
+            if (w > 0f && h > 0f) {
+                ConfigManager.App.save(state.config.copy(windowWidth = w, windowHeight = h))
+            }
+            onCloseRequest()
+        },
         title = windowTitle,
         icon = appIcon,
-        state = rememberWindowState(width = 400.dp, height = 400.dp),
+        state = windowState,
         resizable = !state.config.lockWindowSize
     ) {
         AppTheme(themeColors) {

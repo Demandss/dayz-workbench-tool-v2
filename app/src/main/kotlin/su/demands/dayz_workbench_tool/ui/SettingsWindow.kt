@@ -22,6 +22,8 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -683,10 +685,15 @@ private fun ThemeEditorDialog(
     var modIconDisabled    by remember { mutableStateOf(initial.modIconDisabled) }
     var modIconWorkshop    by remember { mutableStateOf(initial.modIconWorkshop) }
 
+    val density = LocalDensity.current
+    val windowInfo = LocalWindowInfo.current
+    val maxDialogHeight = with(density) { (windowInfo.containerSize.height * 0.8f).toDp() }
+
     Dialog(onDismissRequest = onDismiss) {
         Column(
             modifier = Modifier
                 .width(300.dp)
+                .heightIn(max = maxDialogHeight)
                 .background(FrameBackground)
                 .border(1.dp, DarkenedBorder)
                 .padding(10.dp),
@@ -712,7 +719,7 @@ private fun ThemeEditorDialog(
 
             Column(
                 modifier = Modifier
-                    .heightIn(max = 340.dp)
+                    .weight(1f, fill = false)
                     .fillMaxWidth()
                     .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(5.dp)
@@ -761,7 +768,7 @@ private fun ThemeEditorDialog(
 
 @Composable
 private fun CollapsibleSection(title: String, content: @Composable ColumnScope.() -> Unit) {
-    var expanded by remember { mutableStateOf(true) }
+    var expanded by remember { mutableStateOf(false) }
     Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
         Row(
             modifier = Modifier
@@ -772,7 +779,7 @@ private fun CollapsibleSection(title: String, content: @Composable ColumnScope.(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            Text(if (expanded) "▾" else "▸", color = GhostlyText, fontSize = 9.sp, lineHeight = 10.sp)
+            Text(if (expanded) "▾" else "▸", color = TextForeground, fontSize = 13.sp, lineHeight = 14.sp)
             Text(title, color = GhostlyText, fontSize = 10.sp, modifier = Modifier.weight(1f))
         }
         HorizontalDivider(color = DarkenedBorder)

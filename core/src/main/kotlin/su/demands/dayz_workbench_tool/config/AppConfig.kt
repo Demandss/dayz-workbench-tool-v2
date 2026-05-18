@@ -18,7 +18,9 @@ data class AppConfig(
     val serverMods: List<ModEntry> = emptyList(),
     val lockWindowSize: Boolean = true,
     val selectedTheme: String = "dark",
-    val customThemes: List<ThemeDefinition> = emptyList()
+    val customThemes: List<ThemeDefinition> = emptyList(),
+    val windowWidth: Float = 400f,
+    val windowHeight: Float = 400f,
 )
 
 @Serializable
