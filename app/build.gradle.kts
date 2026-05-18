@@ -44,7 +44,7 @@ compose.desktop {
             .absolutePath
 
         nativeDistributions {
-            targetFormats(TargetFormat.Exe)
+            targetFormats(TargetFormat.Msi)
             packageName = "Dayz Workbench Tool"
             packageVersion = version.toString()
             modules(
@@ -58,6 +58,9 @@ compose.desktop {
             )
             windows {
                 iconFile.set(project.file("src/main/resources/assets/logo/logo.ico"))
+                upgradeUuid = "1A25F3F9-6694-4C1F-B9EA-B0C0A69FD313"
+                perUserInstall = true
+                menuGroup = "Dayz Workbench Tool"
             }
         }
     }

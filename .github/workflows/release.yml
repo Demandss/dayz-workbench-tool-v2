@@ -36,15 +36,15 @@ jobs:
 
       - name: Build portable zip and installer
         shell: pwsh
-        run: ./gradlew :app:packagePortable :app:packageReleaseExe "-Pversion=${{ github.event.inputs.version }}"
+        run: ./gradlew :app:packagePortable :app:packageReleaseMsi "-Pversion=${{ github.event.inputs.version }}"
 
       - name: Find installer
         id: find-installer
         shell: pwsh
         run: |
-          $exe = Get-ChildItem -Path "app/build/compose/binaries/main-release/exe" -Filter "*.exe" | Select-Object -First 1
-          if (-not $exe) { Write-Error "Installer not found"; exit 1 }
-          "installer_path=$($exe.FullName)" >> $env:GITHUB_OUTPUT
+          $msi = Get-ChildItem -Path "app/build/compose/binaries/main-release/msi" -Filter "*.msi" | Select-Object -First 1
+          if (-not $msi) { Write-Error "Installer not found"; exit 1 }
+          "installer_path=$($msi.FullName)" >> $env:GITHUB_OUTPUT
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
