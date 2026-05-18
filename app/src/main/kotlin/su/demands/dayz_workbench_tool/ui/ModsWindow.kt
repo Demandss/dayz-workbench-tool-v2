@@ -203,6 +203,7 @@ fun ModsScreen(state: AppState) {
             modifier = Modifier.weight(1f).padding(horizontal = 5.dp, vertical = 3.dp),
             selectedMods = selectedMods,
             onSelect = { mod, isShift, isCtrl -> handleSelect(mod, isShift, isCtrl) },
+            onDoubleClick = { mod -> infoMod = state.mods.find { it.path == mod.path && it.side == mod.side } },
             missingPaths = missingPaths,
             contextMenuContent = { clickedMod, dismiss ->
                 val targets = if (clickedMod in selectedMods) selectedMods else setOf(clickedMod)
@@ -262,6 +263,22 @@ fun ModsScreen(state: AppState) {
                     modifier = Modifier.background(FrameBackground).height(28.dp)
                 )
                 if (targets.size == 1) {
+                    val singleMod = liveMods.firstOrNull()
+                    if (singleMod != null && File(singleMod.path).exists()) {
+                        DropdownMenuItem(
+                            text = { Text("Open location", color = TextForeground, fontSize = 10.sp) },
+                            onClick = {
+                                dismiss()
+                                scope.launch(Dispatchers.IO) {
+                                    runCatching {
+                                        if (java.awt.Desktop.isDesktopSupported())
+                                            java.awt.Desktop.getDesktop().open(File(singleMod.path))
+                                    }
+                                }
+                            },
+                            modifier = Modifier.background(FrameBackground).height(28.dp)
+                        )
+                    }
                     DropdownMenuItem(
                         text = { Text("Info", color = TextForeground, fontSize = 10.sp) },
                         onClick = { infoMod = liveMods.firstOrNull(); dismiss() },
@@ -284,17 +301,42 @@ fun ModsScreen(state: AppState) {
             isMissing = mod.path in missingPaths,
             onDismiss = { infoMod = null },
             onToggleEnabled = {
-                state.mods.find { it.path == mod.path && it.side == mod.side }?.let { state.toggleEnabled(it) }
-                infoMod = null
+                state.mods.find { it.path == mod.path && it.side == mod.side }?.let { live ->
+                    infoMod = null
+                    pendingAction = PendingAction(
+                        title = if (live.enabled) "Disable mod" else "Enable mod",
+                        mods = listOf(live),
+                        onConfirm = { state.toggleEnabled(live) }
+                    )
+                }
             },
             onSwitchSide = {
-                state.mods.find { it.path == mod.path && it.side == mod.side }?.let { state.switchSide(it) }
-                infoMod = null
+                state.mods.find { it.path == mod.path && it.side == mod.side }?.let { live ->
+                    infoMod = null
+                    pendingAction = PendingAction(
+                        title = if (live.side == ModSide.CLIENT) "Move to server" else "Move to client",
+                        mods = listOf(live),
+                        onConfirm = { state.switchSide(live) }
+                    )
+                }
             },
             onRemove = {
-                state.mods.find { it.path == mod.path && it.side == mod.side }?.let { state.removeMod(it) }
-                selectedMods = emptySet()
-                infoMod = null
+                state.mods.find { it.path == mod.path && it.side == mod.side }?.let { live ->
+                    infoMod = null
+                    pendingAction = PendingAction(
+                        title = "Remove mod",
+                        mods = listOf(live),
+                        onConfirm = { state.removeMod(live); selectedMods = emptySet() }
+                    )
+                }
+            },
+            onOpenLocation = {
+                scope.launch(Dispatchers.IO) {
+                    runCatching {
+                        if (java.awt.Desktop.isDesktopSupported())
+                            java.awt.Desktop.getDesktop().open(File(mod.path))
+                    }
+                }
             }
         )
     }
@@ -333,6 +375,7 @@ private fun ModInfoDialog(
     onToggleEnabled: () -> Unit,
     onSwitchSide: () -> Unit,
     onRemove: () -> Unit,
+    onOpenLocation: () -> Unit,
 ) {
     Dialog(onDismissRequest = onDismiss) {
         Column(
@@ -363,6 +406,7 @@ private fun ModInfoDialog(
                 )
             }
             Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                DarkButton("Open", onClick = onOpenLocation, modifier = Modifier.weight(1f), enabled = !isMissing)
                 DarkButton("Remove", onClick = onRemove, modifier = Modifier.weight(1f))
                 DarkButton("Close", onClick = onDismiss, modifier = Modifier.weight(1f))
             }

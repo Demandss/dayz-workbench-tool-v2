@@ -36,6 +36,7 @@ fun ModItem(
     isSelected: Boolean = false,
     isMissing: Boolean = false,
     onSelect: ((isShift: Boolean, isCtrl: Boolean) -> Unit)? = null,
+    onDoubleClick: (() -> Unit)? = null,
     onRightClick: (() -> Unit)? = null,
     onToggleEnabled: () -> Unit,
     onSwitchSide: () -> Unit,
@@ -85,18 +86,26 @@ fun ModItem(
                     .weight(1f)
                     .fillMaxHeight()
                     .then(
-                        if (onSelect != null) Modifier.pointerInput(onSelect) {
+                        if (onSelect != null || onDoubleClick != null) Modifier.pointerInput(onSelect, onDoubleClick) {
                             awaitPointerEventScope {
                                 var primaryDown = false
+                                var lastClickTime = 0L
                                 while (true) {
                                     val event = awaitPointerEvent()
                                     if (event.button == PointerButton.Primary) {
                                         if (!primaryDown) {
                                             primaryDown = true
+                                            val now = System.currentTimeMillis()
                                             val isShift = event.keyboardModifiers.isShiftPressed
                                             val isCtrl = event.keyboardModifiers.isCtrlPressed
                                             event.changes.forEach { it.consume() }
-                                            onSelect(isShift, isCtrl)
+                                            if (onDoubleClick != null && now - lastClickTime < 300L) {
+                                                lastClickTime = 0L
+                                                onDoubleClick()
+                                            } else {
+                                                lastClickTime = now
+                                                onSelect?.invoke(isShift, isCtrl)
+                                            }
                                         } else {
                                             primaryDown = false
                                         }

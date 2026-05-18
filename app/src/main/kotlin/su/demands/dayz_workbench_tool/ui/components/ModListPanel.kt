@@ -24,6 +24,7 @@ fun ModListPanel(
     modifier: Modifier = Modifier,
     selectedMods: Set<Modification> = emptySet(),
     onSelect: ((Modification, isShift: Boolean, isCtrl: Boolean) -> Unit)? = null,
+    onDoubleClick: ((Modification) -> Unit)? = null,
     missingPaths: Set<String> = emptySet(),
     contextMenuContent: (@Composable (mod: Modification, dismiss: () -> Unit) -> Unit)? = null,
 ) {
@@ -42,6 +43,7 @@ fun ModListPanel(
                     isSelected = mod in selectedMods,
                     isMissing = mod.path in missingPaths,
                     onSelect = onSelect?.let { cb -> { isShift, isCtrl -> cb(mod, isShift, isCtrl) } },
+                    onDoubleClick = onDoubleClick?.let { cb -> { cb(mod) } },
                     onRightClick = contextMenuContent?.let { { contextMod = mod } },
                     onToggleEnabled = { onToggleEnabled(mod) },
                     onSwitchSide = { onSwitchSide(mod) },
