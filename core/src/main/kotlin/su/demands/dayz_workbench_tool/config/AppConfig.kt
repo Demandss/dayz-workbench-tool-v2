@@ -16,7 +16,7 @@ data class AppConfig(
     val autoKillTasks: List<String> = listOf("workbenchApp.exe", "DayZDiag_x64.exe"),
     val clientMods: List<ModEntry> = emptyList(),
     val serverMods: List<ModEntry> = emptyList(),
-    val lockWindowSize: Boolean = true,
+    val lockWindowSize: Boolean = false,
     val adaptiveScale: Boolean = true,
     val selectedTheme: String = "dark",
     val customThemes: List<ThemeDefinition> = emptyList(),

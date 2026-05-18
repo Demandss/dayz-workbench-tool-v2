@@ -7,12 +7,9 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -176,23 +173,12 @@ fun ModsScreen(state: AppState) {
                 textStyle = TextStyle(color = TextForeground, fontSize = 10.sp),
                 singleLine = true,
                 decorationBox = { inner ->
-                    Box(contentAlignment = Alignment.CenterStart) {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.CenterStart) {
                         if (search.isEmpty()) Text("search mods..", color = GhostlyText, fontSize = 10.sp)
                         inner()
                     }
                 }
             )
-            Spacer(Modifier.width(3.dp))
-            ModControlButton(onClick = {
-                scope.launch {
-                    val side = if (filter == ModFilter.SERVER) ModSide.SERVER else ModSide.CLIENT
-                    pickDirectory("Select Mod Directory", null)?.let { path ->
-                        state.addMod(Modification(path = path.trim(), side = side))
-                    }
-                }
-            }) {
-                Icon(Icons.Default.FolderOpen, contentDescription = null, tint = TextForeground, modifier = Modifier.size(14.dp))
-            }
         }
         HorizontalDivider(color = DarkenedBorder)
 
