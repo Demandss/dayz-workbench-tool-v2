@@ -18,7 +18,10 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.compose.ui.graphics.toComposeImageBitmap
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -81,20 +84,38 @@ fun MainWindow(state: AppState, onCloseRequest: () -> Unit) {
         state = windowState,
         resizable = !state.config.lockWindowSize
     ) {
-        AppTheme(themeColors) {
-            Column(modifier = Modifier.fillMaxSize().background(FrameBackground)) {
-                when (state.currentScreen) {
-                    Screen.MAIN     -> MainContent(state)
-                    Screen.SETTINGS -> SettingsScreen(state)
-                    Screen.MODS     -> ModsScreen(state)
+        ScaledContent {
+            AppTheme(themeColors) {
+                Column(modifier = Modifier.fillMaxSize().background(FrameBackground)) {
+                    when (state.currentScreen) {
+                        Screen.MAIN     -> MainContent(state)
+                        Screen.SETTINGS -> SettingsScreen(state)
+                        Screen.MODS     -> ModsScreen(state)
+                    }
+                }
+                if (!state.config.setupDone) {
+                    InitialSetupDialog(state)
+                } else {
+                    WorkDriveCheck(state, onCloseRequest)
                 }
             }
-            if (!state.config.setupDone) {
-                InitialSetupDialog(state)
-            } else {
-                WorkDriveCheck(state, onCloseRequest)
-            }
         }
+    }
+}
+
+@Composable
+private fun ScaledContent(baseWidth: Float = 400f, baseHeight: Float = 400f, content: @Composable () -> Unit) {
+    val sysDensity = LocalDensity.current
+    val containerSize = LocalWindowInfo.current.containerSize
+    val scale = if (containerSize.width > 0 && containerSize.height > 0) {
+        val wDp = containerSize.width / sysDensity.density
+        val hDp = containerSize.height / sysDensity.density
+        minOf(wDp / baseWidth, hDp / baseHeight)
+    } else 1f
+    CompositionLocalProvider(
+        LocalDensity provides Density(sysDensity.density * scale, sysDensity.fontScale)
+    ) {
+        content()
     }
 }
 
