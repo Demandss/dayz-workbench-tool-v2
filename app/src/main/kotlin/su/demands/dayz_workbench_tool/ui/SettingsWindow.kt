@@ -115,6 +115,14 @@ private fun GlobalTab(config: AppConfig, onChange: (AppConfig) -> Unit) {
             PathField(value = config.workbenchPath, isFile = true) { onChange(config.copy(workbenchPath = it)) }
         }
         CheckRow("Lock window size", config.lockWindowSize) { onChange(config.copy(lockWindowSize = it)) }
+        CheckRow("Adaptive scaling", config.adaptiveScale) { onChange(config.copy(adaptiveScale = it)) }
+        SettingRow("Window size") {
+            DarkButton(
+                text = "Reset to default (400 × 400)",
+                onClick = { onChange(config.copy(windowWidth = 400f, windowHeight = 400f)) },
+                modifier = Modifier.weight(1f)
+            )
+        }
     }
 }
 

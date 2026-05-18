@@ -28,6 +28,12 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-swing:1.8.1")
 }
 
+// Move the compose run task out of the default group so IntelliJ doesn't
+// confuse it with :app:run when clicking Run on app/Main.kt
+tasks.matching { it.name == "run" }.configureEach {
+    group = "layout-editor"
+}
+
 compose.desktop {
     application {
         mainClass = "su.demands.dayz_workbench_tool.layout_editor.MainKt"

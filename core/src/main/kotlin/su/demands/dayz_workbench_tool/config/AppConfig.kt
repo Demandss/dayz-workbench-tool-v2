@@ -17,6 +17,7 @@ data class AppConfig(
     val clientMods: List<ModEntry> = emptyList(),
     val serverMods: List<ModEntry> = emptyList(),
     val lockWindowSize: Boolean = true,
+    val adaptiveScale: Boolean = true,
     val selectedTheme: String = "dark",
     val customThemes: List<ThemeDefinition> = emptyList(),
     val windowWidth: Float = 400f,

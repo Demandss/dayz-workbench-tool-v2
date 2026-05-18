@@ -22,6 +22,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -70,6 +71,11 @@ fun MainWindow(state: AppState, onCloseRequest: () -> Unit) {
         height = state.config.windowHeight.dp
     )
 
+    LaunchedEffect(state.config.windowWidth, state.config.windowHeight) {
+        val target = DpSize(state.config.windowWidth.dp, state.config.windowHeight.dp)
+        if (windowState.size != target) windowState.size = target
+    }
+
     Window(
         onCloseRequest = {
             val w = windowState.size.width.value
@@ -84,7 +90,7 @@ fun MainWindow(state: AppState, onCloseRequest: () -> Unit) {
         state = windowState,
         resizable = !state.config.lockWindowSize
     ) {
-        ScaledContent {
+        ScaledContent(enabled = state.config.adaptiveScale) {
             AppTheme(themeColors) {
                 Column(modifier = Modifier.fillMaxSize().background(FrameBackground)) {
                     when (state.currentScreen) {
@@ -104,7 +110,8 @@ fun MainWindow(state: AppState, onCloseRequest: () -> Unit) {
 }
 
 @Composable
-private fun ScaledContent(baseWidth: Float = 400f, baseHeight: Float = 400f, content: @Composable () -> Unit) {
+private fun ScaledContent(enabled: Boolean = true, baseWidth: Float = 400f, baseHeight: Float = 400f, content: @Composable () -> Unit) {
+    if (!enabled) { content(); return }
     val sysDensity = LocalDensity.current
     val containerSize = LocalWindowInfo.current.containerSize
     val scale = if (containerSize.width > 0 && containerSize.height > 0) {
