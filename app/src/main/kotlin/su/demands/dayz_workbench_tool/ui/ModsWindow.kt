@@ -170,7 +170,7 @@ fun ModsScreen(state: AppState) {
                     selected = mod
                     path = mod.path
                 }
-            }
+            },
         )
 
         PoweredByFooter()

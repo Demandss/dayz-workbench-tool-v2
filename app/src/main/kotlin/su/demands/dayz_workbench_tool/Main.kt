@@ -9,6 +9,7 @@ import su.demands.dayz_workbench_tool.manager.ModificationManager
 import su.demands.dayz_workbench_tool.manager.ProcessManager
 import su.demands.dayz_workbench_tool.state.AppState
 import su.demands.dayz_workbench_tool.ui.MainWindow
+import su.demands.dayz_workbench_tool.ui.theme.resolveTheme
 
 fun main() = application {
     val state = remember { AppState() }
@@ -28,6 +29,9 @@ fun main() = application {
     if (state.showLayoutEditor) {
         val scope = rememberCoroutineScope()
         val leState = remember { LayoutEditorState(state.config.workDrivePath, scope) }
-        LayoutEditorWindow(state = leState, onCloseRequest = { state.showLayoutEditor = false })
+        val leTheme = remember(state.config.selectedTheme, state.config.customThemes) {
+            resolveTheme(state.config.selectedTheme, state.config.customThemes)
+        }
+        LayoutEditorWindow(state = leState, themeColors = leTheme, onCloseRequest = { state.showLayoutEditor = false })
     }
 }

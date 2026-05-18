@@ -36,6 +36,7 @@ import su.demands.dayz_workbench_tool.ui.components.ModsPanel
 import su.demands.dayz_workbench_tool.ui.components.PoweredByFooter
 import su.demands.dayz_workbench_tool.ui.components.ToolsPanel
 import su.demands.dayz_workbench_tool.ui.theme.*
+import su.demands.dayz_workbench_tool.ui.theme.resolveTheme
 import su.demands.dayz_workbench_tool.util.SteamDetector
 import java.io.File
 import javax.imageio.ImageIO
@@ -56,15 +57,18 @@ fun MainWindow(state: AppState, onCloseRequest: () -> Unit) {
         Screen.SETTINGS -> "DayZ Workbench Tool - Settings"
         Screen.MODS     -> "DayZ Workbench Tool - Mods Setting"
     }
+    val themeColors = remember(state.config.selectedTheme, state.config.customThemes) {
+        resolveTheme(state.config.selectedTheme, state.config.customThemes)
+    }
 
     Window(
         onCloseRequest = onCloseRequest,
         title = windowTitle,
         icon = appIcon,
         state = rememberWindowState(width = 400.dp, height = 400.dp),
-        resizable = false
+        resizable = !state.config.lockWindowSize
     ) {
-        AppTheme {
+        AppTheme(themeColors) {
             Column(modifier = Modifier.fillMaxSize().background(FrameBackground)) {
                 when (state.currentScreen) {
                     Screen.MAIN     -> MainContent(state)
@@ -413,42 +417,5 @@ private fun MenuBarItem(text: String, onClick: () -> Unit) {
         contentAlignment = Alignment.Center
     ) {
         Text(text, color = TextForeground, fontSize = 10.sp)
-    }
-}
-
-
-@Composable
-fun BackHeader(onBack: () -> Unit, title: String? = null) {
-    val interactionSource = remember { MutableInteractionSource() }
-    val isPressed by interactionSource.collectIsPressedAsState()
-
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(24.dp)
-            .background(FrameBackground)
-            .drawBehind {
-                val c = DarkenedBorder
-                drawLine(c, Offset(0f, size.height - 1f), Offset(size.width, size.height - 1f), 1f)
-            }
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxHeight()
-                .background(if (isPressed) SelectColor else FrameBackground)
-                .clickable(interactionSource = interactionSource, indication = null, onClick = onBack)
-                .padding(horizontal = 8.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            Text("← Back", color = TextForeground, fontSize = 10.sp)
-        }
-        if (title != null) {
-            Box(
-                modifier = Modifier.fillMaxHeight().padding(horizontal = 8.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(title, color = TextForeground, fontSize = 10.sp)
-            }
-        }
     }
 }

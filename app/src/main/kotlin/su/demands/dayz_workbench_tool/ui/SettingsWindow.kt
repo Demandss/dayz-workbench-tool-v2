@@ -1,16 +1,11 @@
 package su.demands.dayz_workbench_tool.ui
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.hoverable
+import androidx.compose.foundation.*
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material3.HorizontalDivider
@@ -22,13 +17,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
-import java.io.File
-import java.util.stream.Collectors
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -38,7 +34,10 @@ import su.demands.dayz_workbench_tool.state.Screen
 import su.demands.dayz_workbench_tool.ui.components.DarkButton
 import su.demands.dayz_workbench_tool.ui.components.DarkTabRow
 import su.demands.dayz_workbench_tool.ui.components.PoweredByFooter
+import su.demands.dayz_workbench_tool.ui.components.ColorPickerDialog
 import su.demands.dayz_workbench_tool.ui.theme.*
+import java.io.File
+import java.util.stream.Collectors
 
 @Composable
 fun SettingsScreen(state: AppState) {
@@ -64,7 +63,7 @@ fun SettingsScreen(state: AppState) {
         HorizontalDivider(color = DarkenedBorder)
 
         DarkTabRow(
-            tabs = listOf("Global", "Advanced"),
+            tabs = listOf("Global", "Advanced", "Theme"),
             selectedIndex = selectedTab,
             onTabSelected = { selectedTab = it }
         )
@@ -74,6 +73,7 @@ fun SettingsScreen(state: AppState) {
             when (selectedTab) {
                 0 -> GlobalTab(localConfig) { localConfig = it }
                 1 -> AdvancedTab(localConfig) { localConfig = it }
+                2 -> ThemeTab(localConfig) { localConfig = it }
             }
         }
 
@@ -112,6 +112,7 @@ private fun GlobalTab(config: AppConfig, onChange: (AppConfig) -> Unit) {
         SettingRow("Workbench path") {
             PathField(value = config.workbenchPath, isFile = true) { onChange(config.copy(workbenchPath = it)) }
         }
+        CheckRow("Lock window size", config.lockWindowSize) { onChange(config.copy(lockWindowSize = it)) }
     }
 }
 
@@ -487,6 +488,343 @@ private fun ProcessPickerDialog(existing: List<String>, onDismiss: () -> Unit, o
 
             DarkButton("Cancel", onClick = onDismiss, modifier = Modifier.fillMaxWidth())
         }
+    }
+}
+
+@Composable
+private fun CheckRow(label: String, checked: Boolean, onChange: (Boolean) -> Unit) {
+    SettingRow(label) {
+        Box(
+            modifier = Modifier
+                .size(16.dp)
+                .border(1.dp, SubSelectColor)
+                .background(if (checked) SelectColor else FrameBackground)
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null
+                ) { onChange(!checked) },
+            contentAlignment = Alignment.Center
+        ) {
+            if (checked) Text("✓", color = TextForeground, fontSize = 9.sp, lineHeight = 10.sp)
+        }
+    }
+}
+
+@Composable
+private fun ThemeTab(config: AppConfig, onChange: (AppConfig) -> Unit) {
+    var editingTheme by remember { mutableStateOf<ThemeDefinition?>(null) }
+
+    Column(
+        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(5.dp),
+        verticalArrangement = Arrangement.spacedBy(3.dp)
+    ) {
+        Text("Built-in", color = GhostlyText, fontSize = 10.sp, modifier = Modifier.padding(start = 4.dp))
+        Spacer(Modifier.height(2.dp))
+        BuiltinThemes.all.forEach { theme ->
+            ThemeRow(
+                theme = theme,
+                isSelected = config.selectedTheme == theme.id,
+                onSelect = { onChange(config.copy(selectedTheme = theme.id)) },
+                onDuplicate = {
+                    editingTheme = theme.copy(
+                        id = "custom_${System.currentTimeMillis()}",
+                        name = "${theme.name} Copy"
+                    )
+                }
+            )
+        }
+
+        Spacer(Modifier.height(6.dp))
+        Text("Custom", color = GhostlyText, fontSize = 10.sp, modifier = Modifier.padding(start = 4.dp))
+        Spacer(Modifier.height(2.dp))
+
+        if (config.customThemes.isEmpty()) {
+            Text("No custom themes", color = GhostlyText, fontSize = 11.sp, modifier = Modifier.padding(start = 8.dp, bottom = 2.dp))
+        }
+        config.customThemes.forEach { theme ->
+            ThemeRow(
+                theme = theme,
+                isSelected = config.selectedTheme == theme.id,
+                onSelect = { onChange(config.copy(selectedTheme = theme.id)) },
+                onDuplicate = {
+                    editingTheme = theme.copy(
+                        id = "custom_${System.currentTimeMillis()}",
+                        name = "${theme.name} Copy"
+                    )
+                },
+                onEdit = { editingTheme = theme },
+                onDelete = {
+                    val remaining = config.customThemes - theme
+                    val newSelected = if (config.selectedTheme == theme.id) "dark" else config.selectedTheme
+                    onChange(config.copy(customThemes = remaining, selectedTheme = newSelected))
+                }
+            )
+        }
+
+        Spacer(Modifier.height(4.dp))
+        DarkButton("+ New Theme", onClick = {
+            val base = BuiltinThemes.findById(config.selectedTheme)
+                ?: config.customThemes.find { it.id == config.selectedTheme }
+                ?: BuiltinThemes.Dark
+            editingTheme = base.copy(id = "custom_${System.currentTimeMillis()}", name = "My Theme")
+        })
+    }
+
+    editingTheme?.let { theme ->
+        val isNew = config.customThemes.none { it.id == theme.id }
+        ThemeEditorDialog(
+            initial = theme,
+            onDismiss = { editingTheme = null },
+            onSave = { updated ->
+                val newThemes = if (isNew) config.customThemes + updated
+                                else config.customThemes.map { if (it.id == updated.id) updated else it }
+                onChange(config.copy(customThemes = newThemes))
+                editingTheme = null
+            }
+        )
+    }
+}
+
+@Composable
+private fun ThemeRow(
+    theme: ThemeDefinition,
+    isSelected: Boolean,
+    onSelect: () -> Unit,
+    onDuplicate: (() -> Unit)? = null,
+    onEdit: (() -> Unit)? = null,
+    onDelete: (() -> Unit)? = null
+) {
+    val rowSource = remember { MutableInteractionSource() }
+    val isHovered by rowSource.collectIsHoveredAsState()
+    val themeColors = remember(theme) { theme.toAppColors() }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(30.dp)
+            .border(1.dp, if (isSelected) SubSelectColor else DarkenedBorder)
+            .background(if (isHovered) ElementsBackground else FrameBackground)
+            .hoverable(rowSource)
+            .clickable(interactionSource = rowSource, indication = null, onClick = onSelect)
+            .padding(horizontal = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        ThemeSwatches(themeColors)
+        Spacer(Modifier.width(4.dp))
+        Text(theme.name, color = TextForeground, fontSize = 11.sp, modifier = Modifier.weight(1f))
+        if (isSelected) Text("✓", color = SubSelectColor, fontSize = 10.sp)
+        onDuplicate?.let { dup ->
+            val src = remember { MutableInteractionSource() }
+            val pressed by src.collectIsPressedAsState()
+            Box(
+                modifier = Modifier
+                    .size(16.dp)
+                    .background(if (pressed) SelectColor else Color.Transparent)
+                    .clickable(interactionSource = src, indication = null, onClick = dup),
+                contentAlignment = Alignment.Center
+            ) { Text("⧉", color = GhostlyText, fontSize = 10.sp) }
+        }
+        onEdit?.let { edit ->
+            val src = remember { MutableInteractionSource() }
+            val pressed by src.collectIsPressedAsState()
+            Box(
+                modifier = Modifier
+                    .size(16.dp)
+                    .background(if (pressed) SelectColor else Color.Transparent)
+                    .clickable(interactionSource = src, indication = null, onClick = edit),
+                contentAlignment = Alignment.Center
+            ) { Text("✎", color = GhostlyText, fontSize = 10.sp) }
+        }
+        onDelete?.let { del ->
+            val src = remember { MutableInteractionSource() }
+            val pressed by src.collectIsPressedAsState()
+            Box(
+                modifier = Modifier
+                    .size(16.dp)
+                    .background(if (pressed) SelectColor else Color.Transparent)
+                    .clickable(interactionSource = src, indication = null, onClick = del),
+                contentAlignment = Alignment.Center
+            ) { Text("×", color = GhostlyText, fontSize = 12.sp, lineHeight = 13.sp) }
+        }
+    }
+}
+
+@Composable
+private fun ThemeSwatches(colors: AppColors) {
+    listOf(
+        colors.frameBackground,
+        colors.elementsBackground,
+        colors.selectColor,
+        colors.subSelectColor,
+        colors.textForeground
+    ).forEach { c ->
+        Box(Modifier.size(12.dp).background(c).border(0.5.dp, DarkenedBorder))
+    }
+}
+
+@Composable
+private fun ThemeEditorDialog(
+    initial: ThemeDefinition,
+    onDismiss: () -> Unit,
+    onSave: (ThemeDefinition) -> Unit
+) {
+    var name               by remember { mutableStateOf(initial.name) }
+    var frameBackground    by remember { mutableStateOf(initial.frameBackground) }
+    var elementsBackground by remember { mutableStateOf(initial.elementsBackground) }
+    var selectColor        by remember { mutableStateOf(initial.selectColor) }
+    var subSelectColor     by remember { mutableStateOf(initial.subSelectColor) }
+    var darkenedBorder     by remember { mutableStateOf(initial.darkenedBorder) }
+    var textForeground     by remember { mutableStateOf(initial.textForeground) }
+    var ghostlyText        by remember { mutableStateOf(initial.ghostlyText) }
+    var modIconClientSide  by remember { mutableStateOf(initial.modIconClientSide) }
+    var modIconServerSide  by remember { mutableStateOf(initial.modIconServerSide) }
+    var modIconEnabled     by remember { mutableStateOf(initial.modIconEnabled) }
+    var modIconDisabled    by remember { mutableStateOf(initial.modIconDisabled) }
+    var modIconWorkshop    by remember { mutableStateOf(initial.modIconWorkshop) }
+
+    Dialog(onDismissRequest = onDismiss) {
+        Column(
+            modifier = Modifier
+                .width(300.dp)
+                .background(FrameBackground)
+                .border(1.dp, DarkenedBorder)
+                .padding(10.dp),
+            verticalArrangement = Arrangement.spacedBy(5.dp)
+        ) {
+            Text("Theme Editor", color = TextForeground, fontSize = 12.sp)
+
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text("Name", color = GhostlyText, fontSize = 11.sp, modifier = Modifier.width(120.dp))
+                BasicTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(20.dp)
+                        .border(1.dp, SubSelectColor)
+                        .background(ElementsBackground)
+                        .padding(start = 4.dp),
+                    textStyle = TextStyle(color = TextForeground, fontSize = 11.sp, lineHeight = 11.sp),
+                    singleLine = true
+                )
+            }
+
+            Column(
+                modifier = Modifier
+                    .heightIn(max = 340.dp)
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(5.dp)
+            ) {
+                CollapsibleSection("UI Colors") {
+                    ThemeColorRow("Frame Background",    frameBackground)    { frameBackground = it }
+                    ThemeColorRow("Elements Background", elementsBackground) { elementsBackground = it }
+                    ThemeColorRow("Selection",           selectColor)        { selectColor = it }
+                    ThemeColorRow("Accent",              subSelectColor)     { subSelectColor = it }
+                    ThemeColorRow("Border",              darkenedBorder)     { darkenedBorder = it }
+                    ThemeColorRow("Text",                textForeground)     { textForeground = it }
+                    ThemeColorRow("Dim Text",            ghostlyText)        { ghostlyText = it }
+                }
+                CollapsibleSection("Icons") {
+                    ThemeColorRow("Client Side", modIconClientSide, "assets/images/mod_client_side.svg") { modIconClientSide = it }
+                    ThemeColorRow("Server Side", modIconServerSide, "assets/images/mod_server_side.svg") { modIconServerSide = it }
+                    ThemeColorRow("Enabled",     modIconEnabled,    "assets/images/mod_enabled.svg")     { modIconEnabled = it }
+                    ThemeColorRow("Disabled",    modIconDisabled,   "assets/images/mod_disebled.svg")    { modIconDisabled = it }
+                    ThemeColorRow("Workshop",    modIconWorkshop,   "assets/images/workshop.svg")        { modIconWorkshop = it }
+                }
+            }
+
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                DarkButton("Save", onClick = {
+                    onSave(initial.copy(
+                        name               = name.ifBlank { initial.name },
+                        frameBackground    = frameBackground,
+                        elementsBackground = elementsBackground,
+                        selectColor        = selectColor,
+                        subSelectColor     = subSelectColor,
+                        darkenedBorder     = darkenedBorder,
+                        textForeground     = textForeground,
+                        ghostlyText        = ghostlyText,
+                        modIconClientSide  = modIconClientSide,
+                        modIconServerSide  = modIconServerSide,
+                        modIconEnabled     = modIconEnabled,
+                        modIconDisabled    = modIconDisabled,
+                        modIconWorkshop    = modIconWorkshop
+                    ))
+                }, modifier = Modifier.weight(1f))
+                DarkButton("Cancel", onClick = onDismiss, modifier = Modifier.weight(1f))
+            }
+        }
+    }
+}
+
+@Composable
+private fun CollapsibleSection(title: String, content: @Composable ColumnScope.() -> Unit) {
+    var expanded by remember { mutableStateOf(true) }
+    Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) {
+                    expanded = !expanded
+                },
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Text(if (expanded) "▾" else "▸", color = GhostlyText, fontSize = 9.sp, lineHeight = 10.sp)
+            Text(title, color = GhostlyText, fontSize = 10.sp, modifier = Modifier.weight(1f))
+        }
+        HorizontalDivider(color = DarkenedBorder)
+        if (expanded) {
+            content()
+        }
+    }
+}
+
+@Composable
+private fun ThemeColorRow(label: String, colorLong: Long, iconRes: String? = null, onChange: (Long) -> Unit) {
+    var showPicker by remember { mutableStateOf(false) }
+    val color = remember(colorLong) { Color(colorLong.toInt()) }
+    val swatchSource = remember { MutableInteractionSource() }
+    val isSwatchPressed by swatchSource.collectIsPressedAsState()
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        Text(label, color = GhostlyText, fontSize = 10.sp, modifier = Modifier.width(120.dp))
+        Box(
+            modifier = Modifier
+                .size(20.dp)
+                .background(if (iconRes == null) color else ElementsBackground)
+                .border(1.dp, if (isSwatchPressed) SubSelectColor else DarkenedBorder)
+                .clickable(interactionSource = swatchSource, indication = null) { showPicker = true },
+            contentAlignment = Alignment.Center
+        ) {
+            if (iconRes != null) {
+                Image(
+                    painter = painterResource(iconRes),
+                    contentDescription = null,
+                    colorFilter = ColorFilter.tint(color),
+                    modifier = Modifier.size(14.dp)
+                )
+            }
+        }
+        Text("#%06X".format(colorLong.toInt() and 0xFFFFFF), color = TextForeground, fontSize = 10.sp)
+    }
+
+    if (showPicker) {
+        ColorPickerDialog(
+            title = label,
+            initial = color,
+            onDismiss = { showPicker = false },
+            onSave = { newColor ->
+                onChange(newColor.toArgb().toLong() and 0xFFFFFFFFL)
+                showPicker = false
+            }
+        )
     }
 }
 

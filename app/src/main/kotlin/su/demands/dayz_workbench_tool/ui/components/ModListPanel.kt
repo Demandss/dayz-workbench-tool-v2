@@ -20,7 +20,7 @@ fun ModListPanel(
     onSwitchSide: (Modification) -> Unit,
     modifier: Modifier = Modifier,
     selected: Modification? = null,
-    onSelect: ((Modification) -> Unit)? = null
+    onSelect: ((Modification) -> Unit)? = null,
 ) {
     LazyColumn(
         modifier = modifier
@@ -34,7 +34,7 @@ fun ModListPanel(
                 isSelected = mod == selected,
                 onSelect = onSelect?.let { cb -> { cb(mod) } },
                 onToggleEnabled = { onToggleEnabled(mod) },
-                onSwitchSide = { onSwitchSide(mod) }
+                onSwitchSide = { onSwitchSide(mod) },
             )
             androidx.compose.material3.HorizontalDivider(color = DarkenedBorder)
         }

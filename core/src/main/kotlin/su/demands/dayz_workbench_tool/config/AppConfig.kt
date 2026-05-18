@@ -1,6 +1,7 @@
 package su.demands.dayz_workbench_tool.config
 
 import kotlinx.serialization.Serializable
+import su.demands.dayz_workbench_tool.ui.theme.ThemeDefinition
 
 @Serializable
 data class AppConfig(
@@ -14,7 +15,10 @@ data class AppConfig(
     val sandboxArgs: String = "-connect=127.0.0.1:2302 -profiles=DebugLogs\\Client -window -name=Sandbox -filePatching -dologs -password=ok",
     val autoKillTasks: List<String> = listOf("workbenchApp.exe", "DayZDiag_x64.exe"),
     val clientMods: List<ModEntry> = emptyList(),
-    val serverMods: List<ModEntry> = emptyList()
+    val serverMods: List<ModEntry> = emptyList(),
+    val lockWindowSize: Boolean = true,
+    val selectedTheme: String = "dark",
+    val customThemes: List<ThemeDefinition> = emptyList()
 )
 
 @Serializable

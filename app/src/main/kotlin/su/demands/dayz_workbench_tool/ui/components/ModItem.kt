@@ -11,6 +11,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -25,15 +26,16 @@ fun ModItem(
     isSelected: Boolean = false,
     onSelect: (() -> Unit)? = null,
     onToggleEnabled: () -> Unit,
-    onSwitchSide: () -> Unit
+    onSwitchSide: () -> Unit,
 ) {
+    val colors = LocalAppColors.current
     val bg = if (isSelected) SelectColor else FrameBackground
 
     Row(
         modifier = Modifier.fillMaxWidth().background(bg).padding(horizontal = 4.dp, vertical = 2.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        SideButton(mod.side, onSwitchSide)
+        SideButton(mod.side, colors, onSwitchSide)
         Spacer(Modifier.width(3.dp))
 
         Row(
@@ -44,7 +46,6 @@ fun ModItem(
                 .background(bg),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Selectable area: icon + name
             Row(
                 modifier = Modifier
                     .weight(1f)
@@ -60,8 +61,9 @@ fun ModItem(
             ) {
                 if (mod.type == ModType.WORKSHOP) {
                     Image(
-                        painter = painterResource("assets/images/workshop.png"),
+                        painter = painterResource("assets/images/workshop.svg"),
                         contentDescription = null,
+                        colorFilter = ColorFilter.tint(colors.modIconWorkshop),
                         modifier = Modifier.size(14.dp).padding(start = 2.dp)
                     )
                 } else {
@@ -77,14 +79,14 @@ fun ModItem(
                 )
             }
 
-            EnableButton(mod.enabled, onToggleEnabled)
+            EnableButton(mod.enabled, colors, onToggleEnabled)
             Spacer(Modifier.width(2.dp))
         }
     }
 }
 
 @Composable
-private fun SideButton(side: ModSide, onClick: () -> Unit) {
+private fun SideButton(side: ModSide, colors: su.demands.dayz_workbench_tool.ui.theme.AppColors, onClick: () -> Unit) {
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
 
@@ -97,17 +99,18 @@ private fun SideButton(side: ModSide, onClick: () -> Unit) {
     ) {
         Image(
             painter = painterResource(
-                if (side == ModSide.CLIENT) "assets/images/mod_client_side.png"
-                else "assets/images/mod_server_side.png"
+                if (side == ModSide.CLIENT) "assets/images/mod_client_side.svg"
+                else "assets/images/mod_server_side.svg"
             ),
             contentDescription = if (side == ModSide.CLIENT) "client side" else "server side",
+            colorFilter = ColorFilter.tint(if (side == ModSide.CLIENT) colors.modIconClientSide else colors.modIconServerSide),
             modifier = Modifier.size(16.dp)
         )
     }
 }
 
 @Composable
-private fun EnableButton(enabled: Boolean, onToggle: () -> Unit) {
+private fun EnableButton(enabled: Boolean, colors: su.demands.dayz_workbench_tool.ui.theme.AppColors, onToggle: () -> Unit) {
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
 
@@ -121,10 +124,11 @@ private fun EnableButton(enabled: Boolean, onToggle: () -> Unit) {
     ) {
         Image(
             painter = painterResource(
-                if (enabled) "assets/images/mod_enabled.png"
-                else "assets/images/mod_disebled.png"
+                if (enabled) "assets/images/mod_enabled.svg"
+                else "assets/images/mod_disebled.svg"
             ),
             contentDescription = if (enabled) "enabled" else "disabled",
+            colorFilter = ColorFilter.tint(if (enabled) colors.modIconEnabled else colors.modIconDisabled),
             modifier = Modifier.size(14.dp)
         )
     }

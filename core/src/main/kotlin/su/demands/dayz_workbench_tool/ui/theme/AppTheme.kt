@@ -5,45 +5,56 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Shapes
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.ReadOnlyComposable
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 
-val FrameBackground    = Color(0xFF2B2D30)
-val ElementsBackground = Color(0xFF43454A)
-val SelectColor        = Color(0xFF2E436E)
-val SubSelectColor     = Color(0xFF346BD8)
-val DarkenedBorder     = Color(0xFF1E1F22)
-val TextForeground     = Color(0xFFDCD4CF)
-val GhostlyText        = Color(0xFF6F737A)
+val LocalAppColors = staticCompositionLocalOf { BuiltinThemes.Dark.toAppColors() }
 
-private val DarkSwingColorScheme = darkColorScheme(
-    primary          = SubSelectColor,
-    onPrimary        = TextForeground,
-    background       = FrameBackground,
-    onBackground     = TextForeground,
-    surface          = FrameBackground,
-    onSurface        = TextForeground,
-    surfaceVariant   = ElementsBackground,
-    onSurfaceVariant = TextForeground,
-    outline          = SubSelectColor,
-    secondary        = ElementsBackground,
-    onSecondary      = TextForeground
-)
+val FrameBackground: Color
+    @Composable @ReadOnlyComposable get() = LocalAppColors.current.frameBackground
+
+val ElementsBackground: Color
+    @Composable @ReadOnlyComposable get() = LocalAppColors.current.elementsBackground
+
+val SelectColor: Color
+    @Composable @ReadOnlyComposable get() = LocalAppColors.current.selectColor
+
+val SubSelectColor: Color
+    @Composable @ReadOnlyComposable get() = LocalAppColors.current.subSelectColor
+
+val DarkenedBorder: Color
+    @Composable @ReadOnlyComposable get() = LocalAppColors.current.darkenedBorder
+
+val TextForeground: Color
+    @Composable @ReadOnlyComposable get() = LocalAppColors.current.textForeground
+
+val GhostlyText: Color
+    @Composable @ReadOnlyComposable get() = LocalAppColors.current.ghostlyText
 
 private val zero = RoundedCornerShape(0)
 
 private val AllRectangle = Shapes(
-    extraSmall = zero,
-    small      = zero,
-    medium     = zero,
-    large      = zero,
-    extraLarge = zero
+    extraSmall = zero, small = zero, medium = zero, large = zero, extraLarge = zero
 )
 
 @Composable
-fun AppTheme(content: @Composable () -> Unit) {
-    MaterialTheme(
-        colorScheme = DarkSwingColorScheme,
-        shapes      = AllRectangle,
-        content     = content
+fun AppTheme(colors: AppColors = BuiltinThemes.Dark.toAppColors(), content: @Composable () -> Unit) {
+    val colorScheme = darkColorScheme(
+        primary          = colors.subSelectColor,
+        onPrimary        = colors.textForeground,
+        background       = colors.frameBackground,
+        onBackground     = colors.textForeground,
+        surface          = colors.frameBackground,
+        onSurface        = colors.textForeground,
+        surfaceVariant   = colors.elementsBackground,
+        onSurfaceVariant = colors.textForeground,
+        outline          = colors.subSelectColor,
+        secondary        = colors.elementsBackground,
+        onSecondary      = colors.textForeground
     )
+    CompositionLocalProvider(LocalAppColors provides colors) {
+        MaterialTheme(colorScheme = colorScheme, shapes = AllRectangle, content = content)
+    }
 }

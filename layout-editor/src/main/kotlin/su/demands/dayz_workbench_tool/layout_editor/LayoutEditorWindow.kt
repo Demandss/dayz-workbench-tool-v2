@@ -46,6 +46,8 @@ import su.demands.dayz_workbench_tool.ui.pickFile
 import su.demands.dayz_workbench_tool.ui.components.DarkButton
 import su.demands.dayz_workbench_tool.ui.components.DarkTabRow
 import su.demands.dayz_workbench_tool.ui.theme.*
+import su.demands.dayz_workbench_tool.ui.theme.AppColors
+import su.demands.dayz_workbench_tool.ui.theme.BuiltinThemes
 import javax.imageio.ImageIO
 import kotlin.math.roundToInt
 
@@ -59,7 +61,11 @@ private val appIcon by lazy {
 }
 
 @Composable
-fun LayoutEditorWindow(state: LayoutEditorState, onCloseRequest: () -> Unit) {
+fun LayoutEditorWindow(
+    state: LayoutEditorState,
+    themeColors: AppColors = BuiltinThemes.Dark.toAppColors(),
+    onCloseRequest: () -> Unit
+) {
     val scope = rememberCoroutineScope()
     val windowTitle = buildString {
         append("DayZ Layout Editor")
@@ -73,7 +79,7 @@ fun LayoutEditorWindow(state: LayoutEditorState, onCloseRequest: () -> Unit) {
         state = rememberWindowState(width = 1280.dp, height = 800.dp),
         resizable = true
     ) {
-        AppTheme {
+        AppTheme(themeColors) {
             Box(
                 Modifier
                     .fillMaxSize()
