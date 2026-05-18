@@ -38,6 +38,12 @@ import java.io.File
 
 private enum class ModFilter { ALL, CLIENT, SERVER }
 
+private data class PendingAction(
+    val title: String,
+    val mods: List<Modification>,
+    val onConfirm: () -> Unit,
+)
+
 @Composable
 fun ModsScreen(state: AppState) {
     val scope = rememberCoroutineScope()
@@ -48,6 +54,7 @@ fun ModsScreen(state: AppState) {
     var selectedMods by remember { mutableStateOf(emptySet<Modification>()) }
     var selectionAnchor by remember { mutableStateOf<Modification?>(null) }
     var infoMod by remember { mutableStateOf<Modification?>(null) }
+    var pendingAction by remember { mutableStateOf<PendingAction?>(null) }
 
     var missingPaths by remember { mutableStateOf(emptySet<String>()) }
 
@@ -200,28 +207,57 @@ fun ModsScreen(state: AppState) {
             contextMenuContent = { clickedMod, dismiss ->
                 val targets = if (clickedMod in selectedMods) selectedMods else setOf(clickedMod)
                 val liveMods = state.mods.filter { m -> targets.any { t -> t.path == m.path && t.side == m.side } }
+                val showEnable = liveMods.any { !it.enabled }
+                val showDisable = liveMods.any { it.enabled }
 
-                DropdownMenuItem(
-                    text = { Text("Enable", color = TextForeground, fontSize = 10.sp) },
-                    onClick = {
-                        liveMods.filter { !it.enabled }.forEach { state.toggleEnabled(it) }
-                        selectedMods = emptySet(); dismiss()
-                    },
-                    modifier = Modifier.background(FrameBackground).height(28.dp)
-                )
-                DropdownMenuItem(
-                    text = { Text("Disable", color = TextForeground, fontSize = 10.sp) },
-                    onClick = {
-                        liveMods.filter { it.enabled }.forEach { state.toggleEnabled(it) }
-                        selectedMods = emptySet(); dismiss()
-                    },
-                    modifier = Modifier.background(FrameBackground).height(28.dp)
-                )
+                if (showEnable) {
+                    DropdownMenuItem(
+                        text = { Text("Enable", color = TextForeground, fontSize = 10.sp) },
+                        onClick = {
+                            dismiss()
+                            val toEnable = liveMods.filter { !it.enabled }
+                            pendingAction = PendingAction(
+                                title = "Enable mods",
+                                mods = toEnable,
+                                onConfirm = {
+                                    toEnable.forEach { state.toggleEnabled(it) }
+                                    selectedMods = emptySet()
+                                }
+                            )
+                        },
+                        modifier = Modifier.background(FrameBackground).height(28.dp)
+                    )
+                }
+                if (showDisable) {
+                    DropdownMenuItem(
+                        text = { Text("Disable", color = TextForeground, fontSize = 10.sp) },
+                        onClick = {
+                            dismiss()
+                            val toDisable = liveMods.filter { it.enabled }
+                            pendingAction = PendingAction(
+                                title = "Disable mods",
+                                mods = toDisable,
+                                onConfirm = {
+                                    toDisable.forEach { state.toggleEnabled(it) }
+                                    selectedMods = emptySet()
+                                }
+                            )
+                        },
+                        modifier = Modifier.background(FrameBackground).height(28.dp)
+                    )
+                }
                 DropdownMenuItem(
                     text = { Text("Remove", color = TextForeground, fontSize = 10.sp) },
                     onClick = {
-                        liveMods.forEach { state.removeMod(it) }
-                        selectedMods = emptySet(); dismiss()
+                        dismiss()
+                        pendingAction = PendingAction(
+                            title = "Remove mods",
+                            mods = liveMods,
+                            onConfirm = {
+                                liveMods.forEach { state.removeMod(it) }
+                                selectedMods = emptySet()
+                            }
+                        )
                     },
                     modifier = Modifier.background(FrameBackground).height(28.dp)
                 )
@@ -236,6 +272,10 @@ fun ModsScreen(state: AppState) {
         )
 
         PoweredByFooter()
+    }
+
+    pendingAction?.let { action ->
+        ConfirmDialog(action = action, onDismiss = { pendingAction = null })
     }
 
     infoMod?.let { mod ->
@@ -257,6 +297,31 @@ fun ModsScreen(state: AppState) {
                 infoMod = null
             }
         )
+    }
+}
+
+@Composable
+private fun ConfirmDialog(action: PendingAction, onDismiss: () -> Unit) {
+    Dialog(onDismissRequest = onDismiss) {
+        Column(
+            modifier = Modifier
+                .width(280.dp)
+                .background(FrameBackground)
+                .border(1.dp, DarkenedBorder)
+                .padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text(action.title, color = TextForeground, fontSize = 12.sp)
+            Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
+                action.mods.forEach { mod ->
+                    Text("• ${mod.name}", color = GhostlyText, fontSize = 10.sp, lineHeight = 13.sp)
+                }
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                DarkButton("Confirm", onClick = { action.onConfirm(); onDismiss() }, modifier = Modifier.weight(1f))
+                DarkButton("Cancel", onClick = onDismiss, modifier = Modifier.weight(1f))
+            }
+        }
     }
 }
 
