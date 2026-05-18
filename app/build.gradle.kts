@@ -61,6 +61,9 @@ compose.desktop {
                 upgradeUuid = "1A25F3F9-6694-4C1F-B9EA-B0C0A69FD313"
                 perUserInstall = true
                 menuGroup = "Dayz Workbench Tool"
+                menu = true
+                dirChooser = true
+                shortcut = true
             }
         }
     }
