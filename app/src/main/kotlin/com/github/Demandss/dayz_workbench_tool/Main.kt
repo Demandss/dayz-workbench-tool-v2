@@ -8,6 +8,7 @@ import com.github.demandss.dayz_workbench_tool.layout_editor.LayoutEditorWindow
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.LayoutEditorState
 import com.github.demandss.dayz_workbench_tool.manager.ModificationManager
 import com.github.demandss.dayz_workbench_tool.manager.ProcessManager
+import com.github.demandss.dayz_workbench_tool.manager.ToolsManager
 import com.github.demandss.dayz_workbench_tool.state.AppState
 import com.github.demandss.dayz_workbench_tool.ui.MainWindow
 import com.github.demandss.dayz_workbench_tool.ui.theme.resolveTheme
@@ -29,8 +30,10 @@ fun main() = application {
     }
 
     LaunchedEffect(Unit) {
-        if (state.config.setupDone) {
-            withContext(Dispatchers.IO) {
+        withContext(Dispatchers.IO) {
+            ToolsManager.deploy()
+            if (state.config.setupDone) {
+                ToolsManager.writeUserSettings(state.config, state.mods.toList())
                 ModificationManager.createAll(state.mods.toList(), state.config.gamePath)
                 ModificationManager.createScriptsSymlink(state.config.scriptsPath, state.config.gamePath)
             }

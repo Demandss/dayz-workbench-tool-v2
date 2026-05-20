@@ -5,6 +5,7 @@ import com.github.demandss.dayz_workbench_tool.config.AppConfig
 import com.github.demandss.dayz_workbench_tool.config.ConfigManager
 import com.github.demandss.dayz_workbench_tool.config.ModEntry
 import com.github.demandss.dayz_workbench_tool.manager.ModificationManager
+import com.github.demandss.dayz_workbench_tool.manager.ToolsManager
 import com.github.demandss.dayz_workbench_tool.model.Modification
 import com.github.demandss.dayz_workbench_tool.model.ModSide
 import com.github.demandss.dayz_workbench_tool.model.ModType
@@ -33,6 +34,7 @@ class AppState {
         config = newConfig
         ConfigManager.App.save(newConfig)
         loadModsFromConfig()
+        ToolsManager.writeUserSettings(newConfig, mods.toList())
     }
 
     fun addMod(mod: Modification) {
@@ -75,6 +77,7 @@ class AppState {
         val serverEntries = mods.filter { it.side == ModSide.SERVER }.map { it.toEntry() }
         config = config.copy(clientMods = clientEntries, serverMods = serverEntries)
         ConfigManager.App.save(config)
+        ToolsManager.writeUserSettings(config, mods.toList())
     }
 
     private fun symlinkOp(mod: Modification, create: Boolean) {
