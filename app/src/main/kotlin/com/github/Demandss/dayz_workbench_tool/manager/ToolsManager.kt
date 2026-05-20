@@ -1,9 +1,13 @@
 package com.github.demandss.dayz_workbench_tool.manager
 
 import com.github.demandss.dayz_workbench_tool.config.AppConfig
-import com.github.demandss.dayz_workbench_tool.model.Modification
 import com.github.demandss.dayz_workbench_tool.model.ModSide
-import kotlin.io.path.*
+import com.github.demandss.dayz_workbench_tool.model.Modification
+import java.nio.file.Path
+import kotlin.io.path.Path
+import kotlin.io.path.createDirectories
+import kotlin.io.path.outputStream
+import kotlin.io.path.writeText
 
 object ToolsManager {
 

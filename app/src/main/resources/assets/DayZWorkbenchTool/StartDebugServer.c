@@ -4,6 +4,6 @@ class StartDebugServer : DayZTool
 {
 	override void Run()
 	{
-		Workbench.RunCmd("cmd /c P:/dayzworkbenchtool/StartDebugServer.bat");
+		Workbench.RunCmd("cmd /c &WORKDRIVE_PATH&/dayzworkbenchtool/StartDebugServer.bat");
 	}
 }

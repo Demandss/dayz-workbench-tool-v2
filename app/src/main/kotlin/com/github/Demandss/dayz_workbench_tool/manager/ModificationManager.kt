@@ -53,11 +53,20 @@ object ModificationManager {
 
     fun createToolsSymlink(workDrivePath: String) {
         if (workDrivePath.isBlank()) return
-        runCatching { createSymlink(ToolsManager.toolsDir, Path.of(workDrivePath)) }
+        val link = Path.of(workDrivePath).resolve("dayzworkbenchtool")
+        if (Files.exists(link, LinkOption.NOFOLLOW_LINKS)) return
+        runCatching {
+            ProcessBuilder("cmd", "/c", """mklink /J "$link" "${ToolsManager.toolsDir}"""")
+                .redirectErrorStream(true).start().waitFor()
+        }
     }
 
     fun removeToolsSymlink(workDrivePath: String) {
         if (workDrivePath.isBlank()) return
-        runCatching { removeSymlink(ToolsManager.toolsDir, Path.of(workDrivePath)) }
+        val link = Path.of(workDrivePath).resolve("dayzworkbenchtool")
+        if (!Files.exists(link, LinkOption.NOFOLLOW_LINKS)) return
+        runCatching {
+            ProcessBuilder("cmd", "/c", "rmdir", link.toString()).start().waitFor()
+        }
     }
 }
