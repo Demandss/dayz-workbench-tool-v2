@@ -10,6 +10,7 @@ data class AppConfig(
     val gamePath: String = "",
     val workbenchPath: String = "",
     val workDrivePath: String = "",
+    val scriptsPath: String = "",
     val clientArgs: String = "-connect=127.0.0.1:2302 -profiles=DebugLogs\\Client -window -name=Survivor -filePatching -dologs -password=ok",
     val serverArgs: String = "-server -freezecheck -DoLogs -noPause -port=2302 -config=serverDZ.cfg -filePatching -profiles=DebugLogs\\Server",
     val sandboxArgs: String = "-connect=127.0.0.1:2302 -profiles=DebugLogs\\Client -window -name=Sandbox -filePatching -dologs -password=ok",

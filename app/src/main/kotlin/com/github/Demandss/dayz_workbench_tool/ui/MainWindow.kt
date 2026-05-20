@@ -185,6 +185,7 @@ private fun InitialSetupDialog(state: AppState) {
     var gamePath      by remember { mutableStateOf(state.config.gamePath) }
     var workbenchPath by remember { mutableStateOf(state.config.workbenchPath) }
     var workDrive     by remember { mutableStateOf(state.config.workDrivePath.ifBlank { "P:" }) }
+    var scriptsPath   by remember { mutableStateOf(state.config.scriptsPath.ifBlank { "P:\\scripts" }) }
     var statusText    by remember { mutableStateOf("Detecting Steam installations...") }
 
     LaunchedEffect(Unit) {
@@ -207,15 +208,17 @@ private fun InitialSetupDialog(state: AppState) {
             Text("Initial Setup", color = TextForeground, fontSize = 13.sp)
             Text(statusText, color = GhostlyText, fontSize = 11.sp, lineHeight = 14.sp)
 
-            SetupField("Game path (DayZDiag_x64.exe)", gamePath, isFile = true)  { gamePath = it }
-            SetupField("Workbench path (DayZWorkbench.exe)", workbenchPath, isFile = true) { workbenchPath = it }
+            SetupField("Game folder (DayZ)", gamePath, isFile = false)  { gamePath = it }
+            SetupField("Workbench folder (DayZ Tools/Bin/Workbench)", workbenchPath, isFile = false) { workbenchPath = it }
             SetupField("Work drive (e.g. P:)", workDrive, isFile = false) { workDrive = it }
+            SetupField("Scripts path (e.g. P:\\scripts)", scriptsPath, isFile = false) { scriptsPath = it }
 
             DarkButton("Confirm", modifier = Modifier.fillMaxWidth(), onClick = {
                 state.updateConfig(state.config.copy(
                     gamePath      = gamePath,
                     workbenchPath = workbenchPath,
                     workDrivePath = workDrive,
+                    scriptsPath   = scriptsPath,
                     setupDone     = true
                 ))
             })

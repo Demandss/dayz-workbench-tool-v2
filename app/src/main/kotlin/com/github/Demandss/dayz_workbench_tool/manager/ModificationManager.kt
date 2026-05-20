@@ -31,4 +31,14 @@ object ModificationManager {
         val gameDir = Path.of(gameDirPath)
         mods.forEach { mod -> runCatching { removeSymlink(Path.of(mod.path), gameDir) } }
     }
+
+    fun createScriptsSymlink(scriptsPath: String, gameDirPath: String) {
+        if (scriptsPath.isBlank() || gameDirPath.isBlank()) return
+        runCatching { createSymlink(Path.of(scriptsPath), Path.of(gameDirPath)) }
+    }
+
+    fun removeScriptsSymlink(scriptsPath: String, gameDirPath: String) {
+        if (scriptsPath.isBlank() || gameDirPath.isBlank()) return
+        runCatching { removeSymlink(Path.of(scriptsPath), Path.of(gameDirPath)) }
+    }
 }

@@ -26,6 +26,10 @@ class AppState {
     fun navigate(screen: Screen) { currentScreen = screen }
 
     fun updateConfig(newConfig: AppConfig) {
+        if (config.scriptsPath != newConfig.scriptsPath || config.gamePath != newConfig.gamePath) {
+            ModificationManager.removeScriptsSymlink(config.scriptsPath, config.gamePath)
+            ModificationManager.createScriptsSymlink(newConfig.scriptsPath, newConfig.gamePath)
+        }
         config = newConfig
         ConfigManager.App.save(newConfig)
         loadModsFromConfig()

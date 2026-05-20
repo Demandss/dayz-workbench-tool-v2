@@ -21,6 +21,7 @@ fun main() = application {
         val hook = Thread {
             runCatching {
                 ModificationManager.removeAll(state.mods.toList(), state.config.gamePath)
+                ModificationManager.removeScriptsSymlink(state.config.scriptsPath, state.config.gamePath)
                 ProcessManager.killTasks(state.config.autoKillTasks)
             }
         }
@@ -31,6 +32,7 @@ fun main() = application {
         if (state.config.setupDone) {
             withContext(Dispatchers.IO) {
                 ModificationManager.createAll(state.mods.toList(), state.config.gamePath)
+                ModificationManager.createScriptsSymlink(state.config.scriptsPath, state.config.gamePath)
             }
         }
     }

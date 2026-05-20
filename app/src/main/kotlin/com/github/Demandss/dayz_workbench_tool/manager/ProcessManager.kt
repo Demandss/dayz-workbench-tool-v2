@@ -7,32 +7,35 @@ import java.nio.file.Path
 object ProcessManager {
 
     fun launchWorkbench(config: AppConfig): Process {
+        val exe = File(config.workbenchPath, "workbenchApp.exe").absolutePath
         val allMods = (config.clientMods + config.serverMods)
             .filter { it.enabled }
             .map { it.path }
             .sortedBy { if (it.contains("@")) 1 else 0 }
-        val args = mutableListOf(config.workbenchPath)
+        val args = mutableListOf(exe)
         if (allMods.isNotEmpty()) args.add("-mod=${allMods.joinToString(";")}")
         return ProcessBuilder(args)
-            .directory(File(config.workbenchPath).parentFile)
+            .directory(File(config.workbenchPath))
             .inheritIO()
             .start()
     }
 
     fun launchDebugClient(config: AppConfig): Process {
         val modNames = config.clientMods.filter { it.enabled }.map { modName(it.path) }
-        return ProcessBuilder(buildArgs(config.gamePath, config.clientArgs, modNames)).inheritIO().start()
+        return ProcessBuilder(buildArgs(gameExe(config), config.clientArgs, modNames)).inheritIO().start()
     }
 
     fun launchDebugServer(config: AppConfig): Process {
         val modNames = config.serverMods.filter { it.enabled }.map { modName(it.path) }
-        return ProcessBuilder(buildArgs(config.gamePath, config.serverArgs, modNames)).inheritIO().start()
+        return ProcessBuilder(buildArgs(gameExe(config), config.serverArgs, modNames)).inheritIO().start()
     }
 
     fun launchDebugClientSandbox(config: AppConfig): Process {
         val modNames = config.clientMods.filter { it.enabled }.map { modName(it.path) }
-        return ProcessBuilder(buildArgs(config.gamePath, "${config.clientArgs} ${config.sandboxArgs}", modNames)).inheritIO().start()
+        return ProcessBuilder(buildArgs(gameExe(config), "${config.clientArgs} ${config.sandboxArgs}", modNames)).inheritIO().start()
     }
+
+    private fun gameExe(config: AppConfig) = File(config.gamePath, "DayZDiag_x64.exe").absolutePath
 
     fun launchDebugAll(config: AppConfig): Pair<Process, Process> =
         launchDebugClient(config) to launchDebugServer(config)

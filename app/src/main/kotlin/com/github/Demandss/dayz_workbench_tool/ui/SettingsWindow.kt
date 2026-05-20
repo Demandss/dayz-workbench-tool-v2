@@ -105,14 +105,17 @@ private fun GlobalTab(config: AppConfig, onChange: (AppConfig) -> Unit) {
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(5.dp),
         verticalArrangement = Arrangement.spacedBy(5.dp)
     ) {
-        SettingRow("Game path") {
-            PathField(value = config.gamePath, isFile = true) { onChange(config.copy(gamePath = it)) }
+        SettingRow("Game folder") {
+            PathField(value = config.gamePath, isFile = false) { onChange(config.copy(gamePath = it)) }
         }
         SettingRow("Work drive path") {
             PathField(value = config.workDrivePath, isFile = false) { onChange(config.copy(workDrivePath = it)) }
         }
-        SettingRow("Workbench path") {
-            PathField(value = config.workbenchPath, isFile = true) { onChange(config.copy(workbenchPath = it)) }
+        SettingRow("Workbench folder") {
+            PathField(value = config.workbenchPath, isFile = false) { onChange(config.copy(workbenchPath = it)) }
+        }
+        SettingRow("Scripts path") {
+            PathField(value = config.scriptsPath, isFile = false) { onChange(config.copy(scriptsPath = it)) }
         }
         CheckRow("Lock window size", config.lockWindowSize) { onChange(config.copy(lockWindowSize = it)) }
         CheckRow("Adaptive scaling", config.adaptiveScale) { onChange(config.copy(adaptiveScale = it)) }
