@@ -1,5 +1,6 @@
 package com.github.demandss.dayz_workbench_tool
 
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.window.application
@@ -10,6 +11,8 @@ import com.github.demandss.dayz_workbench_tool.manager.ProcessManager
 import com.github.demandss.dayz_workbench_tool.state.AppState
 import com.github.demandss.dayz_workbench_tool.ui.MainWindow
 import com.github.demandss.dayz_workbench_tool.ui.theme.resolveTheme
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 fun main() = application {
     val state = remember { AppState() }
@@ -22,6 +25,14 @@ fun main() = application {
             }
         }
         Runtime.getRuntime().addShutdownHook(hook)
+    }
+
+    LaunchedEffect(Unit) {
+        if (state.config.setupDone) {
+            withContext(Dispatchers.IO) {
+                ModificationManager.createAll(state.mods.toList(), state.config.gamePath)
+            }
+        }
     }
 
     MainWindow(state, onCloseRequest = ::exitApplication)
