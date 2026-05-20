@@ -408,7 +408,7 @@ private fun FixScriptsDialog(state: AppState, onDismiss: () -> Unit) {
                 DarkButton("Fix", modifier = Modifier.weight(1f), onClick = {
                     status = "Working..."
                     scope.launch(Dispatchers.IO) {
-                        runFixScripts(scriptsRoot, prefix, copyPlugin, state.config.workDrivePath)
+                        runFixScripts(scriptsRoot, prefix, copyPlugin)
                         withContext(Dispatchers.Main) { onDismiss() }
                     }
                 })
@@ -422,7 +422,7 @@ private val workbenchPluginFiles = listOf(
     "StartDebugAll.c", "StartDebugClient.c", "StartDebugServer.c", "StopDebugAll.c"
 )
 
-private fun runFixScripts(rootDir: String, prefix: String, copyPlugin: Boolean, workDrivePath: String) {
+private fun runFixScripts(rootDir: String, prefix: String, copyPlugin: Boolean) {
     val subdirs = listOf(
         "1_Core", "2_GameLib", "3_Game", "4_World", "5_Mission",
         "editor\\Workbench", "editor\\plugins"
@@ -440,11 +440,9 @@ private fun runFixScripts(rootDir: String, prefix: String, copyPlugin: Boolean, 
         val pluginDir = File(rootDir, "editor\\plugins\\DayZWorkbenchTool")
         pluginDir.mkdirs()
         val cl = ModificationManager::class.java.classLoader
-        val normalizedWorkDrive = workDrivePath.trimEnd('\\', '/')
         for (name in workbenchPluginFiles) {
-            cl?.getResourceAsStream("assets/DayZWorkbenchTool/$name")?.reader()?.use { src ->
-                val content = src.readText().replace("&WORKDRIVE_PATH&", normalizedWorkDrive)
-                File(pluginDir, name).writeText(content)
+            cl?.getResourceAsStream("assets/DayZWorkbenchTool/$name")?.use { src ->
+                File(pluginDir, name).outputStream().use { dst -> src.copyTo(dst) }
             }
         }
     }

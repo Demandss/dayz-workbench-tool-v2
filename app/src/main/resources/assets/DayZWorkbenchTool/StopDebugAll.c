@@ -4,6 +4,6 @@ class StopDebugAll : DayZTool
 {
 	override void Run()
 	{
-		Workbench.RunCmd("cmd /c &WORKDRIVE_PATH&/dayzworkbenchtool/StopDebugAll.bat");
+		Workbench.RunCmd("cmd /c \"%APPDATA%/.dayzworkbenchtool/tools/StopDebugAll.bat\"");
 	}
 }
