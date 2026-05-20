@@ -50,4 +50,14 @@ object ModificationManager {
         val gameDir = File(gameDirPath).let { if (it.isFile) it.parentFile else it }.toPath()
         runCatching { removeSymlink(Path.of(scriptsPath), gameDir) }
     }
+
+    fun createToolsSymlink(workDrivePath: String) {
+        if (workDrivePath.isBlank()) return
+        runCatching { createSymlink(ToolsManager.toolsDir, Path.of(workDrivePath)) }
+    }
+
+    fun removeToolsSymlink(workDrivePath: String) {
+        if (workDrivePath.isBlank()) return
+        runCatching { removeSymlink(ToolsManager.toolsDir, Path.of(workDrivePath)) }
+    }
 }

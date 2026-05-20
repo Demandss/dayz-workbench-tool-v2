@@ -27,6 +27,10 @@ class AppState {
     fun navigate(screen: Screen) { currentScreen = screen }
 
     fun updateConfig(newConfig: AppConfig) {
+        if (config.workDrivePath != newConfig.workDrivePath) {
+            ModificationManager.removeToolsSymlink(config.workDrivePath)
+            ModificationManager.createToolsSymlink(newConfig.workDrivePath)
+        }
         if (config.scriptsPath != newConfig.scriptsPath || config.gamePath != newConfig.gamePath) {
             ModificationManager.removeScriptsSymlink(config.scriptsPath, config.gamePath)
             ModificationManager.createScriptsSymlink(newConfig.scriptsPath, newConfig.gamePath)

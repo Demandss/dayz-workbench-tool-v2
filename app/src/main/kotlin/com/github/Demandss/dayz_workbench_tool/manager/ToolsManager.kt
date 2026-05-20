@@ -7,7 +7,7 @@ import kotlin.io.path.*
 
 object ToolsManager {
 
-    private val toolsDir = Path(System.getenv("APPDATA")).resolve(".dayzworkbenchtool/tools")
+    val toolsDir: Path = Path(System.getenv("APPDATA")).resolve(".dayzworkbenchtool/tools")
 
     private val batFiles = listOf(
         "StartDebugAll.bat", "StartDebugClient.bat", "StartDebugServer.bat", "StopDebugAll.bat"
