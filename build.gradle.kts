@@ -5,7 +5,7 @@ plugins {
     kotlin("plugin.serialization") version "2.1.21" apply false
 }
 
-group = "su.demands"
+group = "com.github.demandss"
 version = "1.0-SNAPSHOT"
 
 tasks.register("createReleaseDistributable") {

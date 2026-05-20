@@ -10,7 +10,7 @@ kotlin {
     jvmToolchain(21)
 }
 
-group = "su.demands"
+group = "com.github.demandss"
 version = "1.0-SNAPSHOT"
 
 repositories {
@@ -36,7 +36,7 @@ tasks.matching { it.name == "run" }.configureEach {
 
 compose.desktop {
     application {
-        mainClass = "su.demands.dayz_workbench_tool.layout_editor.MainKt"
+        mainClass = "com.github.demandss.dayz_workbench_tool.layout_editor.MainKt"
 
         javaHome = javaToolchains
             .launcherFor { languageVersion.set(JavaLanguageVersion.of(21)) }

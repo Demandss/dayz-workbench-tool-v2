@@ -11,7 +11,7 @@ kotlin {
     jvmToolchain(21)
 }
 
-group = "su.demands"
+group = "com.github.demandss"
 version = (findProperty("version") as? String)?.takeIf { it != "unspecified" } ?: "1.0.0"
 
 repositories {
@@ -33,7 +33,7 @@ dependencies {
 
 compose.desktop {
     application {
-        mainClass = "su.demands.dayz_workbench_tool.MainKt"
+        mainClass = "com.github.demandss.dayz_workbench_tool.MainKt"
 
         javaHome = javaToolchains
             .launcherFor { languageVersion.set(JavaLanguageVersion.of(21)) }
