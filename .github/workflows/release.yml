@@ -13,24 +13,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check tag does not exist
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const tag = `v${context.payload.inputs.version}`;
-            try {
-              await github.rest.git.getRef({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                ref: `tags/${tag}`
-              });
-              core.setFailed(`Tag ${tag} already exists — bump the version`);
-            } catch (e) {
-              if (e.status === 404) {
-                console.log(`Tag ${tag} is free, proceeding`);
-              } else {
-                throw e;
-              }
-            }
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="v${{ github.event.inputs.version }}"
+          if gh api repos/${{ github.repository }}/git/ref/tags/$TAG --silent 2>/dev/null; then
+            echo "Tag $TAG already exists — bump the version"
+            exit 1
+          fi
+          echo "Tag $TAG is free, proceeding"
 
   build:
     needs: validate
