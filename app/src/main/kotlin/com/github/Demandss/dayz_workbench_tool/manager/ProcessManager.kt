@@ -40,6 +40,19 @@ object ProcessManager {
     fun launchDebugAll(config: AppConfig): Pair<Process, Process> =
         launchDebugClient(config) to launchDebugServer(config)
 
+    fun launchCustomScripts(paths: List<String>) {
+        paths.filter { it.isNotBlank() }.forEach { path ->
+            runCatching {
+                val file = File(path)
+                val builder = if (path.endsWith(".bat", ignoreCase = true))
+                    ProcessBuilder("cmd", "/c", path)
+                else
+                    ProcessBuilder(path)
+                builder.directory(file.parentFile).inheritIO().start()
+            }
+        }
+    }
+
     fun killTasks(taskNames: List<String>) {
         taskNames.forEach { name ->
             runCatching { ProcessBuilder("taskkill", "/F", "/IM", name).start() }

@@ -27,6 +27,7 @@ fun ToolsPanel(state: AppState) {
                     .map { Path.of(it.path).fileName?.toString() ?: it.path }
                 if (missing.isEmpty()) {
                     runCatching { ProcessManager.launchWorkbench(state.config) }
+                    ProcessManager.launchCustomScripts(state.config.customWorkbenchScripts)
                 } else {
                     missingWarning = missing
                 }
@@ -41,6 +42,7 @@ fun ToolsPanel(state: AppState) {
             missing = missingWarning,
             onLaunch = {
                 runCatching { ProcessManager.launchWorkbench(state.config) }
+                ProcessManager.launchCustomScripts(state.config.customWorkbenchScripts)
                 missingWarning = emptyList()
             },
             onCancel = { missingWarning = emptyList() }

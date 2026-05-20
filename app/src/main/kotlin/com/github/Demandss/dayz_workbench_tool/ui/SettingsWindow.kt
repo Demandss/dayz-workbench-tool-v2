@@ -139,6 +139,7 @@ private fun AdvancedTab(config: AppConfig, onChange: (AppConfig) -> Unit) {
         AdvancedRow("Sandbox args", config.sandboxArgs, "exe args") { onChange(config.copy(sandboxArgs = it)) }
         AdvancedRow("Server args", config.serverArgs, "exe args") { onChange(config.copy(serverArgs = it)) }
         KillListRow(config.autoKillTasks) { onChange(config.copy(autoKillTasks = it)) }
+        ScriptListRow(config.customWorkbenchScripts) { onChange(config.copy(customWorkbenchScripts = it)) }
     }
 }
 
@@ -404,6 +405,109 @@ private fun KillTaskItem(name: String, onRemove: () -> Unit) {
             contentAlignment = Alignment.Center
         ) {
             Text("×", color = TextForeground, fontSize = 12.sp, lineHeight = 13.sp)
+        }
+    }
+}
+
+@Composable
+private fun ScriptListRow(scripts: List<String>, onChange: (List<String>) -> Unit) {
+    var showDialog by remember { mutableStateOf(false) }
+
+    SettingRow("Workbench scripts") {
+        Row(modifier = Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .height(20.dp)
+                    .border(1.dp, SubSelectColor)
+                    .background(FrameBackground)
+                    .padding(horizontal = 4.dp),
+                contentAlignment = Alignment.CenterStart
+            ) {
+                Text(
+                    text = if (scripts.isEmpty()) "Default (workbenchApp.exe)"
+                           else scripts.joinToString(", ") { File(it).name },
+                    color = if (scripts.isEmpty()) GhostlyText else TextForeground,
+                    fontSize = 11.sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+            Spacer(Modifier.width(3.dp))
+            val editSource = remember { MutableInteractionSource() }
+            val isEditPressed by editSource.collectIsPressedAsState()
+            Box(
+                modifier = Modifier
+                    .size(20.dp)
+                    .background(if (isEditPressed) SelectColor else ElementsBackground)
+                    .border(1.dp, SubSelectColor)
+                    .clickable(interactionSource = editSource, indication = null) { showDialog = true },
+                contentAlignment = Alignment.Center
+            ) {
+                Text("<>", color = TextForeground, fontSize = 9.sp, lineHeight = 10.sp)
+            }
+        }
+    }
+
+    if (showDialog) {
+        ScriptListDialog(
+            scripts = scripts,
+            onDismiss = { showDialog = false },
+            onSave = { onChange(it); showDialog = false }
+        )
+    }
+}
+
+@Composable
+private fun ScriptListDialog(scripts: List<String>, onDismiss: () -> Unit, onSave: (List<String>) -> Unit) {
+    var localScripts by remember { mutableStateOf(scripts) }
+    val scope = rememberCoroutineScope()
+
+    Dialog(onDismissRequest = onDismiss) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(FrameBackground)
+                .border(1.dp, DarkenedBorder)
+                .padding(10.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text("Workbench scripts", color = TextForeground, fontSize = 12.sp)
+            Text(
+                "These launch alongside workbenchApp.exe when Workbench is clicked.",
+                color = GhostlyText, fontSize = 10.sp, lineHeight = 14.sp
+            )
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 40.dp, max = 180.dp)
+                    .border(1.dp, SubSelectColor)
+                    .background(ElementsBackground)
+                    .verticalScroll(rememberScrollState())
+                    .padding(4.dp),
+                verticalArrangement = Arrangement.spacedBy(3.dp)
+            ) {
+                if (localScripts.isEmpty()) {
+                    Text("No scripts added", color = GhostlyText, fontSize = 11.sp, modifier = Modifier.padding(4.dp))
+                } else {
+                    localScripts.forEach { path ->
+                        KillTaskItem(name = File(path).name, onRemove = { localScripts = localScripts - path })
+                    }
+                }
+            }
+
+            DarkButton("+ Browse .bat / .exe", modifier = Modifier.fillMaxWidth(), onClick = {
+                scope.launch {
+                    val picked = pickFile("Select script", "bat;exe", null)
+                    picked?.let { if (it !in localScripts) localScripts = localScripts + it }
+                }
+            })
+
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                DarkButton("Save", onClick = { onSave(localScripts) }, modifier = Modifier.weight(1f))
+                DarkButton("Cancel", onClick = onDismiss, modifier = Modifier.weight(1f))
+            }
         }
     }
 }
