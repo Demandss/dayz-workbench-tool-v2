@@ -6,19 +6,24 @@ import java.util.UUID
 data class EditorWidgetNode(
     val id: UUID = UUID.randomUUID(),
     val node: WidgetNode,
-    val children: MutableList<EditorWidgetNode> = mutableListOf()
+    val children: MutableList<EditorWidgetNode> = mutableListOf(),
 )
 
-fun WidgetNode.toEditorNode(): EditorWidgetNode = EditorWidgetNode(
-    node = copy(children = mutableListOf()),
-    children = children.map { it.toEditorNode() }.toMutableList()
-)
+fun WidgetNode.toEditorNode(): EditorWidgetNode =
+    EditorWidgetNode(
+        node = copy(children = mutableListOf()),
+        children = children.map { it.toEditorNode() }.toMutableList(),
+    )
 
-fun EditorWidgetNode.toWidgetNode(): WidgetNode = node.copy(
-    children = children.map { it.toWidgetNode() }.toMutableList()
-)
+fun EditorWidgetNode.toWidgetNode(): WidgetNode =
+    node.copy(
+        children = children.map { it.toWidgetNode() }.toMutableList(),
+    )
 
-fun EditorWidgetNode.updateNode(id: UUID, transform: (EditorWidgetNode) -> EditorWidgetNode): EditorWidgetNode {
+fun EditorWidgetNode.updateNode(
+    id: UUID,
+    transform: (EditorWidgetNode) -> EditorWidgetNode,
+): EditorWidgetNode {
     if (this.id == id) return transform(this)
     return copy(children = children.map { it.updateNode(id, transform) }.toMutableList())
 }
@@ -32,10 +37,12 @@ fun EditorWidgetNode.findNode(id: UUID): EditorWidgetNode? {
 }
 
 fun EditorWidgetNode.removeNode(id: UUID): EditorWidgetNode =
-    copy(children = children
-        .filter { it.id != id }
-        .map { it.removeNode(id) }
-        .toMutableList()
+    copy(
+        children =
+            children
+                .filter { it.id != id }
+                .map { it.removeNode(id) }
+                .toMutableList(),
     )
 
 fun EditorWidgetNode.containsId(id: UUID): Boolean {

@@ -1,6 +1,10 @@
 package com.github.demandss.dayz_workbench_tool.layout_editor.state
 
-enum class Resolution(val width: Int, val height: Int, val label: String) {
+enum class Resolution(
+    val width: Int,
+    val height: Int,
+    val label: String,
+) {
     FIT(0, 0, "FitToWindow"),
     R800x600(800, 600, "800×600"),
     R1280x720(1280, 720, "1280×720"),
@@ -13,5 +17,5 @@ enum class Resolution(val width: Int, val height: Int, val label: String) {
     R1680x1050(1680, 1050, "1680×1050"),
     R1920x1080(1920, 1080, "1920×1080"),
     R2560x1440(2560, 1440, "2560×1440"),
-    R3840x2160(3840, 2160, "3840×2160")
+    R3840x2160(3840, 2160, "3840×2160"),
 }

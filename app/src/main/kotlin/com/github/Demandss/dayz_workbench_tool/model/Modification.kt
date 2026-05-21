@@ -7,7 +7,7 @@ data class Modification(
     val side: ModSide,
     val type: ModType = if ("@" in path) ModType.WORKSHOP else ModType.LOCAL,
     val enabled: Boolean = true,
-    val priority: Int = 0
+    val priority: Int = 0,
 ) {
     val name: String get() = Path.of(path).fileName?.toString() ?: path
 }

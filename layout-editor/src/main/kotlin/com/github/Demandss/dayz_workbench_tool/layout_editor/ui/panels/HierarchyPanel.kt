@@ -11,8 +11,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.*
 import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -30,7 +30,7 @@ private fun buildFlatList(
     node: EditorWidgetNode,
     depth: Int,
     expandedIds: Set<UUID>,
-    result: MutableList<Pair<EditorWidgetNode, Int>>
+    result: MutableList<Pair<EditorWidgetNode, Int>>,
 ) {
     result.add(node to depth)
     if (expandedIds.contains(node.id)) {
@@ -39,7 +39,10 @@ private fun buildFlatList(
 }
 
 @Composable
-fun HierarchyPanel(state: LayoutEditorState, modifier: Modifier = Modifier) {
+fun HierarchyPanel(
+    state: LayoutEditorState,
+    modifier: Modifier = Modifier,
+) {
     val doc = state.activeFile
     val expandedIds = remember { mutableStateListOf<UUID>() }
 
@@ -53,11 +56,15 @@ fun HierarchyPanel(state: LayoutEditorState, modifier: Modifier = Modifier) {
             .background(FrameBackground)
             .onGloballyPositioned { coords ->
                 state.hierarchyBoundsInWindow = coords.boundsInWindow()
-            }
+            },
     ) {
         Row(
-            Modifier.fillMaxWidth().height(22.dp).background(ElementsBackground).padding(horizontal = 6.dp),
-            verticalAlignment = Alignment.CenterVertically
+            Modifier
+                .fillMaxWidth()
+                .height(22.dp)
+                .background(ElementsBackground)
+                .padding(horizontal = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             Text("Hierarchy", color = GhostlyText, fontSize = 10.sp)
         }
@@ -69,11 +76,12 @@ fun HierarchyPanel(state: LayoutEditorState, modifier: Modifier = Modifier) {
             return@Column
         }
 
-        val flatList = remember(doc.root, expandedIds.toSet()) {
-            mutableListOf<Pair<EditorWidgetNode, Int>>().also {
-                buildFlatList(doc.root, 0, expandedIds.toHashSet(), it)
+        val flatList =
+            remember(doc.root, expandedIds.toSet()) {
+                mutableListOf<Pair<EditorWidgetNode, Int>>().also {
+                    buildFlatList(doc.root, 0, expandedIds.toHashSet(), it)
+                }
             }
-        }
 
         val dragSrc = state.dragSession?.source
         val isDragging = dragSrc != null
@@ -90,7 +98,7 @@ fun HierarchyPanel(state: LayoutEditorState, modifier: Modifier = Modifier) {
                         .fillMaxWidth()
                         .onGloballyPositioned { coords ->
                             state.hierarchyRowBounds[node.id] = coords.boundsInWindow()
-                        }
+                        },
                 ) {
                     HierarchyRow(
                         node = node,
@@ -100,13 +108,19 @@ fun HierarchyPanel(state: LayoutEditorState, modifier: Modifier = Modifier) {
                         isDragTarget = isDragTarget,
                         isDragSource = isDragSource,
                         onToggleExpand = {
-                            if (expandedIds.contains(node.id)) expandedIds.remove(node.id)
-                            else expandedIds.add(node.id)
+                            if (expandedIds.contains(node.id)) {
+                                expandedIds.remove(node.id)
+                            } else {
+                                expandedIds.add(node.id)
+                            }
                         },
                         onSelect = { shift ->
                             if (shift) {
-                                if (state.selectedIds.contains(node.id)) state.selectedIds.remove(node.id)
-                                else state.selectedIds.add(node.id)
+                                if (state.selectedIds.contains(node.id)) {
+                                    state.selectedIds.remove(node.id)
+                                } else {
+                                    state.selectedIds.add(node.id)
+                                }
                             } else {
                                 state.selectedIds.clear()
                                 state.selectedIds.add(node.id)
@@ -114,7 +128,7 @@ fun HierarchyPanel(state: LayoutEditorState, modifier: Modifier = Modifier) {
                         },
                         onDragStart = {
                             state.dragSession = DragSession(DragSource.FromHierarchy(node.id))
-                        }
+                        },
                     )
                 }
             }
@@ -132,81 +146,87 @@ private fun HierarchyRow(
     isDragSource: Boolean,
     onToggleExpand: () -> Unit,
     onSelect: (shift: Boolean) -> Unit,
-    onDragStart: () -> Unit
+    onDragStart: () -> Unit,
 ) {
-    val bg = when {
-        isDragTarget -> Color(0xFF1E3A5F)
-        isSelected   -> SelectColor
-        else         -> Color.Transparent
-    }
-    val borderMod = if (isDragTarget)
-        Modifier.border(1.dp, Color(0xFF4A9EFF))
-    else
-        Modifier
+    val bg =
+        when {
+            isDragTarget -> Color(0xFF1E3A5F)
+            isSelected -> SelectColor
+            else -> Color.Transparent
+        }
+    val borderMod =
+        if (isDragTarget) {
+            Modifier.border(1.dp, Color(0xFF4A9EFF))
+        } else {
+            Modifier
+        }
 
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(20.dp)
-            .then(borderMod)
-            .background(bg)
-            .padding(start = (depth * 14).dp)
-            .then(
-                if (isDragSource) Modifier.background(Color(0x40FFFFFF)) else Modifier
-            )
-            .pointerInput(node.id) {
-                var pressPos = Offset.Zero
-                var pressed = false
-                var lastClickTime = 0L
-                var dragStarted = false
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .height(20.dp)
+                .then(borderMod)
+                .background(bg)
+                .padding(start = (depth * 14).dp)
+                .then(
+                    if (isDragSource) Modifier.background(Color(0x40FFFFFF)) else Modifier,
+                ).pointerInput(node.id) {
+                    var pressPos = Offset.Zero
+                    var pressed = false
+                    var lastClickTime = 0L
+                    var dragStarted = false
 
-                awaitPointerEventScope {
-                    while (true) {
-                        val event = awaitPointerEvent()
-                        val pos = event.changes.firstOrNull()?.position ?: continue
+                    awaitPointerEventScope {
+                        while (true) {
+                            val event = awaitPointerEvent()
+                            val pos = event.changes.firstOrNull()?.position ?: continue
 
-                        when (event.type) {
-                            PointerEventType.Press -> {
-                                if (event.buttons.isPrimaryPressed) {
-                                    pressPos = pos
-                                    pressed = true
-                                    dragStarted = false
-                                    event.changes.forEach { it.consume() }
-                                }
-                            }
-                            PointerEventType.Move -> {
-                                if (pressed && !dragStarted) {
-                                    val dist = (pos - pressPos).getDistance()
-                                    if (dist > 8f) {
-                                        dragStarted = true
-                                        onDragStart()
+                            when (event.type) {
+                                PointerEventType.Press -> {
+                                    if (event.buttons.isPrimaryPressed) {
+                                        pressPos = pos
+                                        pressed = true
+                                        dragStarted = false
+                                        event.changes.forEach { it.consume() }
                                     }
-                                    event.changes.forEach { it.consume() }
                                 }
-                            }
-                            PointerEventType.Release -> {
-                                if (pressed) {
-                                    pressed = false
-                                    if (!dragStarted) {
-                                        val now = System.currentTimeMillis()
-                                        val isDouble = now - lastClickTime < 400
-                                        lastClickTime = now
-                                        if (isDouble && node.children.isNotEmpty()) {
-                                            onToggleExpand()
-                                        } else if (!isDouble) {
-                                            onSelect(event.keyboardModifiers.isShiftPressed)
+
+                                PointerEventType.Move -> {
+                                    if (pressed && !dragStarted) {
+                                        val dist = (pos - pressPos).getDistance()
+                                        if (dist > 8f) {
+                                            dragStarted = true
+                                            onDragStart()
                                         }
+                                        event.changes.forEach { it.consume() }
                                     }
-                                    dragStarted = false
-                                    event.changes.forEach { it.consume() }
                                 }
+
+                                PointerEventType.Release -> {
+                                    if (pressed) {
+                                        pressed = false
+                                        if (!dragStarted) {
+                                            val now = System.currentTimeMillis()
+                                            val isDouble = now - lastClickTime < 400
+                                            lastClickTime = now
+                                            if (isDouble && node.children.isNotEmpty()) {
+                                                onToggleExpand()
+                                            } else if (!isDouble) {
+                                                onSelect(event.keyboardModifiers.isShiftPressed)
+                                            }
+                                        }
+                                        dragStarted = false
+                                        event.changes.forEach { it.consume() }
+                                    }
+                                }
+
+                                else -> {}
                             }
-                            else -> {}
                         }
                     }
-                }
-            },
-        verticalAlignment = Alignment.CenterVertically
+                },
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(
             Modifier
@@ -215,29 +235,37 @@ private fun HierarchyRow(
                     interactionSource = remember { MutableInteractionSource() },
                     indication = null,
                     enabled = node.children.isNotEmpty(),
-                    onClick = onToggleExpand
+                    onClick = onToggleExpand,
                 ),
-            contentAlignment = Alignment.Center
+            contentAlignment = Alignment.Center,
         ) {
             if (node.children.isNotEmpty()) {
                 Text(
                     if (isExpanded) "▾" else "▸",
-                    color = GhostlyText, fontSize = 10.sp, lineHeight = 10.sp
+                    color = GhostlyText,
+                    fontSize = 10.sp,
+                    lineHeight = 10.sp,
                 )
             }
         }
 
         Text(
-            node.node.type.className.removeSuffix("WidgetClass").take(4),
-            color = Color(0xFF7A9CC0), fontSize = 9.sp,
-            modifier = Modifier.width(30.dp), maxLines = 1
+            node.node.type.className
+                .removeSuffix("WidgetClass")
+                .take(4),
+            color = Color(0xFF7A9CC0),
+            fontSize = 9.sp,
+            modifier = Modifier.width(30.dp),
+            maxLines = 1,
         )
 
         Text(
             node.node.name.ifEmpty { if (depth == 0) "(root)" else "—" },
             color = if (isSelected) TextForeground else Color(0xCCCCCCCC),
-            fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.padding(start = 2.dp)
+            fontSize = 11.sp,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.padding(start = 2.dp),
         )
     }
 }

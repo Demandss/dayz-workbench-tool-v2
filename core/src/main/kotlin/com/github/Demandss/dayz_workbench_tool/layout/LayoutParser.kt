@@ -4,7 +4,9 @@ object LayoutParser {
     fun parse(input: String): WidgetNode = ParserState(input).parseWidget()
 }
 
-private class ParserState(private val input: String) {
+private class ParserState(
+    private val input: String,
+) {
     var pos = 0
 
     fun parseWidget(): WidgetNode {
@@ -23,9 +25,20 @@ private class ParserState(private val input: String) {
             skipWhitespaceAndComments()
             if (pos >= input.length) break
             when (input[pos]) {
-                '}' -> { pos++; break }
-                '{' -> { pos++; parseChildrenInto(children); break }
-                else -> parsePropInto(props)
+                '}' -> {
+                    pos++
+                    break
+                }
+
+                '{' -> {
+                    pos++
+                    parseChildrenInto(children)
+                    break
+                }
+
+                else -> {
+                    parsePropInto(props)
+                }
             }
         }
 
@@ -36,7 +49,10 @@ private class ParserState(private val input: String) {
         while (true) {
             skipWhitespaceAndComments()
             if (pos >= input.length) break
-            if (input[pos] == '}') { pos++; break }
+            if (input[pos] == '}') {
+                pos++
+                break
+            }
             children.add(parseWidget())
         }
         skipWhitespaceAndComments()
@@ -53,16 +69,23 @@ private class ParserState(private val input: String) {
     private fun skipWhitespaceAndComments() {
         while (pos < input.length) {
             when {
-                input[pos].isWhitespace() -> pos++
+                input[pos].isWhitespace() -> {
+                    pos++
+                }
+
                 pos + 1 < input.length && input[pos] == '/' && input[pos + 1] == '/' -> {
                     while (pos < input.length && input[pos] != '\n') pos++
                 }
+
                 pos + 1 < input.length && input[pos] == '/' && input[pos + 1] == '*' -> {
                     pos += 2
                     while (pos + 1 < input.length && !(input[pos] == '*' && input[pos + 1] == '/')) pos++
                     if (pos + 1 < input.length) pos += 2
                 }
-                else -> break
+
+                else -> {
+                    break
+                }
             }
         }
     }
@@ -75,7 +98,9 @@ private class ParserState(private val input: String) {
         val start = pos
         while (pos < input.length && !input[pos].isWhitespace() &&
             input[pos] != '{' && input[pos] != '}' && input[pos] != '"'
-        ) pos++
+        ) {
+            pos++
+        }
         return input.substring(start, pos)
     }
 

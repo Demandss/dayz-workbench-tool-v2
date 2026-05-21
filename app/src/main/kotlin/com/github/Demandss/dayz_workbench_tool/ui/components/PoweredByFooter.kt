@@ -23,19 +23,26 @@ private val PoweredByColor = Color(0xFF404348)
 fun PoweredByFooter() {
     Box(
         modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp, top = 2.dp),
-        contentAlignment = Alignment.CenterStart
+        contentAlignment = Alignment.CenterStart,
     ) {
         Text(
             text = "Powered by ©Demands.",
-            modifier = Modifier
-                .padding(start = 4.dp)
-                .clickable(
-                    interactionSource = remember { MutableInteractionSource() },
-                    indication = null,
-                    onClick = { runCatching { Desktop.getDesktop().browse(URI("https://github.com/Demandss/dayz-workbench-tool-v2")) } }
-                ),
+            modifier =
+                Modifier
+                    .padding(start = 4.dp)
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                        onClick = {
+                            runCatching {
+                                Desktop.getDesktop().browse(
+                                    URI("https://github.com/Demandss/dayz-workbench-tool-v2"),
+                                )
+                            }
+                        },
+                    ),
             color = PoweredByColor,
-            fontSize = 11.sp
+            fontSize = 11.sp,
         )
     }
 }

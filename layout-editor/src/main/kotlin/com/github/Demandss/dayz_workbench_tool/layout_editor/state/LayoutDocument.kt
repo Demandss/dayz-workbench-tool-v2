@@ -7,7 +7,7 @@ data class LayoutDocument(
     val root: EditorWidgetNode,
     var isModified: Boolean = false,
     val undoStack: ArrayDeque<EditorWidgetNode> = ArrayDeque(),
-    val redoStack: ArrayDeque<EditorWidgetNode> = ArrayDeque()
+    val redoStack: ArrayDeque<EditorWidgetNode> = ArrayDeque(),
 ) {
     val fileName: String get() = path.replace('\\', '/').substringAfterLast('/')
 }

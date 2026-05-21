@@ -31,10 +31,11 @@ fun ModListPanel(
     var contextMod by remember { mutableStateOf<Modification?>(null) }
 
     LazyColumn(
-        modifier = modifier
-            .fillMaxWidth()
-            .border(1.dp, SubSelectColor)
-            .background(FrameBackground)
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .border(1.dp, SubSelectColor)
+                .background(FrameBackground),
     ) {
         items(mods, key = { "${it.path}_${it.side}" }) { mod ->
             Box {
@@ -52,7 +53,7 @@ fun ModListPanel(
                     DropdownMenu(
                         expanded = contextMod == mod,
                         onDismissRequest = { contextMod = null },
-                        modifier = Modifier.background(FrameBackground).border(1.dp, DarkenedBorder)
+                        modifier = Modifier.background(FrameBackground).border(1.dp, DarkenedBorder),
                     ) {
                         contextMenuContent(mod) { contextMod = null }
                     }

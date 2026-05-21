@@ -33,7 +33,7 @@ fun ModsPanel(state: AppState) {
             DarkButton(
                 text = "Mods settings",
                 onClick = { state.navigate(Screen.MODS) },
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
             )
         }
     }

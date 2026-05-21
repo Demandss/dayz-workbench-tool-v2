@@ -5,5 +5,5 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class LayoutEditorConfig(
     val undoLimit: Int = 5,
-    val defaultResolution: String = "1920x1080"
+    val defaultResolution: String = "1920x1080",
 )

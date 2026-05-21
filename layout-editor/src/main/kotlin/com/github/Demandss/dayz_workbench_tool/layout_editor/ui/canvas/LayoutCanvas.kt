@@ -21,19 +21,31 @@ import androidx.compose.ui.unit.sp
 import com.github.demandss.dayz_workbench_tool.layout.WidgetType
 import com.github.demandss.dayz_workbench_tool.layout_editor.EditorWidgetNode
 import com.github.demandss.dayz_workbench_tool.layout_editor.findNode
-import com.github.demandss.dayz_workbench_tool.layout_editor.updateNode
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.LayoutEditorState
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.Resolution
+import com.github.demandss.dayz_workbench_tool.layout_editor.updateNode
 import java.util.UUID
 
 // ---------------------------------------------------------------------------
 // Pure helpers
 // ---------------------------------------------------------------------------
 
-private fun worldToScreen(world: Offset, zoom: Float, pan: Offset) = world * zoom + pan
-private fun screenToWorld(screen: Offset, zoom: Float, pan: Offset) = (screen - pan) / zoom
+private fun worldToScreen(
+    world: Offset,
+    zoom: Float,
+    pan: Offset,
+) = world * zoom + pan
 
-private fun computeRect(node: EditorWidgetNode, parentRect: Rect): Rect {
+private fun screenToWorld(
+    screen: Offset,
+    zoom: Float,
+    pan: Offset,
+) = (screen - pan) / zoom
+
+private fun computeRect(
+    node: EditorWidgetNode,
+    parentRect: Rect,
+): Rect {
     val props = node.node.properties
     val pp = (props["position"] ?: "0 0").trim().split(Regex("\\s+"))
     val sp = (props["size"] ?: "0.1 0.1").trim().split(Regex("\\s+"))
@@ -49,21 +61,26 @@ private fun computeRect(node: EditorWidgetNode, parentRect: Rect): Rect {
     val ay = if (vyp) py else py * parentRect.height
     val aw = if (hxs) sw else sw * parentRect.width
     val ah = if (vys) sh else sh * parentRect.height
-    val bx = when (props["halign"]) {
-        "right_ref", "right" -> parentRect.right - aw - ax
-        "center_ref"         -> parentRect.left + parentRect.width / 2f - aw / 2f + ax
-        else                 -> parentRect.left + ax
-    }
-    val by_ = when (props["valign"]) {
-        "bottom_ref", "bottom" -> parentRect.bottom - ah - ay
-        "center_ref"           -> parentRect.top + parentRect.height / 2f - ah / 2f + ay
-        else                   -> parentRect.top + ay
-    }
-    return Rect(bx, by_, bx + aw, by_ + ah)
+    val bx =
+        when (props["halign"]) {
+            "right_ref", "right" -> parentRect.right - aw - ax
+            "center_ref" -> parentRect.left + parentRect.width / 2f - aw / 2f + ax
+            else -> parentRect.left + ax
+        }
+    val posY =
+        when (props["valign"]) {
+            "bottom_ref", "bottom" -> parentRect.bottom - ah - ay
+            "center_ref" -> parentRect.top + parentRect.height / 2f - ah / 2f + ay
+            else -> parentRect.top + ay
+        }
+    return Rect(bx, posY, bx + aw, posY + ah)
 }
 
 private fun hitTest(
-    node: EditorWidgetNode, worldPos: Offset, parentRect: Rect, isRoot: Boolean = false
+    node: EditorWidgetNode,
+    worldPos: Offset,
+    parentRect: Rect,
+    isRoot: Boolean = false,
 ): EditorWidgetNode? {
     val rect = if (isRoot) parentRect else computeRect(node, parentRect)
     if (!rect.contains(worldPos)) return null
@@ -74,9 +91,10 @@ private fun hitTest(
 }
 
 private fun buildParentRectMap(
-    node: EditorWidgetNode, myParentRect: Rect,
+    node: EditorWidgetNode,
+    myParentRect: Rect,
     result: MutableMap<UUID, Rect> = mutableMapOf(),
-    isRoot: Boolean = false
+    isRoot: Boolean = false,
 ): Map<UUID, Rect> {
     result[node.id] = myParentRect
     val myRect = if (isRoot) myParentRect else computeRect(node, myParentRect)
@@ -85,7 +103,11 @@ private fun buildParentRectMap(
 }
 
 private fun selectInBox(
-    node: EditorWidgetNode, box: Rect, parentRect: Rect, out: MutableList<UUID>, isRoot: Boolean = false
+    node: EditorWidgetNode,
+    box: Rect,
+    parentRect: Rect,
+    out: MutableList<UUID>,
+    isRoot: Boolean = false,
 ) {
     val rect = if (isRoot) parentRect else computeRect(node, parentRect)
     if (!isRoot && box.overlaps(rect)) out.add(node.id)
@@ -99,7 +121,7 @@ private fun parseColor(v: String?): Color {
         p.getOrNull(0)?.toFloatOrNull() ?: 0f,
         p.getOrNull(1)?.toFloatOrNull() ?: 0f,
         p.getOrNull(2)?.toFloatOrNull() ?: 0f,
-        p.getOrNull(3)?.toFloatOrNull() ?: 1f
+        p.getOrNull(3)?.toFloatOrNull() ?: 1f,
     )
 }
 
@@ -114,16 +136,24 @@ private fun fmt(f: Float): String {
 
 private data class WidgetDragInfo(
     val id: UUID,
-    val origPosX: Float, val origPosY: Float,
-    val hexactpos: Boolean, val vexactpos: Boolean,
-    val parentRect: Rect
+    val origPosX: Float,
+    val origPosY: Float,
+    val hexactpos: Boolean,
+    val vexactpos: Boolean,
+    val parentRect: Rect,
 )
 
 // ---------------------------------------------------------------------------
 // Draw helpers
 // ---------------------------------------------------------------------------
 
-private fun DrawScope.drawGrid(gridSize: Int, refW: Float, refH: Float, zoom: Float, pan: Offset) {
+private fun DrawScope.drawGrid(
+    gridSize: Int,
+    refW: Float,
+    refH: Float,
+    zoom: Float,
+    pan: Offset,
+) {
     val step = gridSize.toFloat()
     val col = Color(0x1AFFFFFF)
     var x = 0f
@@ -141,10 +171,14 @@ private fun DrawScope.drawGrid(gridSize: Int, refW: Float, refH: Float, zoom: Fl
 }
 
 private fun DrawScope.drawWidgetTree(
-    node: EditorWidgetNode, parentRect: Rect,
-    isRoot: Boolean, selectedIds: Set<UUID>,
-    showBorders: Boolean, textMeasurer: TextMeasurer,
-    zoom: Float, pan: Offset
+    node: EditorWidgetNode,
+    parentRect: Rect,
+    isRoot: Boolean,
+    selectedIds: Set<UUID>,
+    showBorders: Boolean,
+    textMeasurer: TextMeasurer,
+    zoom: Float,
+    pan: Offset,
 ) {
     val wRect = if (isRoot) parentRect else computeRect(node, parentRect)
     val tl = worldToScreen(Offset(wRect.left, wRect.top), zoom, pan)
@@ -158,37 +192,51 @@ private fun DrawScope.drawWidgetTree(
             val col = parseColor(node.node.properties["color"])
             drawRect(col, tl, ss)
         }
+
         WidgetType.FRAME, WidgetType.WINDOW -> {
             val col = parseColor(node.node.properties["color"])
-            if (col != Color.Transparent) drawRect(col, tl, ss)
-            else drawRect(Color(0x0AFFFFFF), tl, ss)
+            if (col != Color.Transparent) {
+                drawRect(col, tl, ss)
+            } else {
+                drawRect(Color(0x0AFFFFFF), tl, ss)
+            }
         }
+
         WidgetType.IMAGE -> {
             drawRect(Color(0x22FFFFFF), tl, ss)
             drawLine(Color(0x55FFFFFF), tl, br, 1f)
             drawLine(Color(0x55FFFFFF), Offset(tl.x, br.y), Offset(br.x, tl.y), 1f)
         }
+
         WidgetType.TEXT, WidgetType.MULTILINE_TEXT, WidgetType.RICH_TEXT -> {
             drawRect(Color(0x15FFFFFF), tl, ss)
             val label = node.node.properties["text"] ?: node.node.name
             if (label.isNotEmpty() && ss.width > 4f && ss.height > 8f) {
-                val measured = textMeasurer.measure(
-                    label, TextStyle(color = Color(0xCCFFFFFF), fontSize = 11.sp)
-                )
+                val measured =
+                    textMeasurer.measure(
+                        label,
+                        TextStyle(color = Color(0xCCFFFFFF), fontSize = 11.sp),
+                    )
                 drawText(measured, topLeft = Offset(tl.x + 2f, tl.y + 1f))
             }
         }
+
         WidgetType.BUTTON -> {
             drawRect(Color(0x22AAAAFF), tl, ss)
             val label = node.node.properties["text"] ?: node.node.name
             if (label.isNotEmpty() && ss.width > 4f && ss.height > 8f) {
-                val measured = textMeasurer.measure(
-                    label, TextStyle(color = Color(0xCCCCCCFF), fontSize = 11.sp)
-                )
+                val measured =
+                    textMeasurer.measure(
+                        label,
+                        TextStyle(color = Color(0xCCCCCCFF), fontSize = 11.sp),
+                    )
                 drawText(measured, topLeft = Offset(tl.x + 2f, tl.y + 1f))
             }
         }
-        else -> drawRect(Color(0x0DFFFFFF), tl, ss)
+
+        else -> {
+            drawRect(Color(0x0DFFFFFF), tl, ss)
+        }
     }
 
     // Border
@@ -201,11 +249,15 @@ private fun DrawScope.drawWidgetTree(
 
     // Widget type label (screen-space, fixed 10sp, only when big enough)
     if (!isRoot && ss.width > 40f && ss.height > 14f) {
-        val className = node.node.type.className.removeSuffix("WidgetClass")
+        val className =
+            node.node.type.className
+                .removeSuffix("WidgetClass")
         val label = if (node.node.name.isNotEmpty()) "$className · ${node.node.name}" else className
-        val measured = textMeasurer.measure(
-            label, TextStyle(color = Color(0x88FFFFFF), fontSize = 9.sp)
-        )
+        val measured =
+            textMeasurer.measure(
+                label,
+                TextStyle(color = Color(0x88FFFFFF), fontSize = 9.sp),
+            )
         drawText(measured, topLeft = Offset(tl.x + 2f, tl.y + 2f))
     }
 
@@ -229,7 +281,10 @@ private fun DrawScope.drawWidgetTree(
 // ---------------------------------------------------------------------------
 
 @Composable
-fun LayoutCanvas(state: LayoutEditorState, modifier: Modifier = Modifier) {
+fun LayoutCanvas(
+    state: LayoutEditorState,
+    modifier: Modifier = Modifier,
+) {
     val textMeasurer = rememberTextMeasurer()
     var spacePressed by remember { mutableStateOf(false) }
     var selectionBox by remember { mutableStateOf<Rect?>(null) }
@@ -245,175 +300,199 @@ fun LayoutCanvas(state: LayoutEditorState, modifier: Modifier = Modifier) {
     LaunchedEffect(Unit) { focusRequester.requestFocus() }
 
     Canvas(
-        modifier = modifier
-            .clipToBounds()
-            .focusRequester(focusRequester)
-            .focusable()
-            .onKeyEvent { ev ->
-                if (ev.key == Key.Spacebar) { spacePressed = ev.type == KeyEventType.KeyDown; true }
-                else false
-            }
-            .onSizeChanged {
-                val newSize = Size(it.width.toFloat(), it.height.toFloat())
-                val first = state.lastCanvasSize == Size.Zero
-                state.lastCanvasSize = newSize
-                if (first && state.activeFile != null) state.centerView()
-            }
-            .pointerInput(Unit) {
-                awaitPointerEventScope {
-                    var isPanning = false
-                    var panStartScreen = Offset.Zero
-                    var panStartOffset = Offset.Zero
+        modifier =
+            modifier
+                .clipToBounds()
+                .focusRequester(focusRequester)
+                .focusable()
+                .onKeyEvent { ev ->
+                    if (ev.key == Key.Spacebar) {
+                        spacePressed = ev.type == KeyEventType.KeyDown
+                        true
+                    } else {
+                        false
+                    }
+                }.onSizeChanged {
+                    val newSize = Size(it.width.toFloat(), it.height.toFloat())
+                    val first = state.lastCanvasSize == Size.Zero
+                    state.lastCanvasSize = newSize
+                    if (first && state.activeFile != null) state.centerView()
+                }.pointerInput(Unit) {
+                    awaitPointerEventScope {
+                        var isPanning = false
+                        var panStartScreen = Offset.Zero
+                        var panStartOffset = Offset.Zero
 
-                    var isDragging = false
-                    var dragStartScreen = Offset.Zero
-                    var dragInfos: List<WidgetDragInfo> = emptyList()
+                        var isDragging = false
+                        var dragStartScreen = Offset.Zero
+                        var dragInfos: List<WidgetDragInfo> = emptyList()
 
-                    var isBoxSelecting = false
-                    var boxStartWorld = Offset.Zero
-                    var currentBox: Rect? = null
+                        var isBoxSelecting = false
+                        var boxStartWorld = Offset.Zero
+                        var currentBox: Rect? = null
 
-                    while (true) {
-                        val event = awaitPointerEvent(PointerEventPass.Main)
-                        val pos = event.changes.firstOrNull()?.position ?: continue
-                        val zoom = state.zoom
-                        val pan = state.panOffset
+                        while (true) {
+                            val event = awaitPointerEvent(PointerEventPass.Main)
+                            val pos = event.changes.firstOrNull()?.position ?: continue
+                            val zoom = state.zoom
+                            val pan = state.panOffset
 
-                        when (event.type) {
-                            PointerEventType.Scroll -> {
-                                if (!event.keyboardModifiers.isCtrlPressed) continue
-                                val dy = event.changes.firstOrNull()?.scrollDelta?.y ?: 0f
-                                if (dy == 0f) continue
-                                val factor = if (dy > 0) 0.9f else 1.1f
-                                val newZoom = (zoom * factor).coerceIn(0.1f, 8f)
-                                val worldUnder = screenToWorld(pos, zoom, pan)
-                                state.zoom = newZoom
-                                state.panOffset = pos - worldUnder * newZoom
-                                event.changes.forEach { it.consume() }
-                            }
+                            when (event.type) {
+                                PointerEventType.Scroll -> {
+                                    if (!event.keyboardModifiers.isCtrlPressed) continue
+                                    val dy =
+                                        event.changes
+                                            .firstOrNull()
+                                            ?.scrollDelta
+                                            ?.y ?: 0f
+                                    if (dy == 0f) continue
+                                    val factor = if (dy > 0) 0.9f else 1.1f
+                                    val newZoom = (zoom * factor).coerceIn(0.1f, 8f)
+                                    val worldUnder = screenToWorld(pos, zoom, pan)
+                                    state.zoom = newZoom
+                                    state.panOffset = pos - worldUnder * newZoom
+                                    event.changes.forEach { it.consume() }
+                                }
 
-                            PointerEventType.Press -> {
-                                val isMiddle = event.buttons.isTertiaryPressed
-                                val isPrimary = event.buttons.isPrimaryPressed
-                                when {
-                                    isMiddle || (isPrimary && spacePressed) -> {
-                                        isPanning = true
-                                        panStartScreen = pos
-                                        panStartOffset = pan
-                                        event.changes.forEach { it.consume() }
-                                    }
-                                    isPrimary -> {
-                                        val worldPos = screenToWorld(pos, zoom, pan)
-                                        val doc = state.activeFile
-                                        val res = state.selectedResolution
-                                        val refRect = Rect(0f, 0f, res.width.toFloat(), res.height.toFloat())
-                                        val hit = doc?.let { hitTest(it.root, worldPos, refRect, isRoot = true) }
-                                        val hitIsRoot = hit?.id == doc?.root?.id
-
-                                        if (hit != null && !hitIsRoot) {
-                                            if (event.keyboardModifiers.isShiftPressed) {
-                                                if (state.selectedIds.contains(hit.id)) state.selectedIds.remove(hit.id)
-                                                else state.selectedIds.add(hit.id)
-                                            } else if (!state.selectedIds.contains(hit.id)) {
-                                                state.selectedIds.clear()
-                                                state.selectedIds.add(hit.id)
-                                            }
-                                            val parentRects = buildParentRectMap(doc.root, refRect, isRoot = true)
-                                            dragInfos = state.selectedIds.mapNotNull { id ->
-                                                val n = doc.root.findNode(id) ?: return@mapNotNull null
-                                                val pr = parentRects[id] ?: refRect
-                                                val pp = (n.node.properties["position"] ?: "0 0").trim().split(Regex("\\s+"))
-                                                WidgetDragInfo(
-                                                    id = id,
-                                                    origPosX = pp.getOrNull(0)?.toFloatOrNull() ?: 0f,
-                                                    origPosY = pp.getOrNull(1)?.toFloatOrNull() ?: 0f,
-                                                    hexactpos = n.node.properties["hexactpos"] == "1",
-                                                    vexactpos = n.node.properties["vexactpos"] == "1",
-                                                    parentRect = pr
-                                                )
-                                            }
-                                            isDragging = true
-                                            dragStartScreen = pos
-                                            state.pushUndo(state.activeFileIndex, doc.root)
+                                PointerEventType.Press -> {
+                                    val isMiddle = event.buttons.isTertiaryPressed
+                                    val isPrimary = event.buttons.isPrimaryPressed
+                                    when {
+                                        isMiddle || (isPrimary && spacePressed) -> {
+                                            isPanning = true
+                                            panStartScreen = pos
+                                            panStartOffset = pan
                                             event.changes.forEach { it.consume() }
-                                        } else {
-                                            if (!event.keyboardModifiers.isShiftPressed) state.selectedIds.clear()
-                                            isBoxSelecting = true
-                                            boxStartWorld = worldPos
-                                            currentBox = null
-                                            selectionBox = null
                                         }
-                                    }
-                                }
-                            }
 
-                            PointerEventType.Move -> {
-                                when {
-                                    isPanning -> {
-                                        state.panOffset = panStartOffset + (pos - panStartScreen)
-                                        event.changes.forEach { it.consume() }
-                                    }
-                                    isDragging && dragInfos.isNotEmpty() -> {
-                                        val worldDelta = (pos - dragStartScreen) / zoom
-                                        val doc = state.activeFile
-                                        if (doc != null) {
-                                            var newRoot = doc.root
-                                            for (info in dragInfos) {
-                                                val nx = info.origPosX + if (info.hexactpos) worldDelta.x else worldDelta.x / info.parentRect.width
-                                                val ny = info.origPosY + if (info.vexactpos) worldDelta.y else worldDelta.y / info.parentRect.height
-                                                newRoot = newRoot.updateNode(info.id) { n ->
-                                                    n.copy(node = n.node.copy(
-                                                        properties = LinkedHashMap(n.node.properties).also {
-                                                            it["position"] = "${fmt(nx)} ${fmt(ny)}"
-                                                        }
-                                                    ))
+                                        isPrimary -> {
+                                            val worldPos = screenToWorld(pos, zoom, pan)
+                                            val doc = state.activeFile
+                                            val res = state.selectedResolution
+                                            val refRect = Rect(0f, 0f, res.width.toFloat(), res.height.toFloat())
+                                            val hit = doc?.let { hitTest(it.root, worldPos, refRect, isRoot = true) }
+                                            val hitIsRoot = hit?.id == doc?.root?.id
+
+                                            if (hit != null && !hitIsRoot) {
+                                                if (event.keyboardModifiers.isShiftPressed) {
+                                                    if (state.selectedIds.contains(hit.id)) {
+                                                        state.selectedIds.remove(hit.id)
+                                                    } else {
+                                                        state.selectedIds.add(hit.id)
+                                                    }
+                                                } else if (!state.selectedIds.contains(hit.id)) {
+                                                    state.selectedIds.clear()
+                                                    state.selectedIds.add(hit.id)
                                                 }
+                                                val parentRects = buildParentRectMap(doc.root, refRect, isRoot = true)
+                                                dragInfos =
+                                                    state.selectedIds.mapNotNull { id ->
+                                                        val n = doc.root.findNode(id) ?: return@mapNotNull null
+                                                        val pr = parentRects[id] ?: refRect
+                                                        val pp = (n.node.properties["position"] ?: "0 0").trim().split(Regex("\\s+"))
+                                                        WidgetDragInfo(
+                                                            id = id,
+                                                            origPosX = pp.getOrNull(0)?.toFloatOrNull() ?: 0f,
+                                                            origPosY = pp.getOrNull(1)?.toFloatOrNull() ?: 0f,
+                                                            hexactpos = n.node.properties["hexactpos"] == "1",
+                                                            vexactpos = n.node.properties["vexactpos"] == "1",
+                                                            parentRect = pr,
+                                                        )
+                                                    }
+                                                isDragging = true
+                                                dragStartScreen = pos
+                                                state.pushUndo(state.activeFileIndex, doc.root)
+                                                event.changes.forEach { it.consume() }
+                                            } else {
+                                                if (!event.keyboardModifiers.isShiftPressed) state.selectedIds.clear()
+                                                isBoxSelecting = true
+                                                boxStartWorld = worldPos
+                                                currentBox = null
+                                                selectionBox = null
                                             }
-                                            state.updateActiveRoot(newRoot)
                                         }
-                                        event.changes.forEach { it.consume() }
-                                    }
-                                    isBoxSelecting -> {
-                                        val wp = screenToWorld(pos, zoom, pan)
-                                        val box = Rect(
-                                            left = minOf(boxStartWorld.x, wp.x),
-                                            top = minOf(boxStartWorld.y, wp.y),
-                                            right = maxOf(boxStartWorld.x, wp.x),
-                                            bottom = maxOf(boxStartWorld.y, wp.y)
-                                        )
-                                        currentBox = box
-                                        selectionBox = box
                                     }
                                 }
-                            }
 
-                            PointerEventType.Release -> {
-                                if (isBoxSelecting) {
-                                    val box = currentBox
-                                    val doc = state.activeFile
-                                    if (box != null && doc != null) {
-                                        val res2 = state.selectedResolution
-                                        val refRect = Rect(0f, 0f, res2.width.toFloat(), res2.height.toFloat())
-                                        val hits = mutableListOf<UUID>()
-                                        selectInBox(doc.root, box, refRect, hits, isRoot = true)
-                                        hits.remove(doc.root.id)
-                                        if (!event.keyboardModifiers.isShiftPressed) state.selectedIds.clear()
-                                        for (id in hits) if (!state.selectedIds.contains(id)) state.selectedIds.add(id)
+                                PointerEventType.Move -> {
+                                    when {
+                                        isPanning -> {
+                                            state.panOffset = panStartOffset + (pos - panStartScreen)
+                                            event.changes.forEach { it.consume() }
+                                        }
+
+                                        isDragging && dragInfos.isNotEmpty() -> {
+                                            val worldDelta = (pos - dragStartScreen) / zoom
+                                            val doc = state.activeFile
+                                            if (doc != null) {
+                                                var newRoot = doc.root
+                                                for (info in dragInfos) {
+                                                    val nx =
+                                                        info.origPosX +
+                                                            if (info.hexactpos) worldDelta.x else worldDelta.x / info.parentRect.width
+                                                    val ny =
+                                                        info.origPosY +
+                                                            if (info.vexactpos) worldDelta.y else worldDelta.y / info.parentRect.height
+                                                    newRoot =
+                                                        newRoot.updateNode(info.id) { n ->
+                                                            n.copy(
+                                                                node =
+                                                                    n.node.copy(
+                                                                        properties =
+                                                                            LinkedHashMap(n.node.properties).also {
+                                                                                it["position"] = "${fmt(nx)} ${fmt(ny)}"
+                                                                            },
+                                                                    ),
+                                                            )
+                                                        }
+                                                }
+                                                state.updateActiveRoot(newRoot)
+                                            }
+                                            event.changes.forEach { it.consume() }
+                                        }
+
+                                        isBoxSelecting -> {
+                                            val wp = screenToWorld(pos, zoom, pan)
+                                            val box =
+                                                Rect(
+                                                    left = minOf(boxStartWorld.x, wp.x),
+                                                    top = minOf(boxStartWorld.y, wp.y),
+                                                    right = maxOf(boxStartWorld.x, wp.x),
+                                                    bottom = maxOf(boxStartWorld.y, wp.y),
+                                                )
+                                            currentBox = box
+                                            selectionBox = box
+                                        }
                                     }
-                                    selectionBox = null
-                                    currentBox = null
                                 }
-                                isPanning = false
-                                isDragging = false
-                                isBoxSelecting = false
-                                dragInfos = emptyList()
-                            }
 
-                            else -> {}
+                                PointerEventType.Release -> {
+                                    if (isBoxSelecting) {
+                                        val box = currentBox
+                                        val doc = state.activeFile
+                                        if (box != null && doc != null) {
+                                            val res2 = state.selectedResolution
+                                            val refRect = Rect(0f, 0f, res2.width.toFloat(), res2.height.toFloat())
+                                            val hits = mutableListOf<UUID>()
+                                            selectInBox(doc.root, box, refRect, hits, isRoot = true)
+                                            hits.remove(doc.root.id)
+                                            if (!event.keyboardModifiers.isShiftPressed) state.selectedIds.clear()
+                                            for (id in hits) if (!state.selectedIds.contains(id)) state.selectedIds.add(id)
+                                        }
+                                        selectionBox = null
+                                        currentBox = null
+                                    }
+                                    isPanning = false
+                                    isDragging = false
+                                    isBoxSelecting = false
+                                    dragInfos = emptyList()
+                                }
+
+                                else -> {}
+                            }
                         }
                     }
-                }
-            }
+                },
     ) {
         val zoom = state.zoom
         val pan = state.panOffset
@@ -441,14 +520,21 @@ fun LayoutCanvas(state: LayoutEditorState, modifier: Modifier = Modifier) {
         // 5. Widgets
         if (doc != null) {
             drawWidgetTree(
-                doc.root, Rect(0f, 0f, refW, refH),
-                isRoot = true, selectedSet, state.showBorders, textMeasurer, zoom, pan
+                doc.root,
+                Rect(0f, 0f, refW, refH),
+                isRoot = true,
+                selectedSet,
+                state.showBorders,
+                textMeasurer,
+                zoom,
+                pan,
             )
         }
 
         // 6. Safe frame overlay
         if (state.showSafeFrame) {
-            val sx = refW * 0.05f; val sy = refH * 0.05f
+            val sx = refW * 0.05f
+            val sy = refH * 0.05f
             val stl = worldToScreen(Offset(sx, sy), zoom, pan)
             val sbr = worldToScreen(Offset(refW - sx, refH - sy), zoom, pan)
             drawRect(Color(0x22FFFF44), stl, Size(sbr.x - stl.x, sbr.y - stl.y))

@@ -7,9 +7,13 @@ import kotlin.io.path.*
 class ConfigManager<T>(
     subDir: String,
     private val serializer: KSerializer<T>,
-    private val default: () -> T
+    private val default: () -> T,
 ) {
-    private val json = Json { prettyPrint = true; ignoreUnknownKeys = true }
+    private val json =
+        Json {
+            prettyPrint = true
+            ignoreUnknownKeys = true
+        }
     private val configDir = Path(System.getenv("APPDATA")).resolve(".dayzworkbenchtool/v2/$subDir")
     private val configFile = configDir.resolve("settings.json")
 

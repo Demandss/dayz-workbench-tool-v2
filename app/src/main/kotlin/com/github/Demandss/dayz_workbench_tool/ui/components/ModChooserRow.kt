@@ -18,38 +18,42 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
-import java.io.File
-import kotlinx.coroutines.launch
-import com.github.demandss.dayz_workbench_tool.model.Modification
 import com.github.demandss.dayz_workbench_tool.model.ModSide
+import com.github.demandss.dayz_workbench_tool.model.Modification
 import com.github.demandss.dayz_workbench_tool.state.AppState
 import com.github.demandss.dayz_workbench_tool.ui.pickDirectory
 import com.github.demandss.dayz_workbench_tool.ui.theme.*
+import kotlinx.coroutines.launch
+import java.io.File
 
 @Composable
-fun ModChooserRow(side: ModSide, state: AppState) {
+fun ModChooserRow(
+    side: ModSide,
+    state: AppState,
+) {
     var path by remember { mutableStateOf("") }
     var showTypeDialog by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
 
     Row(
         modifier = Modifier.fillMaxWidth().height(20.dp),
-        verticalAlignment = Alignment.CenterVertically
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         BasicTextField(
             value = path,
             onValueChange = { path = it },
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxHeight()
-                .border(1.dp, SubSelectColor)
-                .background(FrameBackground)
-                .padding(start = 5.dp),
+            modifier =
+                Modifier
+                    .weight(1f)
+                    .fillMaxHeight()
+                    .border(1.dp, SubSelectColor)
+                    .background(FrameBackground)
+                    .padding(start = 5.dp),
             textStyle = TextStyle(color = TextForeground, fontSize = 11.sp, lineHeight = 11.sp),
             singleLine = true,
             decorationBox = { inner ->
                 Box(contentAlignment = Alignment.CenterStart) { inner() }
-            }
+            },
         )
         Spacer(Modifier.width(3.dp))
         SmallFolderButton { showTypeDialog = true }
@@ -63,9 +67,12 @@ fun ModChooserRow(side: ModSide, state: AppState) {
     }
 
     if (showTypeDialog) {
-        val localDir    = path.takeIf { it.isNotBlank() } ?: state.config.workDrivePath.takeIf { it.isNotBlank() }
-        val workshopDir = path.takeIf { it.isNotBlank() }
-            ?: state.config.gamePath.takeIf { it.isNotBlank() }?.let { File(it).parent + "\\!Workshop" }
+        val localDir = path.takeIf { it.isNotBlank() } ?: state.config.workDrivePath.takeIf { it.isNotBlank() }
+        val workshopDir =
+            path.takeIf { it.isNotBlank() }
+                ?: state.config.gamePath
+                    .takeIf { it.isNotBlank() }
+                    ?.let { File(it).parent + "\\!Workshop" }
         ModTypeDialog(
             onDismiss = { showTypeDialog = false },
             onLocal = {
@@ -75,25 +82,30 @@ fun ModChooserRow(side: ModSide, state: AppState) {
             onWorkshop = {
                 showTypeDialog = false
                 scope.launch { pickDirectory("Select Workshop Mod", workshopDir)?.let { path = it } }
-            }
+            },
         )
     }
 }
 
 @Composable
-private fun ModTypeDialog(onDismiss: () -> Unit, onLocal: () -> Unit, onWorkshop: () -> Unit) {
+private fun ModTypeDialog(
+    onDismiss: () -> Unit,
+    onLocal: () -> Unit,
+    onWorkshop: () -> Unit,
+) {
     Dialog(onDismissRequest = onDismiss) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(FrameBackground)
-                .border(1.dp, DarkenedBorder)
-                .padding(10.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .background(FrameBackground)
+                    .border(1.dp, DarkenedBorder)
+                    .padding(10.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Text("Select modification type", color = TextForeground, fontSize = 12.sp)
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                DarkButton("Local",    onClick = onLocal,    modifier = Modifier.weight(1f))
+                DarkButton("Local", onClick = onLocal, modifier = Modifier.weight(1f))
                 DarkButton("Workshop", onClick = onWorkshop, modifier = Modifier.weight(1f))
             }
         }
@@ -105,28 +117,33 @@ private fun SmallFolderButton(onClick: () -> Unit) {
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
     Box(
-        modifier = Modifier
-            .size(20.dp)
-            .background(if (isPressed) SelectColor else ElementsBackground)
-            .border(1.dp, SubSelectColor)
-            .clickable(interactionSource = interactionSource, indication = null, onClick = onClick),
-        contentAlignment = Alignment.Center
+        modifier =
+            Modifier
+                .size(20.dp)
+                .background(if (isPressed) SelectColor else ElementsBackground)
+                .border(1.dp, SubSelectColor)
+                .clickable(interactionSource = interactionSource, indication = null, onClick = onClick),
+        contentAlignment = Alignment.Center,
     ) {
         Icon(Icons.Default.FolderOpen, contentDescription = null, tint = TextForeground, modifier = Modifier.size(14.dp))
     }
 }
 
 @Composable
-private fun SmallIconButton(label: String, onClick: () -> Unit) {
+private fun SmallIconButton(
+    label: String,
+    onClick: () -> Unit,
+) {
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
     Box(
-        modifier = Modifier
-            .size(20.dp)
-            .background(if (isPressed) SelectColor else ElementsBackground)
-            .border(1.dp, SubSelectColor)
-            .clickable(interactionSource = interactionSource, indication = null, onClick = onClick),
-        contentAlignment = Alignment.Center
+        modifier =
+            Modifier
+                .size(20.dp)
+                .background(if (isPressed) SelectColor else ElementsBackground)
+                .border(1.dp, SubSelectColor)
+                .clickable(interactionSource = interactionSource, indication = null, onClick = onClick),
+        contentAlignment = Alignment.Center,
     ) {
         Text(label, color = TextForeground, fontSize = 11.sp, lineHeight = 12.sp)
     }

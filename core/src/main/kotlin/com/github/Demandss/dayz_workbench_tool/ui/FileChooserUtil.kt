@@ -4,20 +4,27 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
 
-suspend fun pickFile(title: String = "Select File", extension: String = "exe", initialDir: String? = null): String? =
+suspend fun pickFile(
+    title: String = "Select File",
+    extension: String = "exe",
+    initialDir: String? = null,
+): String? =
     withContext(Dispatchers.IO) {
         val initLine = if (!initialDir.isNullOrBlank()) "\$d.InitialDirectory = '$initialDir'; " else ""
         val script =
             "Add-Type -AssemblyName System.Windows.Forms; " +
-            "\$d = New-Object System.Windows.Forms.OpenFileDialog; " +
-            "\$d.Title = '$title'; " +
-            initLine +
-            "\$d.Filter = '$extension files (*.$extension)|*.$extension'; " +
-            "if (\$d.ShowDialog() -eq 'OK') { Write-Output \$d.FileName }"
+                "\$d = New-Object System.Windows.Forms.OpenFileDialog; " +
+                "\$d.Title = '$title'; " +
+                initLine +
+                "\$d.Filter = '$extension files (*.$extension)|*.$extension'; " +
+                "if (\$d.ShowDialog() -eq 'OK') { Write-Output \$d.FileName }"
         runPs("-Command", script)
     }
 
-suspend fun pickDirectory(title: String = "Select Directory", initialDir: String? = null): String? =
+suspend fun pickDirectory(
+    title: String = "Select Directory",
+    initialDir: String? = null,
+): String? =
     withContext(Dispatchers.IO) {
         val temp = File.createTempFile("dayz_pick_", ".ps1")
         try {
@@ -28,7 +35,10 @@ suspend fun pickDirectory(title: String = "Select Directory", initialDir: String
         }
     }
 
-private fun folderPickerScript(title: String, initialDir: String? = null) = """
+private fun folderPickerScript(
+    title: String,
+    initialDir: String? = null,
+) = """
 Add-Type -TypeDefinition @'
 using System;
 using System.Runtime.InteropServices;
@@ -102,12 +112,16 @@ public class FolderPicker {
 }
 '@
 [FolderPicker]::Pick('$title', '${initialDir ?: ""}')
-""".trimIndent()
+    """.trimIndent()
 
 fun runPs(vararg args: String): String? {
     val cmd = arrayOf("powershell", "-NoProfile", "-NonInteractive", "-STA") + args
     val process = ProcessBuilder(*cmd).redirectErrorStream(true).start()
-    val output = process.inputStream.bufferedReader().readText().trim()
+    val output =
+        process.inputStream
+            .bufferedReader()
+            .readText()
+            .trim()
     process.waitFor()
     return output.ifBlank { null }
 }

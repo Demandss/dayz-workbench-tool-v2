@@ -22,9 +22,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import kotlinx.coroutines.*
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.LayoutEditorState
 import com.github.demandss.dayz_workbench_tool.ui.theme.*
+import kotlinx.coroutines.*
 import java.nio.file.*
 import java.nio.file.StandardWatchEventKinds.*
 
@@ -36,20 +36,38 @@ private data class TreeEntry(
     val path: Path,
     val name: String,
     val isDir: Boolean,
-    val depth: Int
+    val depth: Int,
 )
 
-private fun buildFlatTree(root: Path, expandedDirs: Set<Path>): List<TreeEntry> {
+private fun buildFlatTree(
+    root: Path,
+    expandedDirs: Set<Path>,
+): List<TreeEntry> {
     val result = mutableListOf<TreeEntry>()
-    fun traverse(dir: Path, depth: Int) {
-        val children = runCatching {
-            Files.list(dir).sorted(Comparator { a, b ->
-                val da = if (Files.isDirectory(a)) 0 else 1
-                val db = if (Files.isDirectory(b)) 0 else 1
-                if (da != db) da - db
-                else a.fileName.toString().lowercase().compareTo(b.fileName.toString().lowercase())
-            }).toList()
-        }.getOrDefault(emptyList())
+
+    fun traverse(
+        dir: Path,
+        depth: Int,
+    ) {
+        val children =
+            runCatching {
+                Files
+                    .list(dir)
+                    .sorted(
+                        Comparator { a, b ->
+                            val da = if (Files.isDirectory(a)) 0 else 1
+                            val db = if (Files.isDirectory(b)) 0 else 1
+                            if (da != db) {
+                                da - db
+                            } else {
+                                a.fileName
+                                    .toString()
+                                    .lowercase()
+                                    .compareTo(b.fileName.toString().lowercase())
+                            }
+                        },
+                    ).toList()
+            }.getOrDefault(emptyList())
         for (child in children) {
             val isDir = Files.isDirectory(child)
             result.add(TreeEntry(child, child.fileName.toString(), isDir, depth))
@@ -65,7 +83,10 @@ private fun buildFlatTree(root: Path, expandedDirs: Set<Path>): List<TreeEntry> 
 // ---------------------------------------------------------------------------
 
 @Composable
-fun FileTreePanel(state: LayoutEditorState, width: Dp) {
+fun FileTreePanel(
+    state: LayoutEditorState,
+    width: Dp,
+) {
     val workRoot = state.workDrivePath
     val scope = rememberCoroutineScope()
 
@@ -77,10 +98,11 @@ fun FileTreePanel(state: LayoutEditorState, width: Dp) {
     var creatingDir by remember { mutableStateOf(false) }
     var selectedPath by remember { mutableStateOf<Path?>(null) }
 
-    val flatList = remember(refreshTick, expandedDirs.toList()) {
-        val root = runCatching { Path.of(workRoot) }.getOrNull()
-        if (root != null) buildFlatTree(root, expandedDirs.toHashSet()) else emptyList()
-    }
+    val flatList =
+        remember(refreshTick, expandedDirs.toList()) {
+            val root = runCatching { Path.of(workRoot) }.getOrNull()
+            if (root != null) buildFlatTree(root, expandedDirs.toHashSet()) else emptyList()
+        }
 
     // File watcher — watch root and all expanded dirs
     DisposableEffect(workRoot, expandedDirs.toList()) {
@@ -93,22 +115,30 @@ fun FileTreePanel(state: LayoutEditorState, width: Dp) {
             runCatching { dir.register(ws, ENTRY_CREATE, ENTRY_DELETE, ENTRY_MODIFY) }
         }
 
-        val job = scope.launch(Dispatchers.IO) {
-            while (isActive) {
-                val key = runCatching { ws.take() }.getOrNull() ?: break
-                key.pollEvents()
-                withContext(Dispatchers.Main) { refreshTick++ }
-                key.reset()
+        val job =
+            scope.launch(Dispatchers.IO) {
+                while (isActive) {
+                    val key = runCatching { ws.take() }.getOrNull() ?: break
+                    key.pollEvents()
+                    withContext(Dispatchers.Main) { refreshTick++ }
+                    key.reset()
+                }
             }
+        onDispose {
+            job.cancel()
+            runCatching { ws.close() }
         }
-        onDispose { job.cancel(); runCatching { ws.close() } }
     }
 
     Column(Modifier.width(width).fillMaxHeight().background(FrameBackground)) {
         // Header
         Row(
-            Modifier.fillMaxWidth().height(22.dp).background(ElementsBackground).padding(horizontal = 6.dp),
-            verticalAlignment = Alignment.CenterVertically
+            Modifier
+                .fillMaxWidth()
+                .height(22.dp)
+                .background(ElementsBackground)
+                .padding(horizontal = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             Text("Project", color = GhostlyText, fontSize = 10.sp, modifier = Modifier.weight(1f))
         }
@@ -136,8 +166,9 @@ fun FileTreePanel(state: LayoutEditorState, width: Dp) {
                                     runCatching {
                                         val newName = if (!isDir && !name.endsWith(".layout")) "$name.layout" else name
                                         val newPath = parentDir.resolve(newName)
-                                        if (isDir) Files.createDirectories(newPath)
-                                        else {
+                                        if (isDir) {
+                                            Files.createDirectories(newPath)
+                                        } else {
                                             Files.createDirectories(newPath.parent)
                                             Files.writeString(newPath, "FrameWidgetClass RootFrame {\n}\n")
                                             withContext(Dispatchers.Main) { state.openFile(newPath.toString()) }
@@ -147,7 +178,7 @@ fun FileTreePanel(state: LayoutEditorState, width: Dp) {
                                 }
                             }
                         },
-                        onCancel = { creatingIn = null }
+                        onCancel = { creatingIn = null },
                     )
                 }
             }
@@ -172,7 +203,7 @@ fun FileTreePanel(state: LayoutEditorState, width: Dp) {
                                 }
                             }
                         },
-                        onCancel = { renamingPath = null }
+                        onCancel = { renamingPath = null },
                     )
                 } else {
                     Box {
@@ -182,41 +213,61 @@ fun FileTreePanel(state: LayoutEditorState, width: Dp) {
                             isExpanded = expandedDirs.contains(entry.path),
                             onSelect = { selectedPath = entry.path },
                             onToggle = {
-                                if (expandedDirs.contains(entry.path)) expandedDirs.remove(entry.path)
-                                else expandedDirs.add(entry.path)
+                                if (expandedDirs.contains(entry.path)) {
+                                    expandedDirs.remove(entry.path)
+                                } else {
+                                    expandedDirs.add(entry.path)
+                                }
                             },
                             onDoubleClick = {
                                 if (entry.isDir) {
-                                    if (expandedDirs.contains(entry.path)) expandedDirs.remove(entry.path)
-                                    else expandedDirs.add(entry.path)
+                                    if (expandedDirs.contains(entry.path)) {
+                                        expandedDirs.remove(entry.path)
+                                    } else {
+                                        expandedDirs.add(entry.path)
+                                    }
                                 } else if (entry.name.endsWith(".layout")) {
                                     state.openFile(entry.path.toString())
                                 }
                             },
-                            onRightClick = { showMenu = true }
+                            onRightClick = { showMenu = true },
                         )
                         DropdownMenu(
                             expanded = showMenu,
                             onDismissRequest = { showMenu = false },
-                            modifier = Modifier.background(ElementsBackground)
+                            modifier = Modifier.background(ElementsBackground),
                         ) {
                             if (entry.isDir) {
                                 DropdownMenuItem(
                                     text = { Text("Новый .layout", color = TextForeground, fontSize = 11.sp) },
-                                    onClick = { showMenu = false; creatingIn = entry.path; creatingDir = false }
+                                    onClick = {
+                                        showMenu = false
+                                        creatingIn = entry.path
+                                        creatingDir = false
+                                    },
                                 )
                                 DropdownMenuItem(
                                     text = { Text("Новая папка", color = TextForeground, fontSize = 11.sp) },
-                                    onClick = { showMenu = false; creatingIn = entry.path; creatingDir = true }
+                                    onClick = {
+                                        showMenu = false
+                                        creatingIn = entry.path
+                                        creatingDir = true
+                                    },
                                 )
                             }
                             DropdownMenuItem(
                                 text = { Text("Переименовать", color = TextForeground, fontSize = 11.sp) },
-                                onClick = { showMenu = false; renamingPath = entry.path }
+                                onClick = {
+                                    showMenu = false
+                                    renamingPath = entry.path
+                                },
                             )
                             DropdownMenuItem(
                                 text = { Text("Удалить...", color = Color(0xFFFF5555), fontSize = 11.sp) },
-                                onClick = { showMenu = false; deletingEntry = entry }
+                                onClick = {
+                                    showMenu = false
+                                    deletingEntry = entry
+                                },
                             )
                             DropdownMenuItem(
                                 text = { Text("Показать в проводнике", color = TextForeground, fontSize = 11.sp) },
@@ -227,7 +278,7 @@ fun FileTreePanel(state: LayoutEditorState, width: Dp) {
                                             ProcessBuilder("explorer.exe", "/select,${entry.path.toAbsolutePath()}").start()
                                         }
                                     }
-                                }
+                                },
                             )
                         }
                     }
@@ -260,7 +311,7 @@ fun FileTreePanel(state: LayoutEditorState, width: Dp) {
             },
             title = { Text("Удалить «${target.name}»?", color = TextForeground) },
             text = { Text("Это действие необратимо.", color = GhostlyText, fontSize = 12.sp) },
-            containerColor = ElementsBackground
+            containerColor = ElementsBackground,
         )
     }
 }
@@ -277,37 +328,39 @@ private fun TreeRow(
     onSelect: () -> Unit,
     onToggle: () -> Unit,
     onDoubleClick: () -> Unit,
-    onRightClick: () -> Unit
+    onRightClick: () -> Unit,
 ) {
     var clickTime by remember { mutableStateOf(0L) }
 
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(20.dp)
-            .background(if (isSelected) SubSelectColor else Color.Transparent)
-            .padding(start = (entry.depth * 12 + 2).dp)
-            .pointerInput(entry.path) {
-                awaitPointerEventScope {
-                    while (true) {
-                        val event = awaitPointerEvent()
-                        when {
-                            event.type == PointerEventType.Press && event.buttons.isPrimaryPressed -> {
-                                onSelect()
-                                val now = System.currentTimeMillis()
-                                if (now - clickTime < 400) onDoubleClick()
-                                clickTime = now
-                                event.changes.forEach { it.consume() }
-                            }
-                            event.type == PointerEventType.Press && event.buttons.isSecondaryPressed -> {
-                                onRightClick()
-                                event.changes.forEach { it.consume() }
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .height(20.dp)
+                .background(if (isSelected) SubSelectColor else Color.Transparent)
+                .padding(start = (entry.depth * 12 + 2).dp)
+                .pointerInput(entry.path) {
+                    awaitPointerEventScope {
+                        while (true) {
+                            val event = awaitPointerEvent()
+                            when {
+                                event.type == PointerEventType.Press && event.buttons.isPrimaryPressed -> {
+                                    onSelect()
+                                    val now = System.currentTimeMillis()
+                                    if (now - clickTime < 400) onDoubleClick()
+                                    clickTime = now
+                                    event.changes.forEach { it.consume() }
+                                }
+
+                                event.type == PointerEventType.Press && event.buttons.isSecondaryPressed -> {
+                                    onRightClick()
+                                    event.changes.forEach { it.consume() }
+                                }
                             }
                         }
                     }
-                }
-            },
-        verticalAlignment = Alignment.CenterVertically
+                },
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         // Expand arrow (dirs only)
         Box(
@@ -317,9 +370,9 @@ private fun TreeRow(
                     interactionSource = remember { MutableInteractionSource() },
                     indication = null,
                     enabled = entry.isDir,
-                    onClick = onToggle
+                    onClick = onToggle,
                 ),
-            contentAlignment = Alignment.Center
+            contentAlignment = Alignment.Center,
         ) {
             if (entry.isDir) {
                 Text(if (isExpanded) "▾" else "▸", color = GhostlyText, fontSize = 9.sp, lineHeight = 9.sp)
@@ -334,7 +387,7 @@ private fun TreeRow(
                 else -> "📄"
             },
             fontSize = 11.sp,
-            modifier = Modifier.padding(end = 4.dp)
+            modifier = Modifier.padding(end = 4.dp),
         )
 
         // Name
@@ -342,7 +395,9 @@ private fun TreeRow(
         Text(
             entry.name,
             color = if (isLayout) Color(0xFF8EC6FF) else TextForeground,
-            fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis
+            fontSize = 11.sp,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
         )
     }
 }
@@ -357,7 +412,7 @@ private fun InlineNameField(
     placeholder: String,
     initialValue: String = "",
     onCommit: (String) -> Unit,
-    onCancel: () -> Unit
+    onCancel: () -> Unit,
 ) {
     var text by remember { mutableStateOf(initialValue) }
     val focusRequester = remember { FocusRequester() }
@@ -369,7 +424,7 @@ private fun InlineNameField(
             .fillMaxWidth()
             .height(20.dp)
             .padding(start = (depth * 12 + 18).dp, end = 4.dp),
-        verticalAlignment = Alignment.CenterVertically
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         BasicTextField(
             value = text,
@@ -382,7 +437,7 @@ private fun InlineNameField(
                     Modifier
                         .fillMaxWidth()
                         .background(FrameBackground)
-                        .padding(horizontal = 3.dp, vertical = 1.dp)
+                        .padding(horizontal = 3.dp, vertical = 1.dp),
                 ) {
                     if (text.isEmpty()) {
                         Text(placeholder, color = GhostlyText, fontSize = 11.sp)
@@ -390,16 +445,27 @@ private fun InlineNameField(
                     inner()
                 }
             },
-            modifier = Modifier
-                .fillMaxWidth()
-                .focusRequester(focusRequester)
-                .onKeyEvent { ev ->
-                    when {
-                        ev.key == Key.Enter && ev.type == KeyEventType.KeyDown -> { onCommit(text); true }
-                        ev.key == Key.Escape && ev.type == KeyEventType.KeyDown -> { onCancel(); true }
-                        else -> false
-                    }
-                }
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .focusRequester(focusRequester)
+                    .onKeyEvent { ev ->
+                        when {
+                            ev.key == Key.Enter && ev.type == KeyEventType.KeyDown -> {
+                                onCommit(text)
+                                true
+                            }
+
+                            ev.key == Key.Escape && ev.type == KeyEventType.KeyDown -> {
+                                onCancel()
+                                true
+                            }
+
+                            else -> {
+                                false
+                            }
+                        }
+                    },
         )
     }
 }

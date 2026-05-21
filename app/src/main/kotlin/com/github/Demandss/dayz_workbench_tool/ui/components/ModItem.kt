@@ -46,83 +46,94 @@ fun ModItem(
     val bg = if (isSelected) SelectColor else FrameBackground
 
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(bg)
-            .padding(horizontal = 4.dp, vertical = 2.dp)
-            .then(
-                if (onRightClick != null) Modifier.pointerInput(onRightClick) {
-                    awaitPointerEventScope {
-                        var secondaryDown = false
-                        while (true) {
-                            val event = awaitPointerEvent()
-                            if (event.button == PointerButton.Secondary) {
-                                if (!secondaryDown) {
-                                    secondaryDown = true
-                                    event.changes.forEach { it.consume() }
-                                    onRightClick()
-                                } else {
-                                    secondaryDown = false
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .background(bg)
+                .padding(horizontal = 4.dp, vertical = 2.dp)
+                .then(
+                    if (onRightClick != null) {
+                        Modifier.pointerInput(onRightClick) {
+                            awaitPointerEventScope {
+                                var secondaryDown = false
+                                while (true) {
+                                    val event = awaitPointerEvent()
+                                    if (event.button == PointerButton.Secondary) {
+                                        if (!secondaryDown) {
+                                            secondaryDown = true
+                                            event.changes.forEach { it.consume() }
+                                            onRightClick()
+                                        } else {
+                                            secondaryDown = false
+                                        }
+                                    }
                                 }
                             }
                         }
-                    }
-                } else Modifier
-            ),
-        verticalAlignment = Alignment.CenterVertically
+                    } else {
+                        Modifier
+                    },
+                ),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         SideButton(mod.side, colors, onSwitchSide)
         Spacer(Modifier.width(3.dp))
 
         Row(
-            modifier = Modifier
-                .weight(1f)
-                .height(20.dp)
-                .border(1.dp, SubSelectColor)
-                .background(bg),
-            verticalAlignment = Alignment.CenterVertically
+            modifier =
+                Modifier
+                    .weight(1f)
+                    .height(20.dp)
+                    .border(1.dp, SubSelectColor)
+                    .background(bg),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             Row(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxHeight()
-                    .then(
-                        if (onSelect != null || onDoubleClick != null) Modifier.pointerInput(onSelect, onDoubleClick) {
-                            awaitPointerEventScope {
-                                var primaryDown = false
-                                var lastClickTime = 0L
-                                while (true) {
-                                    val event = awaitPointerEvent()
-                                    if (event.button == PointerButton.Primary) {
-                                        if (!primaryDown) {
-                                            primaryDown = true
-                                            val now = System.currentTimeMillis()
-                                            val isShift = event.keyboardModifiers.isShiftPressed
-                                            val isCtrl = event.keyboardModifiers.isCtrlPressed
-                                            event.changes.forEach { it.consume() }
-                                            if (onDoubleClick != null && now - lastClickTime < 300L) {
-                                                lastClickTime = 0L
-                                                onDoubleClick()
-                                            } else {
-                                                lastClickTime = now
-                                                onSelect?.invoke(isShift, isCtrl)
+                modifier =
+                    Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                        .then(
+                            if (onSelect != null || onDoubleClick != null) {
+                                Modifier.pointerInput(onSelect, onDoubleClick) {
+                                    awaitPointerEventScope {
+                                        var primaryDown = false
+                                        var lastClickTime = 0L
+                                        while (true) {
+                                            val event = awaitPointerEvent()
+                                            if (event.button == PointerButton.Primary) {
+                                                if (!primaryDown) {
+                                                    primaryDown = true
+                                                    val now = System.currentTimeMillis()
+                                                    val isShift = event.keyboardModifiers.isShiftPressed
+                                                    val isCtrl = event.keyboardModifiers.isCtrlPressed
+                                                    event.changes.forEach { it.consume() }
+                                                    if (onDoubleClick != null && now - lastClickTime < 300L) {
+                                                        lastClickTime = 0L
+                                                        onDoubleClick()
+                                                    } else {
+                                                        lastClickTime = now
+                                                        onSelect?.invoke(isShift, isCtrl)
+                                                    }
+                                                } else {
+                                                    primaryDown = false
+                                                }
                                             }
-                                        } else {
-                                            primaryDown = false
                                         }
                                     }
                                 }
-                            }
-                        } else Modifier
-                    ),
-                verticalAlignment = Alignment.CenterVertically
+                            } else {
+                                Modifier
+                            },
+                        ),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
                 if (mod.type == ModType.WORKSHOP) {
                     Image(
                         painter = painterResource("assets/images/workshop.svg"),
                         contentDescription = null,
                         colorFilter = ColorFilter.tint(colors.modIconWorkshop),
-                        modifier = Modifier.size(14.dp).padding(start = 2.dp)
+                        modifier = Modifier.size(14.dp).padding(start = 2.dp),
                     )
                 } else {
                     Spacer(Modifier.width(4.dp))
@@ -131,12 +142,13 @@ fun ModItem(
                     text = mod.name,
                     modifier = Modifier.weight(1f).padding(horizontal = 2.dp),
                     color = if (mod.enabled && !isMissing) TextForeground else GhostlyText,
-                    style = TextStyle(
-                        fontSize = 11.sp,
-                        lineHeight = 11.sp,
-                        textDecoration = if (isMissing) TextDecoration.LineThrough else TextDecoration.None
-                    ),
-                    maxLines = 1
+                    style =
+                        TextStyle(
+                            fontSize = 11.sp,
+                            lineHeight = 11.sp,
+                            textDecoration = if (isMissing) TextDecoration.LineThrough else TextDecoration.None,
+                        ),
+                    maxLines = 1,
                 )
             }
 
@@ -147,50 +159,68 @@ fun ModItem(
 }
 
 @Composable
-private fun SideButton(side: ModSide, colors: AppColors, onClick: () -> Unit) {
+private fun SideButton(
+    side: ModSide,
+    colors: AppColors,
+    onClick: () -> Unit,
+) {
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
 
     Box(
-        modifier = Modifier
-            .size(18.dp)
-            .background(if (isPressed) SelectColor else FrameBackground)
-            .clickable(interactionSource = interactionSource, indication = null, onClick = onClick),
-        contentAlignment = Alignment.Center
+        modifier =
+            Modifier
+                .size(18.dp)
+                .background(if (isPressed) SelectColor else FrameBackground)
+                .clickable(interactionSource = interactionSource, indication = null, onClick = onClick),
+        contentAlignment = Alignment.Center,
     ) {
         Image(
-            painter = painterResource(
-                if (side == ModSide.CLIENT) "assets/images/mod_client_side.svg"
-                else "assets/images/mod_server_side.svg"
-            ),
+            painter =
+                painterResource(
+                    if (side == ModSide.CLIENT) {
+                        "assets/images/mod_client_side.svg"
+                    } else {
+                        "assets/images/mod_server_side.svg"
+                    },
+                ),
             contentDescription = if (side == ModSide.CLIENT) "client side" else "server side",
             colorFilter = ColorFilter.tint(if (side == ModSide.CLIENT) colors.modIconClientSide else colors.modIconServerSide),
-            modifier = Modifier.size(16.dp)
+            modifier = Modifier.size(16.dp),
         )
     }
 }
 
 @Composable
-private fun EnableButton(enabled: Boolean, colors: AppColors, onToggle: () -> Unit) {
+private fun EnableButton(
+    enabled: Boolean,
+    colors: AppColors,
+    onToggle: () -> Unit,
+) {
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
 
     Box(
-        modifier = Modifier
-            .width(16.dp)
-            .fillMaxHeight()
-            .background(if (isPressed) SelectColor else FrameBackground)
-            .clickable(interactionSource = interactionSource, indication = null, onClick = onToggle),
-        contentAlignment = Alignment.Center
+        modifier =
+            Modifier
+                .width(16.dp)
+                .fillMaxHeight()
+                .background(if (isPressed) SelectColor else FrameBackground)
+                .clickable(interactionSource = interactionSource, indication = null, onClick = onToggle),
+        contentAlignment = Alignment.Center,
     ) {
         Image(
-            painter = painterResource(
-                if (enabled) "assets/images/mod_enabled.svg"
-                else "assets/images/mod_disebled.svg"
-            ),
+            painter =
+                painterResource(
+                    if (enabled) {
+                        "assets/images/mod_enabled.svg"
+                    } else {
+                        "assets/images/mod_disebled.svg"
+                    },
+                ),
             contentDescription = if (enabled) "enabled" else "disabled",
             colorFilter = ColorFilter.tint(if (enabled) colors.modIconEnabled else colors.modIconDisabled),
-            modifier = Modifier.size(14.dp)
+            modifier = Modifier.size(14.dp),
         )
     }
 }

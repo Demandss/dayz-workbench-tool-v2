@@ -5,13 +5,13 @@ import java.io.File
 import java.nio.file.Path
 
 object ProcessManager {
-
     fun launchWorkbench(config: AppConfig): Process {
         val exe = File(config.workbenchPath, "workbenchApp.exe").absolutePath
-        val allMods = (config.clientMods + config.serverMods)
-            .filter { it.enabled }
-            .map { it.path }
-            .sortedBy { if (it.contains("@")) 1 else 0 }
+        val allMods =
+            (config.clientMods + config.serverMods)
+                .filter { it.enabled }
+                .map { it.path }
+                .sortedBy { if (it.contains("@")) 1 else 0 }
         val args = mutableListOf(exe)
         if (allMods.isNotEmpty()) args.add("-mod=${allMods.joinToString(";")}")
         return ProcessBuilder(args)
@@ -37,17 +37,18 @@ object ProcessManager {
 
     private fun gameExe(config: AppConfig) = File(config.gamePath, "DayZDiag_x64.exe").absolutePath
 
-    fun launchDebugAll(config: AppConfig): Pair<Process, Process> =
-        launchDebugClient(config) to launchDebugServer(config)
+    fun launchDebugAll(config: AppConfig): Pair<Process, Process> = launchDebugClient(config) to launchDebugServer(config)
 
     fun launchCustomScripts(paths: List<String>) {
         paths.filter { it.isNotBlank() }.forEach { path ->
             runCatching {
                 val file = File(path)
-                val builder = if (path.endsWith(".bat", ignoreCase = true))
-                    ProcessBuilder("cmd", "/c", path)
-                else
-                    ProcessBuilder(path)
+                val builder =
+                    if (path.endsWith(".bat", ignoreCase = true)) {
+                        ProcessBuilder("cmd", "/c", path)
+                    } else {
+                        ProcessBuilder(path)
+                    }
                 builder.directory(file.parentFile).inheritIO().start()
             }
         }
@@ -59,10 +60,13 @@ object ProcessManager {
         }
     }
 
-    private fun modName(path: String): String =
-        Path.of(path).fileName?.toString() ?: path
+    private fun modName(path: String): String = Path.of(path).fileName?.toString() ?: path
 
-    private fun buildArgs(exePath: String, extraArgs: String, mods: List<String>): List<String> =
+    private fun buildArgs(
+        exePath: String,
+        extraArgs: String,
+        mods: List<String>,
+    ): List<String> =
         buildList {
             add(exePath)
             parseArgs(extraArgs).forEach { add(it) }

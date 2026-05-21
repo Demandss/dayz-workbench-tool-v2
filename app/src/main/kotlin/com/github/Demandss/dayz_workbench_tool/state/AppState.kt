@@ -6,9 +6,9 @@ import com.github.demandss.dayz_workbench_tool.config.ConfigManager
 import com.github.demandss.dayz_workbench_tool.config.ModEntry
 import com.github.demandss.dayz_workbench_tool.manager.ModificationManager
 import com.github.demandss.dayz_workbench_tool.manager.ToolsManager
-import com.github.demandss.dayz_workbench_tool.model.Modification
 import com.github.demandss.dayz_workbench_tool.model.ModSide
 import com.github.demandss.dayz_workbench_tool.model.ModType
+import com.github.demandss.dayz_workbench_tool.model.Modification
 import java.nio.file.Path
 
 enum class Screen { MAIN, SETTINGS, MODS }
@@ -22,9 +22,13 @@ class AppState {
     var currentScreen by mutableStateOf(Screen.MAIN)
     var showLayoutEditor by mutableStateOf(false)
 
-    init { loadModsFromConfig() }
+    init {
+        loadModsFromConfig()
+    }
 
-    fun navigate(screen: Screen) { currentScreen = screen }
+    fun navigate(screen: Screen) {
+        currentScreen = screen
+    }
 
     fun updateConfig(newConfig: AppConfig) {
         if (config.scriptsPath != newConfig.scriptsPath || config.gamePath != newConfig.gamePath) {
@@ -80,24 +84,31 @@ class AppState {
         ToolsManager.writeUserSettings(config, mods.toList())
     }
 
-    private fun symlinkOp(mod: Modification, create: Boolean) {
+    private fun symlinkOp(
+        mod: Modification,
+        create: Boolean,
+    ) {
         val gameDir = config.gamePath
         if (gameDir.isBlank()) return
         runCatching {
             val modPath = Path.of(mod.path)
             val gameDirPath = Path.of(gameDir)
-            if (create) ModificationManager.createSymlink(modPath, gameDirPath)
-            else ModificationManager.removeSymlink(modPath, gameDirPath)
+            if (create) {
+                ModificationManager.createSymlink(modPath, gameDirPath)
+            } else {
+                ModificationManager.removeSymlink(modPath, gameDirPath)
+            }
         }
     }
 
-    private fun ModEntry.toModification(side: ModSide) = Modification(
-        path = path,
-        side = side,
-        type = if ("@" in path) ModType.WORKSHOP else ModType.LOCAL,
-        enabled = enabled,
-        priority = priority
-    )
+    private fun ModEntry.toModification(side: ModSide) =
+        Modification(
+            path = path,
+            side = side,
+            type = if ("@" in path) ModType.WORKSHOP else ModType.LOCAL,
+            enabled = enabled,
+            priority = priority,
+        )
 
     private fun Modification.toEntry() = ModEntry(path, enabled, priority)
 }

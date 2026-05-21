@@ -4,8 +4,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
-import kotlinx.coroutines.*
-import kotlin.math.min
 import com.github.demandss.dayz_workbench_tool.config.ConfigManager
 import com.github.demandss.dayz_workbench_tool.layout.LayoutParser
 import com.github.demandss.dayz_workbench_tool.layout.LayoutSerializer
@@ -18,21 +16,30 @@ import com.github.demandss.dayz_workbench_tool.layout_editor.removeNode
 import com.github.demandss.dayz_workbench_tool.layout_editor.toEditorNode
 import com.github.demandss.dayz_workbench_tool.layout_editor.toWidgetNode
 import com.github.demandss.dayz_workbench_tool.layout_editor.updateNode
+import kotlinx.coroutines.*
 import java.awt.Toolkit
 import java.io.File
 import java.nio.file.*
 import java.util.UUID
+import kotlin.math.min
 
 // ---------------------------------------------------------------------------
 // Drag & drop types
 // ---------------------------------------------------------------------------
 
 sealed class DragSource {
-    data class FromPalette(val type: WidgetType) : DragSource()
-    data class FromHierarchy(val nodeId: UUID) : DragSource()
+    data class FromPalette(
+        val type: WidgetType,
+    ) : DragSource()
+
+    data class FromHierarchy(
+        val nodeId: UUID,
+    ) : DragSource()
 }
 
-data class DragSession(val source: DragSource)
+data class DragSession(
+    val source: DragSource,
+)
 
 // ---------------------------------------------------------------------------
 // Pending widget creation (shown before name dialog)
@@ -41,7 +48,7 @@ data class DragSession(val source: DragSource)
 data class PendingAdd(
     val type: WidgetType,
     val parentId: UUID?,
-    val worldPos: Offset?
+    val worldPos: Offset?,
 )
 
 // ---------------------------------------------------------------------------
@@ -50,11 +57,12 @@ data class PendingAdd(
 
 class LayoutEditorState(
     val workDrivePath: String,
-    private val scope: CoroutineScope
+    private val scope: CoroutineScope,
 ) {
-    val screenSize: Size = Toolkit.getDefaultToolkit().screenSize.let {
-        Size(it.width.toFloat(), it.height.toFloat())
-    }
+    val screenSize: Size =
+        Toolkit.getDefaultToolkit().screenSize.let {
+            Size(it.width.toFloat(), it.height.toFloat())
+        }
     val openFiles = mutableStateListOf<LayoutDocument>()
     var activeFileIndex by mutableStateOf(-1)
     val selectedIds = mutableStateListOf<UUID>()
@@ -94,12 +102,17 @@ class LayoutEditorState(
     private val watchService: WatchService = FileSystems.getDefault().newWatchService()
     private val watchedDirs = mutableMapOf<Path, WatchKey>()
 
-    init { startWatcher() }
+    init {
+        startWatcher()
+    }
 
     fun openFile(path: String) {
         val normalized = runCatching { File(path).canonicalPath }.getOrDefault(path)
         val existing = openFiles.indexOfFirst { it.path == normalized }
-        if (existing >= 0) { activeFileIndex = existing; return }
+        if (existing >= 0) {
+            activeFileIndex = existing
+            return
+        }
         runCatching {
             val root = LayoutParser.parse(File(normalized).readText()).toEditorNode()
             openFiles += LayoutDocument(path = normalized, root = root)
@@ -110,11 +123,12 @@ class LayoutEditorState(
 
     fun closeFile(index: Int) {
         openFiles.removeAt(index)
-        activeFileIndex = when {
-            openFiles.isEmpty() -> -1
-            index <= activeFileIndex -> (activeFileIndex - 1).coerceAtLeast(0)
-            else -> activeFileIndex
-        }
+        activeFileIndex =
+            when {
+                openFiles.isEmpty() -> -1
+                index <= activeFileIndex -> (activeFileIndex - 1).coerceAtLeast(0)
+                else -> activeFileIndex
+            }
     }
 
     fun saveActiveFile() {
@@ -140,7 +154,10 @@ class LayoutEditorState(
         filesChangedOnDisk.remove(path)
     }
 
-    fun pushUndo(index: Int, snapshot: EditorWidgetNode) {
+    fun pushUndo(
+        index: Int,
+        snapshot: EditorWidgetNode,
+    ) {
         val doc = openFiles.getOrNull(index) ?: return
         doc.undoStack.addLast(snapshot)
         while (doc.undoStack.size > undoLimit) doc.undoStack.removeFirst()
@@ -178,52 +195,66 @@ class LayoutEditorState(
             val refH = screenSize.height
             val fitZoom = min(cs.width * 0.9f / refW, cs.height * 0.9f / refH)
             zoom = fitZoom
-            panOffset = Offset(
-                (cs.width - refW * fitZoom) / 2f,
-                (cs.height - refH * fitZoom) / 2f
-            )
+            panOffset =
+                Offset(
+                    (cs.width - refW * fitZoom) / 2f,
+                    (cs.height - refH * fitZoom) / 2f,
+                )
             return
         }
         val refW = selectedResolution.width.toFloat()
         val refH = selectedResolution.height.toFloat()
         val fitZoom = min(cs.width * 0.9f / refW, cs.height * 0.9f / refH)
         zoom = fitZoom
-        panOffset = Offset(
-            (cs.width - refW * fitZoom) / 2f,
-            (cs.height - refH * fitZoom) / 2f
-        )
+        panOffset =
+            Offset(
+                (cs.width - refW * fitZoom) / 2f,
+                (cs.height - refH * fitZoom) / 2f,
+            )
     }
 
-    fun addWidgetToLayout(type: WidgetType, name: String, parentId: UUID?, worldPos: Offset?) {
+    fun addWidgetToLayout(
+        type: WidgetType,
+        name: String,
+        parentId: UUID?,
+        worldPos: Offset?,
+    ) {
         val idx = activeFileIndex
         val doc = openFiles.getOrNull(idx) ?: return
         val targetId = parentId ?: selectedIds.firstOrNull() ?: doc.root.id
         val usePixel = worldPos != null
-        val newNode = EditorWidgetNode(
-            node = WidgetNode(
-                type = type,
-                originalClassName = type.className,
-                name = name,
-                properties = linkedMapOf(
-                    "position" to if (usePixel) "${fmt(worldPos!!.x)} ${fmt(worldPos.y)}" else "0 0",
-                    "size" to if (usePixel) "100 50" else "0.1 0.1",
-                    "hexactpos" to if (usePixel) "1" else "0",
-                    "vexactpos" to if (usePixel) "1" else "0",
-                    "hexactsize" to if (usePixel) "1" else "0",
-                    "vexactsize" to if (usePixel) "1" else "0"
-                )
+        val newNode =
+            EditorWidgetNode(
+                node =
+                    WidgetNode(
+                        type = type,
+                        originalClassName = type.className,
+                        name = name,
+                        properties =
+                            linkedMapOf(
+                                "position" to if (usePixel) "${fmt(worldPos!!.x)} ${fmt(worldPos.y)}" else "0 0",
+                                "size" to if (usePixel) "100 50" else "0.1 0.1",
+                                "hexactpos" to if (usePixel) "1" else "0",
+                                "vexactpos" to if (usePixel) "1" else "0",
+                                "hexactsize" to if (usePixel) "1" else "0",
+                                "vexactsize" to if (usePixel) "1" else "0",
+                            ),
+                    ),
             )
-        )
         pushUndo(idx, doc.root)
-        val newRoot = doc.root.updateNode(targetId) { n ->
-            n.copy(children = (n.children + newNode).toMutableList())
-        }
+        val newRoot =
+            doc.root.updateNode(targetId) { n ->
+                n.copy(children = (n.children + newNode).toMutableList())
+            }
         updateActiveRoot(newRoot)
         selectedIds.clear()
         selectedIds.add(newNode.id)
     }
 
-    fun reparentNode(nodeId: UUID, newParentId: UUID) {
+    fun reparentNode(
+        nodeId: UUID,
+        newParentId: UUID,
+    ) {
         if (nodeId == newParentId) return
         val idx = activeFileIndex
         val doc = openFiles.getOrNull(idx) ?: return
@@ -232,9 +263,10 @@ class LayoutEditorState(
         if (movingNode.containsId(newParentId)) return
         pushUndo(idx, doc.root)
         val stripped = doc.root.removeNode(nodeId)
-        val newRoot = stripped.updateNode(newParentId) { n ->
-            n.copy(children = (n.children + movingNode).toMutableList())
-        }
+        val newRoot =
+            stripped.updateNode(newParentId) { n ->
+                n.copy(children = (n.children + movingNode).toMutableList())
+            }
         updateActiveRoot(newRoot)
     }
 
@@ -262,9 +294,10 @@ class LayoutEditorState(
                     @Suppress("UNCHECKED_CAST")
                     val ev = event as? WatchEvent<Path> ?: continue
                     val dir = key.watchable() as? Path ?: continue
-                    val fullPath = runCatching {
-                        dir.resolve(ev.context()).toFile().canonicalPath
-                    }.getOrNull() ?: continue
+                    val fullPath =
+                        runCatching {
+                            dir.resolve(ev.context()).toFile().canonicalPath
+                        }.getOrNull() ?: continue
                     withContext(Dispatchers.Main) {
                         if (openFiles.any { it.path == fullPath } &&
                             !filesChangedOnDisk.contains(fullPath)

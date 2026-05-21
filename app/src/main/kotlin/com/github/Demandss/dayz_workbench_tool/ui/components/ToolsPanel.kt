@@ -22,9 +22,10 @@ fun ToolsPanel(state: AppState) {
     TitledPanel(title = "Tools", modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(3.dp)) {
             DarkButton(text = "Workbench", onClick = {
-                val missing = (state.config.clientMods + state.config.serverMods)
-                    .filter { it.enabled && !File(it.path).exists() }
-                    .map { Path.of(it.path).fileName?.toString() ?: it.path }
+                val missing =
+                    (state.config.clientMods + state.config.serverMods)
+                        .filter { it.enabled && !File(it.path).exists() }
+                        .map { Path.of(it.path).fileName?.toString() ?: it.path }
                 if (missing.isEmpty()) {
                     runCatching { ProcessManager.launchWorkbench(state.config) }
                     ProcessManager.launchCustomScripts(state.config.customWorkbenchScripts)
@@ -45,7 +46,7 @@ fun ToolsPanel(state: AppState) {
                 ProcessManager.launchCustomScripts(state.config.customWorkbenchScripts)
                 missingWarning = emptyList()
             },
-            onCancel = { missingWarning = emptyList() }
+            onCancel = { missingWarning = emptyList() },
         )
     }
 }
@@ -58,19 +59,20 @@ private fun MissingModsDialog(
 ) {
     Dialog(onDismissRequest = onCancel) {
         Column(
-            modifier = Modifier
-                .width(300.dp)
-                .background(FrameBackground)
-                .border(1.dp, DarkenedBorder)
-                .padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            modifier =
+                Modifier
+                    .width(300.dp)
+                    .background(FrameBackground)
+                    .border(1.dp, DarkenedBorder)
+                    .padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Text("Missing mods", color = TextForeground, fontSize = 12.sp)
             Text(
                 "The following enabled mods were not found and won't be used:",
                 color = GhostlyText,
                 fontSize = 10.sp,
-                lineHeight = 14.sp
+                lineHeight = 14.sp,
             )
             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 missing.forEach { name ->

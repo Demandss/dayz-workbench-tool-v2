@@ -29,7 +29,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.rememberWindowState
-import kotlinx.coroutines.launch
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.DragSession
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.DragSource
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.LayoutDocument
@@ -41,21 +40,25 @@ import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.Hierarchy
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.PaletteContent
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.PropertiesContent
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.toolbar.Toolbar
-import com.github.demandss.dayz_workbench_tool.ui.pickFile
 import com.github.demandss.dayz_workbench_tool.ui.components.DarkButton
 import com.github.demandss.dayz_workbench_tool.ui.components.DarkTabRow
+import com.github.demandss.dayz_workbench_tool.ui.pickFile
 import com.github.demandss.dayz_workbench_tool.ui.theme.*
 import com.github.demandss.dayz_workbench_tool.ui.theme.AppColors
 import com.github.demandss.dayz_workbench_tool.ui.theme.BuiltinThemes
+import kotlinx.coroutines.launch
 import javax.imageio.ImageIO
 import kotlin.math.roundToInt
 
 private val appIcon by lazy {
     BitmapPainter(
-        ImageIO.read(
-            Thread.currentThread().contextClassLoader!!
-                .getResourceAsStream("assets/logo/logo.png")
-        ).toComposeImageBitmap()
+        ImageIO
+            .read(
+                Thread
+                    .currentThread()
+                    .contextClassLoader!!
+                    .getResourceAsStream("assets/logo/logo.png"),
+            ).toComposeImageBitmap(),
     )
 }
 
@@ -63,20 +66,24 @@ private val appIcon by lazy {
 fun LayoutEditorWindow(
     state: LayoutEditorState,
     themeColors: AppColors = BuiltinThemes.Dark.toAppColors(),
-    onCloseRequest: () -> Unit
+    onCloseRequest: () -> Unit,
 ) {
     val scope = rememberCoroutineScope()
-    val windowTitle = buildString {
-        append("DayZ Layout Editor")
-        state.activeFile?.let { append(" — ${it.fileName}") }
-    }
+    val windowTitle =
+        buildString {
+            append("DayZ Layout Editor")
+            state.activeFile?.let { append(" — ${it.fileName}") }
+        }
 
     Window(
-        onCloseRequest = { state.close(); onCloseRequest() },
+        onCloseRequest = {
+            state.close()
+            onCloseRequest()
+        },
         title = windowTitle,
         icon = appIcon,
         state = rememberWindowState(width = 1280.dp, height = 800.dp),
-        resizable = true
+        resizable = true,
     ) {
         AppTheme(themeColors) {
             Box(
@@ -87,19 +94,29 @@ fun LayoutEditorWindow(
                         if (event.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
                         when {
                             event.isCtrlPressed && !event.isShiftPressed && event.key == Key.S -> {
-                                state.saveActiveFile(); true
+                                state.saveActiveFile()
+                                true
                             }
+
                             event.isCtrlPressed && event.key == Key.Z -> {
-                                state.undo(state.activeFileIndex); true
+                                state.undo(state.activeFileIndex)
+                                true
                             }
+
                             event.isCtrlPressed && event.key == Key.Y -> {
-                                state.redo(state.activeFileIndex); true
+                                state.redo(state.activeFileIndex)
+                                true
                             }
+
                             event.isCtrlPressed && event.key == Key.W -> {
                                 val idx = state.activeFileIndex
-                                if (idx >= 0) state.closeFile(idx); true
+                                if (idx >= 0) state.closeFile(idx)
+                                true
                             }
-                            else -> false
+
+                            else -> {
+                                false
+                            }
                         }
                     }
                     // Drag interceptor on the root itself — parent Initial pass sees events
@@ -113,12 +130,14 @@ fun LayoutEditorWindow(
                                     PointerEventType.Move -> {
                                         if (state.dragSession != null) {
                                             state.dragScreenPos = pos
-                                            state.dragHoverNodeId = state.hierarchyRowBounds
-                                                .entries
-                                                .firstOrNull { (_, rect) -> rect.contains(pos) }
-                                                ?.key
+                                            state.dragHoverNodeId =
+                                                state.hierarchyRowBounds
+                                                    .entries
+                                                    .firstOrNull { (_, rect) -> rect.contains(pos) }
+                                                    ?.key
                                         }
                                     }
+
                                     PointerEventType.Release -> {
                                         val session = state.dragSession
                                         if (session != null) {
@@ -127,12 +146,13 @@ fun LayoutEditorWindow(
                                             state.dragHoverNodeId = null
                                         }
                                     }
+
                                     else -> {}
                                 }
                                 // Never consume — just observe
                             }
                         }
-                    }
+                    },
             ) {
                 // ── Main layout ───────────────────────────────────────────
                 Row(Modifier.fillMaxSize()) {
@@ -145,21 +165,24 @@ fun LayoutEditorWindow(
 
                         Toolbar(state) {
                             scope.launch {
-                                val path = pickFile(
-                                    "Открыть layout-файл",
-                                    "layout",
-                                    state.workDrivePath.ifBlank { null }
-                                )
+                                val path =
+                                    pickFile(
+                                        "Открыть layout-файл",
+                                        "layout",
+                                        state.workDrivePath.ifBlank { null },
+                                    )
                                 if (path != null) state.openFile(path)
                             }
                         }
 
-                        val changedPath = state.activeFile?.path
-                            ?.takeIf { state.filesChangedOnDisk.contains(it) }
+                        val changedPath =
+                            state.activeFile
+                                ?.path
+                                ?.takeIf { state.filesChangedOnDisk.contains(it) }
                         if (changedPath != null) {
                             ChangedOnDiskBanner(
                                 onReload = { state.reloadFile(changedPath) },
-                                onIgnore = { state.dismissChangedNotification(changedPath) }
+                                onIgnore = { state.dismissChangedNotification(changedPath) },
                             )
                         }
 
@@ -171,7 +194,7 @@ fun LayoutEditorWindow(
                                     .fillMaxHeight()
                                     .onGloballyPositioned { coords ->
                                         state.canvasBoundsInWindow = coords.boundsInWindow()
-                                    }
+                                    },
                             )
 
                             Box(Modifier.width(1.dp).fillMaxHeight().background(DarkenedBorder))
@@ -181,19 +204,22 @@ fun LayoutEditorWindow(
                     }
                 }
 
-
                 // ── Drag ghost ────────────────────────────────────────────
                 val drag = state.dragSession
                 if (drag != null) {
-                    val label = when (val src = drag.source) {
-                        is DragSource.FromPalette -> src.type.className.removeSuffix("WidgetClass")
-                        is DragSource.FromHierarchy -> {
-                            state.activeFile?.root?.findNode(src.nodeId)?.node?.let { n ->
-                                n.type.className.removeSuffix("WidgetClass") +
-                                    if (n.name.isNotEmpty()) " · ${n.name}" else ""
-                            } ?: "Widget"
+                    val label =
+                        when (val src = drag.source) {
+                            is DragSource.FromPalette -> {
+                                src.type.className.removeSuffix("WidgetClass")
+                            }
+
+                            is DragSource.FromHierarchy -> {
+                                state.activeFile?.root?.findNode(src.nodeId)?.node?.let { n ->
+                                    n.type.className.removeSuffix("WidgetClass") +
+                                        if (n.name.isNotEmpty()) " · ${n.name}" else ""
+                                } ?: "Widget"
+                            }
                         }
-                    }
                     val gx = (state.dragScreenPos.x + 14f).roundToInt()
                     val gy = (state.dragScreenPos.y + 14f).roundToInt()
                     Box(
@@ -203,7 +229,7 @@ fun LayoutEditorWindow(
                             .wrapContentSize(Alignment.TopStart, unbounded = true)
                             .background(ElementsBackground)
                             .border(1.dp, Color(0xFF4A9EFF))
-                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                            .padding(horizontal = 8.dp, vertical = 4.dp),
                     ) {
                         Text(label, color = TextForeground, fontSize = 11.sp)
                     }
@@ -217,7 +243,7 @@ fun LayoutEditorWindow(
                             state.addWidgetToLayout(pending.type, name, pending.parentId, pending.worldPos)
                             state.pendingAdd = null
                         },
-                        onDismiss = { state.pendingAdd = null }
+                        onDismiss = { state.pendingAdd = null },
                     )
                 }
             }
@@ -229,9 +255,17 @@ fun LayoutEditorWindow(
 // Drop handler
 // ---------------------------------------------------------------------------
 
-private fun screenToWorld(screen: Offset, zoom: Float, pan: Offset) = (screen - pan) / zoom
+private fun screenToWorld(
+    screen: Offset,
+    zoom: Float,
+    pan: Offset,
+) = (screen - pan) / zoom
 
-private fun handleDrop(state: LayoutEditorState, session: DragSession, releasePos: Offset) {
+private fun handleDrop(
+    state: LayoutEditorState,
+    session: DragSession,
+    releasePos: Offset,
+) {
     val canvasBounds = state.canvasBoundsInWindow
     val hierarchyBounds = state.hierarchyBoundsInWindow
     val hoverNode = state.dragHoverNodeId
@@ -244,11 +278,13 @@ private fun handleDrop(state: LayoutEditorState, session: DragSession, releasePo
                     val worldPos = screenToWorld(localPos, state.zoom, state.panOffset)
                     state.pendingAdd = PendingAdd(src.type, null, worldPos)
                 }
+
                 hierarchyBounds.contains(releasePos) && hoverNode != null -> {
                     state.pendingAdd = PendingAdd(src.type, hoverNode, null)
                 }
             }
         }
+
         is DragSource.FromHierarchy -> {
             if (hoverNode != null && hoverNode != src.nodeId) {
                 state.reparentNode(src.nodeId, hoverNode)
@@ -262,7 +298,11 @@ private fun handleDrop(state: LayoutEditorState, session: DragSession, releasePo
 // ---------------------------------------------------------------------------
 
 @Composable
-private fun NameDialog(typeName: String, onConfirm: (String) -> Unit, onDismiss: () -> Unit) {
+private fun NameDialog(
+    typeName: String,
+    onConfirm: (String) -> Unit,
+    onDismiss: () -> Unit,
+) {
     var name by remember { mutableStateOf("") }
     val focusRequester = remember { FocusRequester() }
 
@@ -284,17 +324,21 @@ private fun NameDialog(typeName: String, onConfirm: (String) -> Unit, onDismiss:
                                 .fillMaxWidth()
                                 .background(FrameBackground)
                                 .border(1.dp, DarkenedBorder)
-                                .padding(horizontal = 8.dp, vertical = 6.dp)
+                                .padding(horizontal = 8.dp, vertical = 6.dp),
                         ) { inner() }
                     },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .focusRequester(focusRequester)
-                        .onKeyEvent { ev ->
-                            if (ev.key == Key.Enter && ev.type == KeyEventType.KeyDown) {
-                                onConfirm(name); true
-                            } else false
-                        }
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .focusRequester(focusRequester)
+                            .onKeyEvent { ev ->
+                                if (ev.key == Key.Enter && ev.type == KeyEventType.KeyDown) {
+                                    onConfirm(name)
+                                    true
+                                } else {
+                                    false
+                                }
+                            },
                 )
             }
         },
@@ -308,7 +352,7 @@ private fun NameDialog(typeName: String, onConfirm: (String) -> Unit, onDismiss:
                 Text("Отмена", color = GhostlyText)
             }
         },
-        containerColor = ElementsBackground
+        containerColor = ElementsBackground,
     )
 
     LaunchedEffect(Unit) { focusRequester.requestFocus() }
@@ -325,14 +369,14 @@ private fun FileTabBar(state: LayoutEditorState) {
         Modifier
             .fillMaxWidth()
             .height(30.dp)
-            .background(ElementsBackground)
+            .background(ElementsBackground),
     ) {
         state.openFiles.forEachIndexed { index, doc ->
             FileTab(
                 doc = doc,
                 isActive = index == state.activeFileIndex,
                 onClick = { state.activeFileIndex = index },
-                onClose = { state.closeFile(index) }
+                onClose = { state.closeFile(index) },
             )
         }
     }
@@ -343,20 +387,20 @@ private fun FileTab(
     doc: LayoutDocument,
     isActive: Boolean,
     onClick: () -> Unit,
-    onClose: () -> Unit
+    onClose: () -> Unit,
 ) {
     val bg = if (isActive) FrameBackground else ElementsBackground
     val label = doc.fileName + if (doc.isModified) " *" else ""
     Row(
-        modifier = Modifier
-            .background(bg)
-            .clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null,
-                onClick = onClick
-            )
-            .padding(horizontal = 8.dp),
-        verticalAlignment = Alignment.CenterVertically
+        modifier =
+            Modifier
+                .background(bg)
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null,
+                    onClick = onClick,
+                ).padding(horizontal = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(label, color = TextForeground, fontSize = 12.sp, maxLines = 1)
         Spacer(Modifier.width(6.dp))
@@ -366,9 +410,9 @@ private fun FileTab(
                 .clickable(
                     interactionSource = remember { MutableInteractionSource() },
                     indication = null,
-                    onClick = onClose
+                    onClick = onClose,
                 ),
-            contentAlignment = Alignment.Center
+            contentAlignment = Alignment.Center,
         ) {
             Text("×", color = GhostlyText, fontSize = 14.sp, lineHeight = 14.sp)
         }
@@ -382,20 +426,24 @@ private fun FileTab(
 // ---------------------------------------------------------------------------
 
 @Composable
-private fun ChangedOnDiskBanner(onReload: () -> Unit, onIgnore: () -> Unit) {
+private fun ChangedOnDiskBanner(
+    onReload: () -> Unit,
+    onIgnore: () -> Unit,
+) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(Color(0xFF4A3C00))
-            .padding(horizontal = 8.dp, vertical = 4.dp),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .background(Color(0xFF4A3C00))
+                .padding(horizontal = 8.dp, vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(6.dp)
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         Text(
             "Файл изменён на диске.",
             color = Color(0xFFFFD04A),
             fontSize = 12.sp,
-            modifier = Modifier.weight(1f)
+            modifier = Modifier.weight(1f),
         )
         DarkButton("Перезагрузить", onClick = onReload)
         DarkButton("Игнорировать", onClick = onIgnore)
@@ -415,7 +463,7 @@ private fun RightPanel(state: LayoutEditorState) {
         DarkTabRow(
             tabs = listOf("Properties", "Palette"),
             selectedIndex = rightTab,
-            onTabSelected = { rightTab = it }
+            onTabSelected = { rightTab = it },
         )
         when (rightTab) {
             0 -> PropertiesContent(state, Modifier.weight(1f).fillMaxWidth())

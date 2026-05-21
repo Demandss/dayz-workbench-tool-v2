@@ -1,7 +1,9 @@
+@file:Suppress("ktlint:standard:max-line-length")
+
 package com.github.demandss.dayz_workbench_tool.config
 
-import kotlinx.serialization.Serializable
 import com.github.demandss.dayz_workbench_tool.ui.theme.ThemeDefinition
+import kotlinx.serialization.Serializable
 
 @Serializable
 data class AppConfig(
@@ -11,9 +13,9 @@ data class AppConfig(
     val workbenchPath: String = "",
     val workDrivePath: String = "",
     val scriptsPath: String = "",
-    val clientArgs: String = "-connect=127.0.0.1:2302 -profiles=DebugLogs\\Client -window -name=Survivor -filePatching -dologs -password=ok",
+    val clientArgs: String = "-connect=127.0.0.1:2302 -profiles=DebugLogs\\Client -window -name=Survivor -filePatching -dologs",
     val serverArgs: String = "-server -freezecheck -DoLogs -noPause -port=2302 -config=serverDZ.cfg -filePatching -profiles=DebugLogs\\Server",
-    val sandboxArgs: String = "-connect=127.0.0.1:2302 -profiles=DebugLogs\\Client -window -name=Sandbox -filePatching -dologs -password=ok",
+    val sandboxArgs: String = "-connect=127.0.0.1:2302 -profiles=DebugLogs\\Client -window -name=Sandbox -filePatching -dologs",
     val autoKillTasks: List<String> = listOf("workbenchApp.exe", "DayZDiag_x64.exe"),
     val customWorkbenchScripts: List<String> = emptyList(),
     val clientMods: List<ModEntry> = emptyList(),
@@ -30,5 +32,5 @@ data class AppConfig(
 data class ModEntry(
     val path: String,
     val enabled: Boolean = true,
-    val priority: Int = 0
+    val priority: Int = 0,
 )

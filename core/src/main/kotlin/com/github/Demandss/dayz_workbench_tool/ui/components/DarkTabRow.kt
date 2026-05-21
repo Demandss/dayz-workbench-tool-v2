@@ -24,23 +24,24 @@ import com.github.demandss.dayz_workbench_tool.ui.theme.TextForeground
 fun DarkTabRow(
     tabs: List<String>,
     selectedIndex: Int,
-    onTabSelected: (Int) -> Unit
+    onTabSelected: (Int) -> Unit,
 ) {
     Row(modifier = Modifier.fillMaxWidth()) {
         tabs.forEachIndexed { index, label ->
             val isSelected = index == selectedIndex
             Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .height(28.dp)
-                    .background(if (isSelected) SubSelectColor else FrameBackground)
-                    .border(1.dp, DarkenedBorder)
-                    .clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null,
-                        onClick = { onTabSelected(index) }
-                    ),
-                contentAlignment = Alignment.Center
+                modifier =
+                    Modifier
+                        .weight(1f)
+                        .height(28.dp)
+                        .background(if (isSelected) SubSelectColor else FrameBackground)
+                        .border(1.dp, DarkenedBorder)
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null,
+                            onClick = { onTabSelected(index) },
+                        ),
+                contentAlignment = Alignment.Center,
             ) {
                 Text(label, color = TextForeground, fontSize = 12.sp)
             }

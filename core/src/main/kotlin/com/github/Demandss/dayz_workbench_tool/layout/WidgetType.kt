@@ -1,6 +1,8 @@
 package com.github.demandss.dayz_workbench_tool.layout
 
-enum class WidgetType(val className: String) {
+enum class WidgetType(
+    val className: String,
+) {
     BUTTON("ButtonWidgetClass"),
     CANVAS("CanvasWidgetClass"),
     CHECKBOX("CheckBoxWidgetClass"),
@@ -32,10 +34,10 @@ enum class WidgetType(val className: String) {
     WINDOW("WindowWidgetClass"),
     WRAP_SPACER("WrapSpacerWidgetClass"),
     XCOMBO_BOX("XComboBoxWidgetClass"),
-    UNKNOWN("");
+    UNKNOWN(""),
+    ;
 
     companion object {
-        fun fromClassName(s: String): WidgetType =
-            entries.firstOrNull { it.className == s } ?: UNKNOWN
+        fun fromClassName(s: String): WidgetType = entries.firstOrNull { it.className == s } ?: UNKNOWN
     }
 }

@@ -35,13 +35,14 @@ compose.desktop {
     application {
         mainClass = "com.github.demandss.dayz_workbench_tool.MainKt"
 
-        javaHome = javaToolchains
-            .launcherFor { languageVersion.set(JavaLanguageVersion.of(21)) }
-            .get()
-            .metadata
-            .installationPath
-            .asFile
-            .absolutePath
+        javaHome =
+            javaToolchains
+                .launcherFor { languageVersion.set(JavaLanguageVersion.of(21)) }
+                .get()
+                .metadata
+                .installationPath
+                .asFile
+                .absolutePath
 
         nativeDistributions {
             targetFormats(TargetFormat.Msi)
@@ -54,7 +55,7 @@ compose.desktop {
                 "java.management",
                 "java.naming",
                 "java.net.http",
-                "jdk.unsupported"
+                "jdk.unsupported",
             )
             windows {
                 iconFile.set(project.file("src/main/resources/assets/logo/logo.ico"))

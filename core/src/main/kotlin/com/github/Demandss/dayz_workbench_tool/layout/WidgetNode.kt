@@ -5,5 +5,5 @@ data class WidgetNode(
     val originalClassName: String,
     var name: String,
     val properties: LinkedHashMap<String, String> = LinkedHashMap(),
-    val children: MutableList<WidgetNode> = mutableListOf()
+    val children: MutableList<WidgetNode> = mutableListOf(),
 )

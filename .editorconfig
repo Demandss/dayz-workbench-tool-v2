@@ -1,0 +1,11 @@
+root = true
+
+[*.{kt,kts}]
+# Package name contains underscore (dayz_workbench_tool) — intentional project name, cannot rename
+ktlint_standard_package-name = disabled
+
+# Composable functions use PascalCase by convention — ignore @Composable annotated functions
+ktlint_function_naming_ignore_when_annotated_with = Composable
+
+# Wildcard imports are standard practice in Compose projects
+ktlint_standard_no-wildcard-imports = disabled

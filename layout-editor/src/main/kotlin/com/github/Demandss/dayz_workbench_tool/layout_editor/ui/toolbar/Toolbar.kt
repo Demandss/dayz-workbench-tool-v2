@@ -20,14 +20,18 @@ import com.github.demandss.dayz_workbench_tool.ui.theme.*
 import kotlin.math.roundToInt
 
 @Composable
-fun Toolbar(state: LayoutEditorState, onOpenFile: () -> Unit) {
+fun Toolbar(
+    state: LayoutEditorState,
+    onOpenFile: () -> Unit,
+) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(32.dp)
-            .background(ElementsBackground),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .height(32.dp)
+                .background(ElementsBackground),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(2.dp)
+        horizontalArrangement = Arrangement.spacedBy(2.dp),
     ) {
         Spacer(Modifier.width(4.dp))
 
@@ -52,14 +56,17 @@ fun Toolbar(state: LayoutEditorState, onOpenFile: () -> Unit) {
         DarkButton("+", onClick = {
             state.zoom = (state.zoom * 1.1f).coerceIn(0.1f, 8f)
         })
-        DarkButton("100%", onClick = { state.zoom = 1f; state.centerView() })
+        DarkButton("100%", onClick = {
+            state.zoom = 1f
+            state.centerView()
+        })
 
         Divider()
 
         // Resolution picker
         ResolutionPicker(
             selected = state.selectedResolution,
-            onSelect = { state.selectedResolution = it }
+            onSelect = { state.selectedResolution = it },
         )
 
         Divider()
@@ -82,52 +89,64 @@ private fun Divider() {
 @Composable
 private fun ZoomLabel(zoom: Float) {
     Box(
-        modifier = Modifier
-            .widthIn(min = 38.dp)
-            .padding(horizontal = 4.dp),
-        contentAlignment = Alignment.Center
+        modifier =
+            Modifier
+                .widthIn(min = 38.dp)
+                .padding(horizontal = 4.dp),
+        contentAlignment = Alignment.Center,
     ) {
         Text(
             "${(zoom * 100).roundToInt()}%",
             color = GhostlyText,
-            fontSize = 11.sp
+            fontSize = 11.sp,
         )
     }
 }
 
 @Composable
-private fun ToggleButton(label: String, active: Boolean, onToggle: (Boolean) -> Unit) {
+private fun ToggleButton(
+    label: String,
+    active: Boolean,
+    onToggle: (Boolean) -> Unit,
+) {
     val bg = if (active) SelectColor else Color.Transparent
     val textColor = if (active) TextForeground else GhostlyText
     Box(
-        modifier = Modifier
-            .background(bg)
-            .clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null
-            ) { onToggle(!active) }
-            .padding(horizontal = 6.dp, vertical = 4.dp),
-        contentAlignment = Alignment.Center
+        modifier =
+            Modifier
+                .background(bg)
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null,
+                ) { onToggle(!active) }
+                .padding(horizontal = 6.dp, vertical = 4.dp),
+        contentAlignment = Alignment.Center,
     ) {
         Text(label, color = textColor, fontSize = 11.sp)
     }
 }
 
 @Composable
-private fun ResolutionPicker(selected: Resolution, onSelect: (Resolution) -> Unit) {
+private fun ResolutionPicker(
+    selected: Resolution,
+    onSelect: (Resolution) -> Unit,
+) {
     var expanded by remember { mutableStateOf(false) }
     Box {
         DarkButton(selected.label, onClick = { expanded = true })
         DropdownMenu(
             expanded = expanded,
             onDismissRequest = { expanded = false },
-            modifier = Modifier.background(ElementsBackground)
+            modifier = Modifier.background(ElementsBackground),
         ) {
             Resolution.entries.forEach { res ->
                 DropdownMenuItem(
                     text = { Text(res.label, color = TextForeground, fontSize = 12.sp) },
-                    onClick = { onSelect(res); expanded = false },
-                    modifier = Modifier.background(if (res == selected) SelectColor else Color.Transparent)
+                    onClick = {
+                        onSelect(res)
+                        expanded = false
+                    },
+                    modifier = Modifier.background(if (res == selected) SelectColor else Color.Transparent),
                 )
             }
         }
