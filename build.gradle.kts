@@ -16,6 +16,12 @@ group = "com.github.demandss"
 version = "1.0-SNAPSHOT"
 
 
+val ktlintCheckAll by tasks.registering {
+    group = "verification"
+    description = "Run ktlint checks across all subprojects"
+    dependsOn(subprojects.map { ":${it.name}:ktlintCheck" })
+}
+
 subprojects {
     apply(plugin = "org.jlleitschuh.gradle.ktlint")
 
@@ -30,6 +36,11 @@ subprojects {
             reporter(ReporterType.PLAIN)
             reporter(ReporterType.CHECKSTYLE)
         }
+    }
+
+    afterEvaluate {
+        tasks.matching { it.name in setOf("run", "createDistributable", "createReleaseDistributable") }
+            .configureEach { dependsOn(ktlintCheckAll) }
     }
 }
 
