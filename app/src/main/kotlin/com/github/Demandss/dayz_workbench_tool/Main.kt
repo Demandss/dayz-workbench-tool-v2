@@ -6,7 +6,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.window.application
 import com.github.demandss.dayz_workbench_tool.layout_editor.LayoutEditorWindow
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.LayoutEditorState
-import com.github.demandss.dayz_workbench_tool.manager.ModificationManager
 import com.github.demandss.dayz_workbench_tool.manager.ProcessManager
 import com.github.demandss.dayz_workbench_tool.manager.ToolsManager
 import com.github.demandss.dayz_workbench_tool.state.AppState
@@ -23,8 +22,6 @@ fun main() =
             val hook =
                 Thread {
                     runCatching {
-                        ModificationManager.removeAll(state.mods.toList(), state.config.gamePath)
-                        ModificationManager.removeScriptsSymlink(state.config.scriptsPath, state.config.gamePath)
                         ProcessManager.killTasks(state.config.autoKillTasks)
                     }
                 }
@@ -36,8 +33,6 @@ fun main() =
                 ToolsManager.deploy()
                 if (state.config.setupDone) {
                     ToolsManager.writeUserSettings(state.config, state.mods.toList())
-                    ModificationManager.createAll(state.mods.toList(), state.config.gamePath)
-                    ModificationManager.createScriptsSymlink(state.config.scriptsPath, state.config.gamePath)
                 }
             }
         }
