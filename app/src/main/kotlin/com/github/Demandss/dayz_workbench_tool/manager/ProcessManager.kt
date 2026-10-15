@@ -12,27 +12,37 @@ object ProcessManager {
                 .filter { it.enabled }
                 .map { it.path }
                 .sortedBy { if (it.contains("@")) 1 else 0 }
+                .let { mods ->
+                    // Workbench plugin mod is an unpacked folder, loaded first
+                    if (config.workbenchPluginPath.isNotBlank() && File(config.workbenchPluginPath).isDirectory) {
+                        listOf(config.workbenchPluginPath) + mods
+                    } else {
+                        mods
+                    }
+                }
         val args = mutableListOf(exe)
-        if (allMods.isNotEmpty()) args.add("-mod=${allMods.joinToString(";")}")
+        args.addAll(parseArgs(config.workbenchArgs))
+        if (allMods.isNotEmpty()) args.add("\"-mod=${allMods.joinToString(";")}\"")
         return ProcessBuilder(args)
             .directory(File(config.workbenchPath))
             .inheritIO()
             .start()
     }
 
+    // Mods are passed by full path, -mod accepts physical folders since 1.30
     fun launchDebugClient(config: AppConfig): Process {
-        val modNames = config.clientMods.filter { it.enabled }.map { modName(it.path) }
-        return ProcessBuilder(buildArgs(gameExe(config), config.clientArgs, modNames)).inheritIO().start()
+        val mods = config.clientMods.filter { it.enabled }.map { it.path }
+        return ProcessBuilder(buildArgs(gameExe(config), config.clientArgs, mods)).inheritIO().start()
     }
 
     fun launchDebugServer(config: AppConfig): Process {
-        val modNames = config.serverMods.filter { it.enabled }.map { modName(it.path) }
-        return ProcessBuilder(buildArgs(gameExe(config), config.serverArgs, modNames)).inheritIO().start()
+        val mods = config.serverMods.filter { it.enabled }.map { it.path }
+        return ProcessBuilder(buildArgs(gameExe(config), config.serverArgs, mods)).inheritIO().start()
     }
 
     fun launchDebugClientSandbox(config: AppConfig): Process {
-        val modNames = config.clientMods.filter { it.enabled }.map { modName(it.path) }
-        return ProcessBuilder(buildArgs(gameExe(config), "${config.clientArgs} ${config.sandboxArgs}", modNames)).inheritIO().start()
+        val mods = config.clientMods.filter { it.enabled }.map { it.path }
+        return ProcessBuilder(buildArgs(gameExe(config), "${config.clientArgs} ${config.sandboxArgs}", mods)).inheritIO().start()
     }
 
     private fun gameExe(config: AppConfig) = File(config.gamePath, "DayZDiag_x64.exe").absolutePath
@@ -59,8 +69,6 @@ object ProcessManager {
             runCatching { ProcessBuilder("taskkill", "/F", "/IM", name).start() }
         }
     }
-
-    private fun modName(path: String): String = Path.of(path).fileName?.toString() ?: path
 
     private fun buildArgs(
         exePath: String,

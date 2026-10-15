@@ -125,8 +125,8 @@ private fun GlobalTab(
         SettingRow("Workbench folder") {
             PathField(value = config.workbenchPath, isFile = false) { onChange(config.copy(workbenchPath = it)) }
         }
-        SettingRow("Scripts path") {
-            PathField(value = config.scriptsPath, isFile = false) { onChange(config.copy(scriptsPath = it)) }
+        SettingRow("Workbench plugin mod") {
+            PathField(value = config.workbenchPluginPath, isFile = false) { onChange(config.copy(workbenchPluginPath = it)) }
         }
         CheckRow("Lock window size", config.lockWindowSize) { onChange(config.copy(lockWindowSize = it)) }
         CheckRow("Adaptive scaling", config.adaptiveScale) { onChange(config.copy(adaptiveScale = it)) }
@@ -152,6 +152,7 @@ private fun AdvancedTab(
         AdvancedRow("Client args", config.clientArgs, "exe args") { onChange(config.copy(clientArgs = it)) }
         AdvancedRow("Sandbox args", config.sandboxArgs, "exe args") { onChange(config.copy(sandboxArgs = it)) }
         AdvancedRow("Server args", config.serverArgs, "exe args") { onChange(config.copy(serverArgs = it)) }
+        AdvancedRow("Workbench args", config.workbenchArgs, "exe args") { onChange(config.copy(workbenchArgs = it)) }
         KillListRow(config.autoKillTasks) { onChange(config.copy(autoKillTasks = it)) }
         ScriptListRow(config.customWorkbenchScripts) { onChange(config.copy(customWorkbenchScripts = it)) }
     }

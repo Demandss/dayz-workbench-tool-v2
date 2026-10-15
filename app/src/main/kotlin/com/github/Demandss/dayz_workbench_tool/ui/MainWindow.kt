@@ -29,7 +29,6 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.rememberWindowState
 import com.github.demandss.dayz_workbench_tool.config.ConfigManager
-import com.github.demandss.dayz_workbench_tool.manager.ModificationManager
 import com.github.demandss.dayz_workbench_tool.manager.ProcessManager
 import com.github.demandss.dayz_workbench_tool.state.AppState
 import com.github.demandss.dayz_workbench_tool.state.Screen
@@ -217,7 +216,6 @@ private fun InitialSetupDialog(state: AppState) {
     var gamePath by remember { mutableStateOf(state.config.gamePath) }
     var workbenchPath by remember { mutableStateOf(state.config.workbenchPath) }
     var workDrive by remember { mutableStateOf(state.config.workDrivePath.ifBlank { "P:" }) }
-    var scriptsPath by remember { mutableStateOf(state.config.scriptsPath.ifBlank { "P:\\scripts" }) }
     var statusText by remember { mutableStateOf("Detecting Steam installations...") }
 
     LaunchedEffect(Unit) {
@@ -250,7 +248,6 @@ private fun InitialSetupDialog(state: AppState) {
             SetupField("Game folder (DayZ)", gamePath, isFile = false) { gamePath = it }
             SetupField("Workbench folder (DayZ Tools/Bin/Workbench)", workbenchPath, isFile = false) { workbenchPath = it }
             SetupField("Work drive (e.g. P:)", workDrive, isFile = false) { workDrive = it }
-            SetupField("Scripts path (e.g. P:\\scripts)", scriptsPath, isFile = false) { scriptsPath = it }
 
             DarkButton("Confirm", modifier = Modifier.fillMaxWidth(), onClick = {
                 state.updateConfig(
@@ -258,7 +255,6 @@ private fun InitialSetupDialog(state: AppState) {
                         gamePath = gamePath,
                         workbenchPath = workbenchPath,
                         workDrivePath = workDrive,
-                        scriptsPath = scriptsPath,
                         setupDone = true,
                     ),
                 )
@@ -327,7 +323,7 @@ private fun SetupField(
 @Composable
 private fun MainContent(state: AppState) {
     var toolsOpen by remember { mutableStateOf(false) }
-    var showFixScripts by remember { mutableStateOf(false) }
+    var showPluginDialog by remember { mutableStateOf(false) }
 
     Box(modifier = Modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize()) {
@@ -373,21 +369,16 @@ private fun MainContent(state: AppState) {
                     ProcessManager.killTasks(state.config.autoKillTasks)
                     toolsOpen = false
                 }
-                ToolsMenuItem("fixScripts") {
+                ToolsMenuItem("workbench plugin") {
                     toolsOpen = false
-                    showFixScripts = true
-                }
-                ToolsMenuItem("remove mods mklink") {
-                    runCatching { ModificationManager.removeAll(state.mods.toList(), state.config.gamePath) }
-                    toolsOpen =
-                        false
+                    showPluginDialog = true
                 }
             }
         }
     }
 
-    if (showFixScripts) {
-        FixScriptsDialog(state) { showFixScripts = false }
+    if (showPluginDialog) {
+        WorkbenchPluginDialog(state) { showPluginDialog = false }
     }
 }
 
@@ -434,14 +425,14 @@ private fun ToolsMenuItem(
 }
 
 @Composable
-private fun FixScriptsDialog(
+private fun WorkbenchPluginDialog(
     state: AppState,
     onDismiss: () -> Unit,
 ) {
-    val defaultRoot = state.config.workDrivePath.trimEnd('\\', '/') + "\\scripts"
-    var scriptsRoot by remember { mutableStateOf(defaultRoot) }
-    var prefix by remember { mutableStateOf("DayZ") }
-    var copyPlugin by remember { mutableStateOf(true) }
+    // workDrivePath may point to a folder on the drive (P:\Modifications), the default lives in the drive root
+    val driveRoot = runCatching { File(state.config.workDrivePath).toPath().root?.toString() }.getOrNull() ?: "P:\\"
+    val defaultPath = driveRoot.trimEnd('\\', '/') + "\\DayZWorkbenchMod"
+    var pluginPath by remember { mutableStateOf(state.config.workbenchPluginPath.ifBlank { defaultPath }) }
     var status by remember { mutableStateOf("") }
     val scope = rememberCoroutineScope()
 
@@ -455,40 +446,27 @@ private fun FixScriptsDialog(
                     .padding(12.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Text("Fix Scripts", color = TextForeground, fontSize = 13.sp)
+            Text("Workbench Plugin", color = TextForeground, fontSize = 13.sp)
             if (status.isNotBlank()) Text(status, color = GhostlyText, fontSize = 11.sp, lineHeight = 14.sp)
 
-            SetupField("Scripts folder", scriptsRoot, isFile = false) { scriptsRoot = it }
-            SetupField("Prefix folder name", prefix, isFile = false) { prefix = it }
-
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier =
-                    Modifier.clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null,
-                    ) { copyPlugin = !copyPlugin },
-            ) {
-                Box(
-                    modifier =
-                        Modifier
-                            .size(13.dp)
-                            .border(1.dp, SubSelectColor)
-                            .background(if (copyPlugin) SelectColor else FrameBackground),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    if (copyPlugin) Text("✓", color = TextForeground, fontSize = 9.sp, lineHeight = 10.sp)
-                }
-                Spacer(Modifier.width(6.dp))
-                Text("Install DayZWorkbenchTool plugin", color = TextForeground, fontSize = 11.sp)
-            }
+            SetupField("Plugin mod folder (config.cpp + scripts)", pluginPath, isFile = false) { pluginPath = it }
 
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                DarkButton("Fix", modifier = Modifier.weight(1f), onClick = {
+                DarkButton("Install", modifier = Modifier.weight(1f), onClick = {
+                    if (pluginPath.isBlank()) {
+                        status = "Select a folder first"
+                        return@DarkButton
+                    }
                     status = "Working..."
                     scope.launch(Dispatchers.IO) {
-                        runFixScripts(scriptsRoot, prefix, copyPlugin)
-                        withContext(Dispatchers.Main) { onDismiss() }
+                        val result = runCatching { installWorkbenchPlugin(File(pluginPath)) }
+                        withContext(Dispatchers.Main) {
+                            result
+                                .onSuccess {
+                                    state.updateConfig(state.config.copy(workbenchPluginPath = pluginPath))
+                                    onDismiss()
+                                }.onFailure { status = "Failed: ${it.message}" }
+                        }
                     }
                 })
                 DarkButton("Cancel", modifier = Modifier.weight(1f), onClick = onDismiss)
@@ -505,39 +483,29 @@ private val workbenchPluginFiles =
         "StopDebugAll.c",
     )
 
-private fun runFixScripts(
-    rootDir: String,
-    prefix: String,
-    copyPlugin: Boolean,
-) {
-    val subdirs =
-        listOf(
-            "1_Core",
-            "2_GameLib",
-            "3_Game",
-            "4_World",
-            "5_Mission",
-            "editor\\Workbench",
-            "editor\\plugins",
-        )
-    for (subdir in subdirs) {
-        val dir = File(rootDir, subdir)
-        if (!dir.exists()) continue
-        val prefixDir = File(dir, prefix)
-        prefixDir.mkdirs()
-        dir.listFiles()?.forEach { file ->
-            if (file.name != prefix) file.renameTo(File(prefixDir, file.name))
-        }
-    }
-    if (copyPlugin) {
-        val pluginDir = File(rootDir, "editor\\plugins\\DayZWorkbenchTool")
-        pluginDir.mkdirs()
-        val cl = ModificationManager::class.java.classLoader
-        for (name in workbenchPluginFiles) {
-            cl?.getResourceAsStream("assets/DayZWorkbenchTool/$name")?.use { src ->
-                File(pluginDir, name).outputStream().use { dst -> src.copyTo(dst) }
-            }
-        }
+private val workbenchPluginConfig =
+    """
+    class CfgPatches
+    {
+    	class DayZWorkbenchTool
+    	{
+    		units[] = {};
+    		weapons[] = {};
+    		requiredVersion = 0.1;
+    		requiredAddons[] = {"DZ_Scripts"};
+    	};
+    };
+    """.trimIndent()
+
+// Creates an unpacked mod (config.cpp + scripts) that is passed to Workbench via -mod
+private fun installWorkbenchPlugin(modDir: File) {
+    val pluginDir = File(modDir, "scripts\\editor\\plugins\\DayZWorkbenchTool")
+    check(pluginDir.mkdirs() || pluginDir.isDirectory) { "Cannot create ${pluginDir.path}" }
+    File(modDir, "config.cpp").writeText(workbenchPluginConfig)
+    val cl = ProcessManager::class.java.classLoader
+    for (name in workbenchPluginFiles) {
+        val src = checkNotNull(cl?.getResourceAsStream("assets/DayZWorkbenchTool/$name")) { "Missing resource $name" }
+        src.use { File(pluginDir, name).outputStream().use { dst -> it.copyTo(dst) } }
     }
 }
 
