@@ -42,8 +42,9 @@ object ToolsManager {
                 ?.reader()
                 ?.readText() ?: return
 
-        val clientMods = mods.filter { it.side == ModSide.CLIENT && it.enabled }.map { it.name }
-        val serverMods = mods.filter { it.side == ModSide.SERVER && it.enabled }.map { it.name }
+        // Full paths: -mod/-servermod take physical folders, no junctions in the game folder needed
+        val clientMods = mods.filter { it.side == ModSide.CLIENT && it.enabled }.map { it.path }
+        val serverMods = mods.filter { it.side == ModSide.SERVER && it.enabled }.map { it.path }
 
         val result =
             template
