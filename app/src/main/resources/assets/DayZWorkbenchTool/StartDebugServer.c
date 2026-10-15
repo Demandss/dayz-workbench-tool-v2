@@ -1,6 +1,6 @@
 
 [WorkbenchPluginAttribute("Start debug Server", "Just for testing", "alt+4", "", {"ScriptEditor"})]
-class StartDebugServer : DayZTool
+class StartDebugServer : WorkbenchPlugin
 {
 	override void Run()
 	{
