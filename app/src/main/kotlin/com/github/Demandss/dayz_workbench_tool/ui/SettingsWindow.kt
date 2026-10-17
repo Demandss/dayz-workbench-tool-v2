@@ -156,6 +156,7 @@ private fun AdvancedTab(
         AdvancedRow("Sandbox args", config.sandboxArgs, "exe args") { onChange(config.copy(sandboxArgs = it)) }
         AdvancedRow("Server args", config.serverArgs, "exe args") { onChange(config.copy(serverArgs = it)) }
         AdvancedRow("Workbench args", config.workbenchArgs, "exe args") { onChange(config.copy(workbenchArgs = it)) }
+        CheckRow("Auto-skip Workbench assert dialogs", config.skipWorkbenchAsserts) { onChange(config.copy(skipWorkbenchAsserts = it)) }
         KillListRow(config.autoKillTasks) { onChange(config.copy(autoKillTasks = it)) }
         ScriptListRow(config.customWorkbenchScripts) { onChange(config.copy(customWorkbenchScripts = it)) }
     }

@@ -19,6 +19,7 @@ data class AppConfig(
     val sandboxArgs: String = "-connect=127.0.0.1:2302 -profiles=DebugLogs\\Client -window -name=Sandbox -filePatching -dologs",
     val workbenchArgs: String = "",
     val workbenchPluginPath: String = "",
+    val skipWorkbenchAsserts: Boolean = false,
     val autoKillTasks: List<String> = listOf("workbenchApp.exe", "DayZDiag_x64.exe"),
     val customWorkbenchScripts: List<String> = emptyList(),
     val clientMods: List<ModEntry> = emptyList(),

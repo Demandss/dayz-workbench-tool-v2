@@ -12,19 +12,22 @@ import kotlin.io.path.writeText
 object ToolsManager {
     private val toolsDir: Path = Path(System.getenv("APPDATA")).resolve(".dayzworkbenchtool/tools")
 
-    private val batFiles =
+    private val toolFiles =
         listOf(
             "StartDebugAll.bat",
             "StartDebugClient.bat",
             "StartDebugServer.bat",
             "StopDebugAll.bat",
+            "SkipWorkbenchAsserts.ps1",
         )
 
     private val cl = ToolsManager::class.java.classLoader
 
+    fun toolPath(name: String): Path = toolsDir.resolve(name)
+
     fun deploy() {
         toolsDir.createDirectories()
-        for (name in batFiles) {
+        for (name in toolFiles) {
             cl?.getResourceAsStream("assets/tools/$name")?.use { src ->
                 toolsDir.resolve(name).outputStream().use { dst -> src.copyTo(dst) }
             }
@@ -58,7 +61,6 @@ object ToolsManager {
 
         toolsDir.resolve("UserSettings.bat").writeText(result)
     }
-}
 
     private val argRegex = Regex(""""[^"]*"|\S+""")
 
@@ -84,3 +86,4 @@ object ToolsManager {
         }
         return tokens.joinToString(" ") { "\"" + it.replace("%", "%%") + "\"" }
     }
+}

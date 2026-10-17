@@ -33,7 +33,19 @@ object ProcessManager {
                 .directory(workDir)
                 .inheritIO()
                 .start()
+        if (config.skipWorkbenchAsserts) startAssertSkipper()
         return workbench
+    }
+
+    // Clicks "Skip" in Workbench assert dialogs for the first two minutes after launch
+    private fun startAssertSkipper() {
+        runCatching {
+            val script = ToolsManager.toolPath("SkipWorkbenchAsserts.ps1").toString()
+            ProcessBuilder("powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-WindowStyle", "Hidden", "-File", script)
+                .redirectErrorStream(true)
+                .redirectOutput(ProcessBuilder.Redirect.DISCARD)
+                .start()
+        }
     }
 
     private fun MutableList<String>.addIfMissing(flag: String) {
