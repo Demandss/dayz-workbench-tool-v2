@@ -12,27 +12,61 @@ object ProcessManager {
                 .filter { it.enabled }
                 .map { it.path }
                 .sortedBy { if (it.contains("@")) 1 else 0 }
+                .let { mods ->
+                    // Workbench plugin mod is an unpacked folder, loaded first
+                    if (config.workbenchPluginPath.isNotBlank() && File(config.workbenchPluginPath).isDirectory) {
+                        listOf(config.workbenchPluginPath) + mods
+                    } else {
+                        mods
+                    }
+                }
         val args = mutableListOf(exe)
-        if (allMods.isNotEmpty()) args.add("-mod=${allMods.joinToString(";")}")
-        return ProcessBuilder(args)
-            .directory(File(config.workbenchPath))
-            .inheritIO()
-            .start()
+        args.addAll(parseArgs(config.workbenchArgs))
+        // Unpacked mods are resolved through file patching since 1.30
+        listOf("-filePatching", "-resolveFilePatchingUsingEnfusion=1", "-dologs").forEach { args.addIfMissing(it) }
+        if (allMods.isNotEmpty()) args.add("\"-mod=${allMods.joinToString(";")}\"")
+        // dayz.gproj sets the project root to "./", so Workbench must start in the game folder
+        val gameDir = File(config.gamePath).let { if (it.isFile) it.parentFile else it }
+        val workDir = if (config.gamePath.isNotBlank() && gameDir.isDirectory) gameDir else File(config.workbenchPath)
+        val workbench =
+            ProcessBuilder(args)
+                .directory(workDir)
+                .inheritIO()
+                .start()
+        if (config.skipWorkbenchAsserts) startAssertSkipper()
+        return workbench
     }
 
+    // Clicks "Skip" in Workbench assert dialogs for the first two minutes after launch
+    private fun startAssertSkipper() {
+        runCatching {
+            val script = ToolsManager.toolPath("SkipWorkbenchAsserts.ps1").toString()
+            ProcessBuilder("powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-WindowStyle", "Hidden", "-File", script)
+                .redirectErrorStream(true)
+                .redirectOutput(ProcessBuilder.Redirect.DISCARD)
+                .start()
+        }
+    }
+
+    private fun MutableList<String>.addIfMissing(flag: String) {
+        val key = flag.substringBefore('=')
+        if (none { it.substringBefore('=').equals(key, ignoreCase = true) }) add(flag)
+    }
+
+    // Mods are passed by full path, -mod accepts physical folders since 1.30
     fun launchDebugClient(config: AppConfig): Process {
-        val modNames = config.clientMods.filter { it.enabled }.map { modName(it.path) }
-        return ProcessBuilder(buildArgs(gameExe(config), config.clientArgs, modNames)).inheritIO().start()
+        val mods = config.clientMods.filter { it.enabled }.map { it.path }
+        return ProcessBuilder(buildArgs(gameExe(config), config.clientArgs, mods)).inheritIO().start()
     }
 
     fun launchDebugServer(config: AppConfig): Process {
-        val modNames = config.serverMods.filter { it.enabled }.map { modName(it.path) }
-        return ProcessBuilder(buildArgs(gameExe(config), config.serverArgs, modNames)).inheritIO().start()
+        val mods = config.serverMods.filter { it.enabled }.map { it.path }
+        return ProcessBuilder(buildArgs(gameExe(config), config.serverArgs, mods)).inheritIO().start()
     }
 
     fun launchDebugClientSandbox(config: AppConfig): Process {
-        val modNames = config.clientMods.filter { it.enabled }.map { modName(it.path) }
-        return ProcessBuilder(buildArgs(gameExe(config), "${config.clientArgs} ${config.sandboxArgs}", modNames)).inheritIO().start()
+        val mods = config.clientMods.filter { it.enabled }.map { it.path }
+        return ProcessBuilder(buildArgs(gameExe(config), "${config.clientArgs} ${config.sandboxArgs}", mods)).inheritIO().start()
     }
 
     private fun gameExe(config: AppConfig) = File(config.gamePath, "DayZDiag_x64.exe").absolutePath
@@ -59,8 +93,6 @@ object ProcessManager {
             runCatching { ProcessBuilder("taskkill", "/F", "/IM", name).start() }
         }
     }
-
-    private fun modName(path: String): String = Path.of(path).fileName?.toString() ?: path
 
     private fun buildArgs(
         exePath: String,

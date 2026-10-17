@@ -24,7 +24,7 @@ fun main() =
                 Thread {
                     runCatching {
                         ModificationManager.removeAll(state.mods.toList(), state.config.gamePath)
-                        ModificationManager.removeScriptsSymlink(state.config.scriptsPath, state.config.gamePath)
+                        ModificationManager.removeScriptsSymlink(state.config.effectiveScriptsPath(), state.config.gamePath)
                         ProcessManager.killTasks(state.config.autoKillTasks)
                     }
                 }
@@ -37,7 +37,7 @@ fun main() =
                 if (state.config.setupDone) {
                     ToolsManager.writeUserSettings(state.config, state.mods.toList())
                     ModificationManager.createAll(state.mods.toList(), state.config.gamePath)
-                    ModificationManager.createScriptsSymlink(state.config.scriptsPath, state.config.gamePath)
+                    ModificationManager.createScriptsSymlink(state.config.effectiveScriptsPath(), state.config.gamePath)
                 }
             }
         }

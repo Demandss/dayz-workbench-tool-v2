@@ -31,9 +31,9 @@ class AppState {
     }
 
     fun updateConfig(newConfig: AppConfig) {
-        if (config.scriptsPath != newConfig.scriptsPath || config.gamePath != newConfig.gamePath) {
-            ModificationManager.removeScriptsSymlink(config.scriptsPath, config.gamePath)
-            ModificationManager.createScriptsSymlink(newConfig.scriptsPath, newConfig.gamePath)
+        if (config.effectiveScriptsPath() != newConfig.effectiveScriptsPath() || config.gamePath != newConfig.gamePath) {
+            ModificationManager.removeScriptsSymlink(config.effectiveScriptsPath(), config.gamePath)
+            ModificationManager.createScriptsSymlink(newConfig.effectiveScriptsPath(), newConfig.gamePath)
         }
         config = newConfig
         ConfigManager.App.save(newConfig)

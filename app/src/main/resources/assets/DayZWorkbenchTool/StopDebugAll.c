@@ -1,6 +1,6 @@
 
 [WorkbenchPluginAttribute("Stop debug Client/Server", "Just for testing", "alt+2", "", {"ScriptEditor"})]
-class StopDebugAll : DayZTool
+class StopDebugAll : WorkbenchPlugin
 {
 	override void Run()
 	{

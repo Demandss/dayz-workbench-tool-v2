@@ -12,19 +12,22 @@ import kotlin.io.path.writeText
 object ToolsManager {
     private val toolsDir: Path = Path(System.getenv("APPDATA")).resolve(".dayzworkbenchtool/tools")
 
-    private val batFiles =
+    private val toolFiles =
         listOf(
             "StartDebugAll.bat",
             "StartDebugClient.bat",
             "StartDebugServer.bat",
             "StopDebugAll.bat",
+            "SkipWorkbenchAsserts.ps1",
         )
 
     private val cl = ToolsManager::class.java.classLoader
 
+    fun toolPath(name: String): Path = toolsDir.resolve(name)
+
     fun deploy() {
         toolsDir.createDirectories()
-        for (name in batFiles) {
+        for (name in toolFiles) {
             cl?.getResourceAsStream("assets/tools/$name")?.use { src ->
                 toolsDir.resolve(name).outputStream().use { dst -> src.copyTo(dst) }
             }
@@ -42,8 +45,9 @@ object ToolsManager {
                 ?.reader()
                 ?.readText() ?: return
 
-        val clientMods = mods.filter { it.side == ModSide.CLIENT && it.enabled }.map { it.name }
-        val serverMods = mods.filter { it.side == ModSide.SERVER && it.enabled }.map { it.name }
+        // Full paths: -mod/-servermod take physical folders, no junctions in the game folder needed
+        val clientMods = mods.filter { it.side == ModSide.CLIENT && it.enabled }.map { it.path }
+        val serverMods = mods.filter { it.side == ModSide.SERVER && it.enabled }.map { it.path }
 
         val result =
             template
@@ -51,10 +55,35 @@ object ToolsManager {
                 .replace("&WORKDRIVE_PATH&", config.workDrivePath)
                 .replace("&MODS_CLIENT&", clientMods.joinToString(";"))
                 .replace("&MODS_SERVER&", serverMods.joinToString(";"))
-                .replace("&SERVER_ARGS&", config.serverArgs)
-                .replace("&CLIENT_ARGS&", config.clientArgs)
-                .replace("&CLIENT_SANDBOX_ARGS&", config.sandboxArgs)
+                .replace("&SERVER_ARGS&", launchArgs(config.serverArgs, splitConnect = false))
+                .replace("&CLIENT_ARGS&", launchArgs(config.clientArgs, splitConnect = true))
+                .replace("&CLIENT_SANDBOX_ARGS&", launchArgs(config.sandboxArgs, splitConnect = true))
 
         toolsDir.resolve("UserSettings.bat").writeText(result)
+    }
+
+    private val argRegex = Regex(""""[^"]*"|\S+""")
+
+    // Quotes every argument, splits -connect=host:port into -connect/-port and enables Enfusion file patching resolve
+    private fun launchArgs(
+        args: String,
+        splitConnect: Boolean,
+    ): String {
+        val tokens = argRegex.findAll(args.trim()).map { it.value.removeSurrounding("\"") }.toMutableList()
+        val connectIndex = tokens.indexOfFirst { it.startsWith("-connect=", ignoreCase = true) }
+        if (splitConnect && connectIndex >= 0 && tokens.none { it.startsWith("-port=", ignoreCase = true) }) {
+            val value = tokens[connectIndex].substringAfter('=')
+            val port = value.substringAfterLast(':', "")
+            if (port.isNotEmpty() && port.all { it.isDigit() }) {
+                tokens[connectIndex] = "-connect=" + value.substringBeforeLast(':')
+                tokens.add(connectIndex + 1, "-port=$port")
+            }
+        }
+        if (tokens.any { it.equals("-filePatching", ignoreCase = true) } &&
+            tokens.none { it.startsWith("-resolveFilePatchingUsingEnfusion", ignoreCase = true) }
+        ) {
+            tokens.add("-resolveFilePatchingUsingEnfusion=1")
+        }
+        return tokens.joinToString(" ") { "\"" + it.replace("%", "%%") + "\"" }
     }
 }
