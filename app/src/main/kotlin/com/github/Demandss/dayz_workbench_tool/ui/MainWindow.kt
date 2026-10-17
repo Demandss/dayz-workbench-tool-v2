@@ -29,6 +29,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.rememberWindowState
 import com.github.demandss.dayz_workbench_tool.config.ConfigManager
+import com.github.demandss.dayz_workbench_tool.manager.ModificationManager
 import com.github.demandss.dayz_workbench_tool.manager.ProcessManager
 import com.github.demandss.dayz_workbench_tool.state.AppState
 import com.github.demandss.dayz_workbench_tool.state.Screen
@@ -216,6 +217,7 @@ private fun InitialSetupDialog(state: AppState) {
     var gamePath by remember { mutableStateOf(state.config.gamePath) }
     var workbenchPath by remember { mutableStateOf(state.config.workbenchPath) }
     var workDrive by remember { mutableStateOf(state.config.workDrivePath.ifBlank { "P:" }) }
+    var scriptsPath by remember { mutableStateOf(state.config.scriptsPath.ifBlank { "P:\\scripts" }) }
     var statusText by remember { mutableStateOf("Detecting Steam installations...") }
 
     LaunchedEffect(Unit) {
@@ -248,6 +250,7 @@ private fun InitialSetupDialog(state: AppState) {
             SetupField("Game folder (DayZ)", gamePath, isFile = false) { gamePath = it }
             SetupField("Workbench folder (DayZ Tools/Bin/Workbench)", workbenchPath, isFile = false) { workbenchPath = it }
             SetupField("Work drive (e.g. P:)", workDrive, isFile = false) { workDrive = it }
+            SetupField("Scripts path (e.g. P:\\scripts)", scriptsPath, isFile = false) { scriptsPath = it }
 
             DarkButton("Confirm", modifier = Modifier.fillMaxWidth(), onClick = {
                 state.updateConfig(
@@ -255,6 +258,7 @@ private fun InitialSetupDialog(state: AppState) {
                         gamePath = gamePath,
                         workbenchPath = workbenchPath,
                         workDrivePath = workDrive,
+                        scriptsPath = scriptsPath,
                         setupDone = true,
                     ),
                 )
@@ -372,6 +376,10 @@ private fun MainContent(state: AppState) {
                 ToolsMenuItem("workbench plugin") {
                     toolsOpen = false
                     showPluginDialog = true
+                }
+                ToolsMenuItem("remove mods mklink") {
+                    runCatching { ModificationManager.removeAll(state.mods.toList(), state.config.gamePath) }
+                    toolsOpen = false
                 }
             }
         }

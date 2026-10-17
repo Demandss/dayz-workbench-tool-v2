@@ -125,6 +125,9 @@ private fun GlobalTab(
         SettingRow("Workbench folder") {
             PathField(value = config.workbenchPath, isFile = false) { onChange(config.copy(workbenchPath = it)) }
         }
+        SettingRow("Scripts path") {
+            PathField(value = config.scriptsPath, isFile = false) { onChange(config.copy(scriptsPath = it)) }
+        }
         SettingRow("Workbench plugin mod") {
             PathField(value = config.workbenchPluginPath, isFile = false) { onChange(config.copy(workbenchPluginPath = it)) }
         }

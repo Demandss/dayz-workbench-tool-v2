@@ -50,4 +50,22 @@ object ModificationManager {
         val gameDir = File(gameDirPath).let { if (it.isFile) it.parentFile else it }.toPath()
         mods.forEach { mod -> runCatching { removeSymlink(Path.of(mod.path), gameDir) } }
     }
+
+    fun createScriptsSymlink(
+        scriptsPath: String,
+        gameDirPath: String,
+    ) {
+        if (scriptsPath.isBlank() || gameDirPath.isBlank()) return
+        val gameDir = File(gameDirPath).let { if (it.isFile) it.parentFile else it }.toPath()
+        runCatching { createSymlink(Path.of(scriptsPath), gameDir) }
+    }
+
+    fun removeScriptsSymlink(
+        scriptsPath: String,
+        gameDirPath: String,
+    ) {
+        if (scriptsPath.isBlank() || gameDirPath.isBlank()) return
+        val gameDir = File(gameDirPath).let { if (it.isFile) it.parentFile else it }.toPath()
+        runCatching { removeSymlink(Path.of(scriptsPath), gameDir) }
+    }
 }
