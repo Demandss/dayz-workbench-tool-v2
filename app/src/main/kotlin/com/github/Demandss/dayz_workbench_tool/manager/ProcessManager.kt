@@ -22,11 +22,23 @@ object ProcessManager {
                 }
         val args = mutableListOf(exe)
         args.addAll(parseArgs(config.workbenchArgs))
+        // Unpacked mods are resolved through file patching since 1.30
+        listOf("-filePatching", "-resolveFilePatchingUsingEnfusion=1", "-dologs").forEach { args.addIfMissing(it) }
         if (allMods.isNotEmpty()) args.add("\"-mod=${allMods.joinToString(";")}\"")
-        return ProcessBuilder(args)
-            .directory(File(config.workbenchPath))
-            .inheritIO()
-            .start()
+        // dayz.gproj sets the project root to "./", so Workbench must start in the game folder
+        val gameDir = File(config.gamePath).let { if (it.isFile) it.parentFile else it }
+        val workDir = if (config.gamePath.isNotBlank() && gameDir.isDirectory) gameDir else File(config.workbenchPath)
+        val workbench =
+            ProcessBuilder(args)
+                .directory(workDir)
+                .inheritIO()
+                .start()
+        return workbench
+    }
+
+    private fun MutableList<String>.addIfMissing(flag: String) {
+        val key = flag.substringBefore('=')
+        if (none { it.substringBefore('=').equals(key, ignoreCase = true) }) add(flag)
     }
 
     // Mods are passed by full path, -mod accepts physical folders since 1.30
