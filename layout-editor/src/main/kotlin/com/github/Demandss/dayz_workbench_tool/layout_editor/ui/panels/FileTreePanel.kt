@@ -33,6 +33,8 @@ import java.nio.file.StandardWatchEventKinds.*
 // Data model
 // ---------------------------------------------------------------------------
 
+private val TEXTURE_EXTENSIONS = listOf(".edds", ".png", ".jpg", ".jpeg")
+
 private data class TreeEntry(
     val path: Path,
     val name: String,
@@ -229,6 +231,8 @@ fun FileTreePanel(
                                     }
                                 } else if (entry.name.endsWith(".layout")) {
                                     state.openFile(entry.path.toString())
+                                } else if (TEXTURE_EXTENSIONS.any { entry.name.endsWith(it, ignoreCase = true) }) {
+                                    state.openTexture(entry.path.toString())
                                 }
                             },
                             onRightClick = { showMenu = true },
