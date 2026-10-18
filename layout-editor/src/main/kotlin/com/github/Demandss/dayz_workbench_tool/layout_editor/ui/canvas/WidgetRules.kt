@@ -1,6 +1,8 @@
 package com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas
 
+import androidx.compose.ui.graphics.Color
 import com.github.demandss.dayz_workbench_tool.layout_editor.EditorWidgetNode
+import kotlin.math.pow
 
 /*
  * What Workbench does with a few common widget properties, as measured on test layouts (see the container
@@ -34,3 +36,32 @@ internal fun anchorDirection(align: String?): Float =
         "right_ref", "right", "bottom_ref", "bottom" -> -1f
         else -> 1f
     }
+
+/**
+ * A `color` value as it looks in Workbench. The four numbers are read as linear light and shown in sRGB, so
+ * `0.9 0.3 0.3` is 244 148 148 on the screen and not 230 77 77 (measured on a filled panel). Alpha stays as it is.
+ */
+internal fun parseWidgetColor(value: String?): Color {
+    if (value == null) return Color.Transparent
+    val p = value.trim().split(Regex("\\s+"))
+
+    fun channel(i: Int) = linearToSrgb((p.getOrNull(i)?.toFloatOrNull() ?: 0f).coerceIn(0f, 1f))
+    return Color(channel(0), channel(1), channel(2), (p.getOrNull(3)?.toFloatOrNull() ?: 1f).coerceIn(0f, 1f))
+}
+
+private fun linearToSrgb(c: Float): Float = if (c <= 0.0031308f) 12.92f * c else 1.055f * c.pow(1f / 2.4f) - 0.055f
+
+// Styles that paint nothing. Without a `style` a panel draws nothing either (seen in Workbench)
+private val EMPTY_STYLES = setOf("default", "blank", "empty")
+
+/**
+ * The solid fill a container draws, or null when its style paints nothing. `Colorable` has a transparent style colour,
+ * so it needs `color`; `rover_sim_colorable` is white and takes the colour as a tint. Any other style is drawn as a
+ * flat fill of `color`, which is only an approximation of its images.
+ */
+internal fun EditorWidgetNode.fillColor(): Color? {
+    val style = node.properties["style"]?.trim()?.lowercase() ?: return null
+    if (style in EMPTY_STYLES) return null
+    val color = node.properties["color"]?.let(::parseWidgetColor)
+    return if (style == "colorable") color else color ?: Color.White
+}

@@ -89,17 +89,6 @@ private fun selectInBox(
     for (child in node.children) selectInBox(child, box, layout, out)
 }
 
-private fun parseColor(v: String?): Color {
-    if (v == null) return Color.Transparent
-    val p = v.trim().split(Regex("\\s+"))
-    return Color(
-        p.getOrNull(0)?.toFloatOrNull() ?: 0f,
-        p.getOrNull(1)?.toFloatOrNull() ?: 0f,
-        p.getOrNull(2)?.toFloatOrNull() ?: 0f,
-        p.getOrNull(3)?.toFloatOrNull() ?: 1f,
-    )
-}
-
 private fun fmt(f: Float): String {
     val l = f.toLong()
     return if (f == l.toFloat()) "$l" else "%.4g".format(f)
@@ -201,24 +190,20 @@ private fun DrawScope.drawWidgetTree(
 
     // Fill by type
     when (node.node.type) {
-        WidgetType.PANEL -> {
-            val col = parseColor(node.node.properties["color"])
-            drawRect(col, tl, ss)
+        WidgetType.PANEL, WidgetType.SMART_PANEL, WidgetType.WRAP_SPACER, WidgetType.GRID_SPACER, WidgetType.SCROLL, WidgetType.WINDOW -> {
+            // What the style paints; a widget that paints nothing still gets a faint tint so it can be found
+            val fill = node.fillColor()
+            drawRect(fill ?: Color(0x0AFFFFFF), tl, ss)
         }
 
-        WidgetType.FRAME, WidgetType.WINDOW -> {
-            val col = parseColor(node.node.properties["color"])
-            if (col != Color.Transparent) {
-                drawRect(col, tl, ss)
-            } else {
-                drawRect(Color(0x0AFFFFFF), tl, ss)
-            }
+        WidgetType.FRAME -> {
+            drawRect(Color(0x0AFFFFFF), tl, ss)
         }
 
         WidgetType.IMAGE -> {
             val texture = node.node.properties["imageTexture"]?.let(textureFor)
             if (texture != null && ss.width >= 1f && ss.height >= 1f) {
-                val tint = node.node.properties["color"]?.let { parseColor(it) }
+                val tint = node.node.properties["color"]?.let { parseWidgetColor(it) }
                 drawImage(
                     image = texture,
                     srcOffset = IntOffset.Zero,
