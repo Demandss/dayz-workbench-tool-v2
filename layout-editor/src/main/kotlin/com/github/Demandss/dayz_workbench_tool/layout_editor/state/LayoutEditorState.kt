@@ -95,6 +95,9 @@ class LayoutEditorState(
     var referenceImage by mutableStateOf<ImageBitmap?>(null)
     var referencePath by mutableStateOf("")
     var referenceOpacity by mutableStateOf(0.5f)
+
+    // Where the user dragged the reference panel to, from its corner. Kept here so hiding the panel does not reset it
+    var referencePanelOffset by mutableStateOf(Offset.Zero)
     var scaledMode by mutableStateOf(false)
     var gridSize by mutableStateOf(10)
     var snapMargin by mutableStateOf(5)
