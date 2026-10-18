@@ -50,6 +50,15 @@ private fun screenToWorld(
     pan: Offset,
 ) = (screen - pan) / zoom
 
+/** The ratio of the texture of a picture, once it is loaded. */
+private fun textureAspect(
+    state: LayoutEditorState,
+    node: EditorWidgetNode,
+): Float? {
+    val texture = node.prop("imageTexture")?.let(state::textureFor) ?: return null
+    return if (texture.height > 0) texture.width.toFloat() / texture.height else null
+}
+
 /** The rectangle of the screen the layout is drawn on: the chosen resolution, or the real screen for FitToWindow. */
 private fun screenRect(state: LayoutEditorState): Rect {
     val r = state.selectedResolution
@@ -391,7 +400,7 @@ fun LayoutCanvas(
                                             val worldPos = screenToWorld(pos, zoom, pan)
                                             val doc = state.activeFile
                                             val refRect = screenRect(state)
-                                            val layout = doc?.let { layoutTree(it.root, refRect) }
+                                            val layout = doc?.let { layoutTree(it.root, refRect) { n -> textureAspect(state, n) } }
                                             val hit = if (doc != null && layout != null) hitTest(doc.root, worldPos, layout) else null
                                             val hitIsRoot = hit?.id == doc?.root?.id
 
@@ -504,7 +513,13 @@ fun LayoutCanvas(
                                         val doc = state.activeFile
                                         if (box != null && doc != null) {
                                             val hits = mutableListOf<UUID>()
-                                            selectInBox(doc.root, box, layoutTree(doc.root, screenRect(state)), hits, isRoot = true)
+                                            selectInBox(
+                                                doc.root,
+                                                box,
+                                                layoutTree(doc.root, screenRect(state)) { n -> textureAspect(state, n) },
+                                                hits,
+                                                isRoot = true,
+                                            )
                                             hits.remove(doc.root.id)
                                             if (!event.keyboardModifiers.isShiftPressed) state.selectedIds.clear()
                                             for (id in hits) if (!state.selectedIds.contains(id)) state.selectedIds.add(id)
@@ -548,7 +563,7 @@ fun LayoutCanvas(
         drawRect(Color(0xFF555860), atl, aSize, style = Stroke(1f))
 
         // 5. Widgets
-        val layout = doc?.let { layoutTree(it.root, Rect(0f, 0f, refW, refH)) }
+        val layout = doc?.let { layoutTree(it.root, Rect(0f, 0f, refW, refH)) { n -> textureAspect(state, n) } }
         if (doc != null && layout != null) {
             drawWidgetTree(
                 doc.root,

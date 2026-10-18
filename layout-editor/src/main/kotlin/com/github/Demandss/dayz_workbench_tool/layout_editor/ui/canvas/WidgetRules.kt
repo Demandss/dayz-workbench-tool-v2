@@ -10,6 +10,13 @@ import kotlin.math.pow
  * and cuts children at the parent's edge, `priority` decides what is on top, and equal priorities keep the file order.
  */
 
+/** A property by name, ignoring case and the spaces around the value. */
+internal fun EditorWidgetNode.prop(name: String): String? =
+    node.properties.entries
+        .firstOrNull { it.key.equals(name, ignoreCase = true) }
+        ?.value
+        ?.trim()
+
 private fun EditorWidgetNode.flag(
     name: String,
     default: Boolean,

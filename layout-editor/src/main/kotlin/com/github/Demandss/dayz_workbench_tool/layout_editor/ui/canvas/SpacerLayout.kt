@@ -33,12 +33,6 @@ internal fun layoutSpacer(
 
 private const val DEFAULT_GAP = 2
 
-private fun EditorWidgetNode.prop(name: String): String? =
-    node.properties.entries
-        .firstOrNull { it.key.equals(name, ignoreCase = true) }
-        ?.value
-        ?.trim()
-
 private fun EditorWidgetNode.intProp(
     name: String,
     default: Int,

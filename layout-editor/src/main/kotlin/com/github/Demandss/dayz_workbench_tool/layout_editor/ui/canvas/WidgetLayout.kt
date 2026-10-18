@@ -10,10 +10,11 @@ internal data class TreeLayout(
     val parentRects: Map<UUID, Rect>,
 )
 
-/** Places every widget of the tree on the [screen]. The root takes the whole screen. */
+/** Places every widget of the tree on the [screen]. The root takes the whole screen. [textureAspect] gives the ratio of a picture's texture. */
 internal fun layoutTree(
     root: EditorWidgetNode,
     screen: Rect,
+    textureAspect: (EditorWidgetNode) -> Float? = { null },
 ): TreeLayout {
     val rects = HashMap<UUID, Rect>()
     val parents = HashMap<UUID, Rect>()
@@ -28,7 +29,10 @@ internal fun layoutTree(
         val own = spacer?.rect ?: rect
         rects[node.id] = own
         parents[node.id] = parent
-        for (child in node.children) visit(child, spacer?.children?.get(child.id) ?: computeRect(child, own), own)
+        for (child in node.children) {
+            val placed = spacer?.children?.get(child.id) ?: fixAspect(child, computeRect(child, own), own, textureAspect(child))
+            visit(child, placed, own)
+        }
     }
     visit(root, screen, screen)
     return TreeLayout(rects, parents)
