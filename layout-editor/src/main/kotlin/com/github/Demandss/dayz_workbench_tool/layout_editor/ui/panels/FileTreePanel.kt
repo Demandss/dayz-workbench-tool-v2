@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
+import com.github.demandss.dayz_workbench_tool.layout.NewFileKind
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.LayoutEditorState
 import com.github.demandss.dayz_workbench_tool.texture.EddsCodec
 import com.github.demandss.dayz_workbench_tool.ui.icons.AppIcon
@@ -117,8 +118,7 @@ fun FileTreePanel(
     var refreshTick by remember { mutableStateOf(0) }
     var renamingPath by remember { mutableStateOf<Path?>(null) }
     var deletingEntry by remember { mutableStateOf<TreeEntry?>(null) }
-    var creatingIn by remember { mutableStateOf<Path?>(null) }
-    var creatingDir by remember { mutableStateOf(false) }
+    var creating by remember { mutableStateOf<Pair<Path, NewFileKind>?>(null) }
     var selectedPath by remember {
         mutableStateOf(
             state.savedSelectedPath
@@ -156,6 +156,7 @@ fun FileTreePanel(
         searching = false
     }
     val shownList = if (searchActive) searchResults else flatList
+    val rootPath = runCatching { Path.of(workRoot) }.getOrNull()
 
     // File watcher — watch root and all expanded dirs
     DisposableEffect(workRoot, expandedDirs.toList()) {
@@ -215,155 +216,180 @@ fun FileTreePanel(
             Text(note, color = GhostlyText, fontSize = 10.sp, modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp))
         }
 
-        LazyColumn(Modifier.fillMaxWidth().weight(1f)) {
-            // Inline creation row at top of a dir
-            if (creatingIn != null) {
-                item(key = "creating") {
-                    InlineNameField(
-                        depth = 0,
-                        placeholder = if (creatingDir) "Имя папки" else "Имя файла",
-                        onCommit = { name ->
-                            val parentDir = creatingIn!!
-                            val isDir = creatingDir
-                            creatingIn = null
-                            if (name.isNotBlank()) {
-                                scope.launch(Dispatchers.IO) {
-                                    runCatching {
-                                        val newName = if (!isDir && !name.endsWith(".layout")) "$name.layout" else name
-                                        val newPath = parentDir.resolve(newName)
-                                        if (isDir) {
-                                            Files.createDirectories(newPath)
-                                        } else {
-                                            Files.createDirectories(newPath.parent)
-                                            Files.writeString(newPath, "FrameWidgetClass RootFrame {\n}\n")
-                                            withContext(Dispatchers.Main) { state.openFile(newPath.toString()) }
+        var bgMenu by remember { mutableStateOf<IntOffset?>(null) }
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .weight(1f)
+                .pointerInput(Unit) {
+                    awaitPointerEventScope {
+                        while (true) {
+                            val event = awaitPointerEvent(PointerEventPass.Final)
+                            val change = event.changes.firstOrNull() ?: continue
+                            // A row consumes its own right click, so only the empty space gets here
+                            if (event.type == PointerEventType.Press && event.buttons.isSecondaryPressed && !change.isConsumed) {
+                                bgMenu = IntOffset(change.position.x.roundToInt(), change.position.y.roundToInt())
+                            }
+                        }
+                    }
+                },
+        ) {
+            LazyColumn(Modifier.fillMaxSize()) {
+                // Inline creation row at the top of the list
+                creating?.let { (parentDir, kind) ->
+                    item(key = "creating") {
+                        InlineNameField(
+                            depth = 0,
+                            placeholder = kind.placeholder,
+                            onCommit = { name ->
+                                creating = null
+                                if (name.isNotBlank()) {
+                                    scope.launch(Dispatchers.IO) {
+                                        val created = runCatching { kind.create(parentDir, name) }.getOrNull()
+                                        withContext(Dispatchers.Main) {
+                                            if (created != null) {
+                                                var dir: Path? = parentDir
+                                                while (dir != null && dir != rootPath) {
+                                                    if (!expandedDirs.contains(dir)) expandedDirs.add(dir)
+                                                    dir = dir.parent
+                                                }
+                                                selectedPath = created
+                                                if (kind == NewFileKind.LAYOUT) state.openFile(created.toString())
+                                            }
+                                            refreshTick++
                                         }
                                     }
-                                    withContext(Dispatchers.Main) { refreshTick++ }
-                                }
-                            }
-                        },
-                        onCancel = { creatingIn = null },
-                    )
-                }
-            }
-
-            items(shownList, key = { it.path.toString() }) { entry ->
-                val isRenaming = renamingPath == entry.path
-                var showMenu by remember { mutableStateOf(false) }
-                var menuPos by remember { mutableStateOf(IntOffset.Zero) }
-
-                if (isRenaming) {
-                    InlineNameField(
-                        depth = entry.depth,
-                        placeholder = entry.name,
-                        initialValue = entry.name,
-                        onCommit = { newName ->
-                            renamingPath = null
-                            if (newName.isNotBlank() && newName != entry.name) {
-                                scope.launch(Dispatchers.IO) {
-                                    runCatching {
-                                        Files.move(entry.path, entry.path.parent.resolve(newName))
-                                    }
-                                    withContext(Dispatchers.Main) { refreshTick++ }
-                                }
-                            }
-                        },
-                        onCancel = { renamingPath = null },
-                    )
-                } else {
-                    Box {
-                        TreeRow(
-                            entry = entry,
-                            isSelected = selectedPath == entry.path,
-                            isExpanded = expandedDirs.contains(entry.path),
-                            onSelect = { selectedPath = entry.path },
-                            onToggle = {
-                                if (expandedDirs.contains(entry.path)) {
-                                    expandedDirs.remove(entry.path)
-                                } else {
-                                    expandedDirs.add(entry.path)
                                 }
                             },
-                            onDoubleClick = {
-                                if (entry.isDir && searchActive) {
-                                    val rootPath = runCatching { Path.of(workRoot) }.getOrNull()
-                                    var dir: Path? = entry.path
-                                    while (dir != null && dir != rootPath) {
-                                        if (!expandedDirs.contains(dir)) expandedDirs.add(dir)
-                                        dir = dir.parent
+                            onCancel = { creating = null },
+                        )
+                    }
+                }
+
+                items(shownList, key = { it.path.toString() }) { entry ->
+                    val isRenaming = renamingPath == entry.path
+                    var showMenu by remember { mutableStateOf(false) }
+                    var menuPos by remember { mutableStateOf(IntOffset.Zero) }
+
+                    if (isRenaming) {
+                        InlineNameField(
+                            depth = entry.depth,
+                            placeholder = entry.name,
+                            initialValue = entry.name,
+                            onCommit = { newName ->
+                                renamingPath = null
+                                if (newName.isNotBlank() && newName != entry.name) {
+                                    scope.launch(Dispatchers.IO) {
+                                        runCatching {
+                                            Files.move(entry.path, entry.path.parent.resolve(newName))
+                                        }
+                                        withContext(Dispatchers.Main) { refreshTick++ }
                                     }
-                                    selectedPath = entry.path
-                                    query = ""
-                                } else if (entry.isDir) {
+                                }
+                            },
+                            onCancel = { renamingPath = null },
+                        )
+                    } else {
+                        Box {
+                            TreeRow(
+                                entry = entry,
+                                isSelected = selectedPath == entry.path,
+                                isExpanded = expandedDirs.contains(entry.path),
+                                onSelect = { selectedPath = entry.path },
+                                onToggle = {
                                     if (expandedDirs.contains(entry.path)) {
                                         expandedDirs.remove(entry.path)
                                     } else {
                                         expandedDirs.add(entry.path)
                                     }
-                                } else if (entry.name.endsWith(".layout")) {
-                                    state.openFile(entry.path.toString())
-                                } else if (TEXTURE_EXTENSIONS.any { entry.name.endsWith(it, ignoreCase = true) }) {
-                                    state.openTexture(entry.path.toString())
-                                }
-                            },
-                            onRightClick = { pos ->
-                                menuPos = IntOffset(pos.x.roundToInt(), pos.y.roundToInt())
-                                showMenu = true
-                            },
-                        )
-                        if (showMenu) {
-                            ContextMenu(menuPos, onDismiss = { showMenu = false }) {
-                                if (entry.isDir) {
-                                    ContextMenuItem("Новый .layout") {
-                                        showMenu = false
-                                        creatingIn = entry.path
-                                        creatingDir = false
+                                },
+                                onDoubleClick = {
+                                    if (entry.isDir && searchActive) {
+                                        val rootPath = runCatching { Path.of(workRoot) }.getOrNull()
+                                        var dir: Path? = entry.path
+                                        while (dir != null && dir != rootPath) {
+                                            if (!expandedDirs.contains(dir)) expandedDirs.add(dir)
+                                            dir = dir.parent
+                                        }
+                                        selectedPath = entry.path
+                                        query = ""
+                                    } else if (entry.isDir) {
+                                        if (expandedDirs.contains(entry.path)) {
+                                            expandedDirs.remove(entry.path)
+                                        } else {
+                                            expandedDirs.add(entry.path)
+                                        }
+                                    } else if (entry.name.endsWith(".layout")) {
+                                        state.openFile(entry.path.toString())
+                                    } else if (TEXTURE_EXTENSIONS.any { entry.name.endsWith(it, ignoreCase = true) }) {
+                                        state.openTexture(entry.path.toString())
                                     }
-                                    ContextMenuItem("Новая папка") {
+                                },
+                                onRightClick = { pos ->
+                                    menuPos = IntOffset(pos.x.roundToInt(), pos.y.roundToInt())
+                                    showMenu = true
+                                },
+                            )
+                            if (showMenu) {
+                                ContextMenu(menuPos, onDismiss = { showMenu = false }) {
+                                    // Next to a file, inside a folder
+                                    val createDir = if (entry.isDir) entry.path else entry.path.parent
+                                    CreateMenuItems { kind ->
                                         showMenu = false
-                                        creatingIn = entry.path
-                                        creatingDir = true
+                                        if (createDir != null) creating = createDir to kind
                                     }
-                                }
-                                val isEdds = !entry.isDir && entry.name.endsWith(".edds", ignoreCase = true)
-                                val isPng = !entry.isDir && entry.name.endsWith(".png", ignoreCase = true)
-                                if (isEdds || isPng) {
-                                    ContextMenuItem(if (isEdds) "Конвертировать в PNG" else "Конвертировать в EDDS") {
+                                    ContextMenuSeparator()
+                                    val isEdds = !entry.isDir && entry.name.endsWith(".edds", ignoreCase = true)
+                                    val isPng = !entry.isDir && entry.name.endsWith(".png", ignoreCase = true)
+                                    if (isEdds || isPng) {
+                                        ContextMenuItem(
+                                            if (isEdds) "Конвертировать в PNG" else "Конвертировать в EDDS",
+                                            icon = if (isEdds) AppIcon.IMAGE else AppIcon.EDDS,
+                                        ) {
+                                            showMenu = false
+                                            scope.launch(Dispatchers.IO) {
+                                                runCatching {
+                                                    if (isEdds) {
+                                                        EddsCodec.edds2png(entry.path.toFile())
+                                                    } else {
+                                                        EddsCodec.png2edds(entry.path.toFile())
+                                                    }
+                                                }
+                                                withContext(Dispatchers.Main) {
+                                                    state.reloadTextures()
+                                                    refreshTick++
+                                                }
+                                            }
+                                        }
+                                    }
+                                    ContextMenuItem("Переименовать", icon = AppIcon.FILE) {
+                                        showMenu = false
+                                        renamingPath = entry.path
+                                    }
+                                    ContextMenuItem("Показать в проводнике", icon = AppIcon.UI_SEARCH) {
                                         showMenu = false
                                         scope.launch(Dispatchers.IO) {
                                             runCatching {
-                                                if (isEdds) {
-                                                    EddsCodec.edds2png(entry.path.toFile())
-                                                } else {
-                                                    EddsCodec.png2edds(entry.path.toFile())
-                                                }
-                                            }
-                                            withContext(Dispatchers.Main) {
-                                                state.reloadTextures()
-                                                refreshTick++
+                                                ProcessBuilder("explorer.exe", "/select,${entry.path.toAbsolutePath()}").start()
                                             }
                                         }
                                     }
-                                }
-                                ContextMenuItem("Переименовать") {
-                                    showMenu = false
-                                    renamingPath = entry.path
-                                }
-                                ContextMenuItem("Удалить...", color = Color(0xFFFF5555)) {
-                                    showMenu = false
-                                    deletingEntry = entry
-                                }
-                                ContextMenuItem("Показать в проводнике") {
-                                    showMenu = false
-                                    scope.launch(Dispatchers.IO) {
-                                        runCatching {
-                                            ProcessBuilder("explorer.exe", "/select,${entry.path.toAbsolutePath()}").start()
-                                        }
+                                    ContextMenuSeparator()
+                                    ContextMenuItem("Удалить...", color = Color(0xFFFF5555), icon = AppIcon.UI_TRASH) {
+                                        showMenu = false
+                                        deletingEntry = entry
                                     }
                                 }
                             }
                         }
+                    }
+                }
+            }
+            bgMenu?.let { pos ->
+                ContextMenu(pos, onDismiss = { bgMenu = null }) {
+                    CreateMenuItems { kind ->
+                        bgMenu = null
+                        rootPath?.let { creating = it to kind }
                     }
                 }
             }
@@ -589,6 +615,7 @@ private fun ContextMenu(
 private fun ContextMenuItem(
     text: String,
     color: Color = TextForeground,
+    icon: AppIcon? = null,
     onClick: () -> Unit,
 ) {
     val interaction = remember { MutableInteractionSource() }
@@ -603,9 +630,64 @@ private fun ContextMenuItem(
             .padding(horizontal = 10.dp),
         contentAlignment = Alignment.CenterStart,
     ) {
-        Text(text, color = color, fontSize = 11.sp, maxLines = 1)
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            if (icon != null) AppIconView(icon, size = 14.dp, tint = color.takeIf { it != TextForeground })
+            Text(text, color = color, fontSize = 11.sp, maxLines = 1)
+        }
     }
 }
+
+@Composable
+private fun ContextMenuSeparator() {
+    Box(
+        Modifier
+            .fillMaxWidth()
+            .padding(vertical = 3.dp)
+            .height(1.dp)
+            .background(DarkenedBorder),
+    )
+}
+
+@Composable
+private fun ContextMenuCaption(text: String) {
+    Text(text.uppercase(), color = GhostlyText, fontSize = 10.sp, modifier = Modifier.padding(start = 10.dp, top = 4.dp, bottom = 2.dp))
+}
+
+/** The "Create" group: a layout, styles, an imageset or a folder. */
+@Composable
+private fun ColumnScope.CreateMenuItems(onPick: (NewFileKind) -> Unit) {
+    ContextMenuCaption("Создать")
+    NewFileKind.entries.forEach { kind ->
+        ContextMenuItem(kind.menuLabel, icon = kind.menuIcon) { onPick(kind) }
+    }
+}
+
+private val NewFileKind.menuLabel: String
+    get() =
+        when (this) {
+            NewFileKind.LAYOUT -> "Layout (.layout)"
+            NewFileKind.STYLES -> "Styles (.styles)"
+            NewFileKind.IMAGESET -> "Imageset (.imageset)"
+            NewFileKind.FOLDER -> "Папка"
+        }
+
+private val NewFileKind.menuIcon: AppIcon
+    get() =
+        when (this) {
+            NewFileKind.LAYOUT -> AppIcon.LAYOUT
+            NewFileKind.STYLES -> AppIcon.STYLES
+            NewFileKind.IMAGESET -> AppIcon.IMAGESET
+            NewFileKind.FOLDER -> AppIcon.FOLDER
+        }
+
+private val NewFileKind.placeholder: String
+    get() =
+        when (this) {
+            NewFileKind.LAYOUT -> "Имя.layout"
+            NewFileKind.STYLES -> "Имя.styles"
+            NewFileKind.IMAGESET -> "Имя.imageset"
+            NewFileKind.FOLDER -> "Имя папки"
+        }
 
 // ---------------------------------------------------------------------------
 // Search
