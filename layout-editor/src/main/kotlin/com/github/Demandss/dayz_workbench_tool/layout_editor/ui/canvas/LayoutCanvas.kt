@@ -141,6 +141,9 @@ private fun fmt(f: Float): String {
 // Drag state
 // ---------------------------------------------------------------------------
 
+// How far the pointer has to move before a press on a widget turns into a drag
+private const val DRAG_THRESHOLD = 3f
+
 private data class WidgetDragInfo(
     val id: UUID,
     val origPosX: Float,
@@ -378,6 +381,8 @@ fun LayoutCanvas(
                         var isDragging = false
                         var dragStartScreen = Offset.Zero
                         var dragInfos: List<WidgetDragInfo> = emptyList()
+                        var dragStartRoot: EditorWidgetNode? = null
+                        var undoPushed = false
 
                         var isBoxSelecting = false
                         var boxStartWorld = Offset.Zero
@@ -453,7 +458,8 @@ fun LayoutCanvas(
                                                     }
                                                 isDragging = true
                                                 dragStartScreen = pos
-                                                state.pushUndo(state.activeFileIndex, doc.root)
+                                                dragStartRoot = doc.root
+                                                undoPushed = false
                                                 event.changes.forEach { it.consume() }
                                             } else {
                                                 if (!event.keyboardModifiers.isShiftPressed) state.selectedIds.clear()
@@ -474,9 +480,14 @@ fun LayoutCanvas(
                                         }
 
                                         isDragging && dragInfos.isNotEmpty() -> {
+                                            // A plain click only selects. The first real step of a drag is what counts as an edit
+                                            if (!undoPushed && (pos - dragStartScreen).getDistance() >= DRAG_THRESHOLD) {
+                                                dragStartRoot?.let { state.pushUndo(state.activeFileIndex, it) }
+                                                undoPushed = true
+                                            }
                                             val worldDelta = (pos - dragStartScreen) / zoom
                                             val doc = state.activeFile
-                                            if (doc != null) {
+                                            if (doc != null && undoPushed) {
                                                 var newRoot = doc.root
                                                 for (info in dragInfos) {
                                                     val nx =
