@@ -100,6 +100,12 @@ fun Toolbar(
             onClick = { state.showSafeFrame = !state.showSafeFrame },
             active = state.showSafeFrame,
         )
+        DarkIconButton(
+            AppIcon.UI_MEASURE,
+            "Расстояния до краёв",
+            onClick = { state.showMeasure = !state.showMeasure },
+            active = state.showMeasure,
+        )
 
         Spacer(Modifier.width(4.dp))
     }

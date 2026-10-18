@@ -175,6 +175,37 @@ private fun DrawScope.drawGrid(
     }
 }
 
+private val MeasureColor = Color(0xFFF2994A)
+
+/** Draws each gap with a tick at both ends and its size in a chip on the line. */
+private fun DrawScope.drawEdgeDistances(
+    distances: List<EdgeDistance>,
+    textMeasurer: TextMeasurer,
+    zoom: Float,
+    pan: Offset,
+) {
+    val tick = 4f
+    val pad = 3f
+    for (d in distances) {
+        val a = worldToScreen(d.from, zoom, pan)
+        val b = worldToScreen(d.to, zoom, pan)
+        drawLine(MeasureColor, a, b, 1f)
+        val horizontal = d.from.y == d.to.y
+        for (end in listOf(a, b)) {
+            if (horizontal) {
+                drawLine(MeasureColor, Offset(end.x, end.y - tick), Offset(end.x, end.y + tick), 1f)
+            } else {
+                drawLine(MeasureColor, Offset(end.x - tick, end.y), Offset(end.x + tick, end.y), 1f)
+            }
+        }
+        val label = textMeasurer.measure(fmt(d.value), TextStyle(color = Color(0xFF1E1F22), fontSize = 10.sp))
+        val chip = Size(label.size.width + pad * 2, label.size.height + pad * 2)
+        val topLeft = Offset((a.x + b.x) / 2f - chip.width / 2f, (a.y + b.y) / 2f - chip.height / 2f)
+        drawRect(MeasureColor, topLeft, chip)
+        drawText(label, topLeft = Offset(topLeft.x + pad, topLeft.y + pad))
+    }
+}
+
 private fun DrawScope.drawWidgetTree(
     node: EditorWidgetNode,
     parentRect: Rect,
@@ -559,6 +590,24 @@ fun LayoutCanvas(
             val sbr = worldToScreen(Offset(refW - sx, refH - sy), zoom, pan)
             drawRect(Color(0x22FFFF44), stl, Size(sbr.x - stl.x, sbr.y - stl.y))
             drawRect(Color(0x88FFFF44), stl, Size(sbr.x - stl.x, sbr.y - stl.y), style = Stroke(1f))
+        }
+
+        // Gaps between the selected widgets and the edges of their parents
+        if (doc != null && state.showMeasure && selectedSet.isNotEmpty()) {
+            val screenRect = Rect(0f, 0f, refW, refH)
+            val parentRects = buildParentRectMap(doc.root, screenRect, isRoot = true)
+            for (id in selectedSet) {
+                val node = doc.root.findNode(id) ?: continue
+                val parent = parentRects[id]
+                if (node.id == doc.root.id || parent == null) continue
+                val props = node.node.properties
+                drawEdgeDistances(
+                    edgeDistances(computeRect(node, parent), parent, props["halign"], props["valign"]),
+                    textMeasurer,
+                    zoom,
+                    pan,
+                )
+            }
         }
 
         // 7. Selection box

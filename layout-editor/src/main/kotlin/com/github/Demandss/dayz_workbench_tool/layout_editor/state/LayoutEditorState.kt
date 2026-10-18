@@ -88,6 +88,7 @@ class LayoutEditorState(
     var snapToShapes by mutableStateOf(false)
     var showBorders by mutableStateOf(true)
     var showSafeFrame by mutableStateOf(false)
+    var showMeasure by mutableStateOf(true)
     var scaledMode by mutableStateOf(false)
     var gridSize by mutableStateOf(10)
     var snapMargin by mutableStateOf(5)
