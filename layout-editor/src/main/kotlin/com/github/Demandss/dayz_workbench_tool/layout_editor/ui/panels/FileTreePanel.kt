@@ -48,6 +48,8 @@ private data class TreeEntry(
     val name: String,
     val isDir: Boolean,
     val depth: Int,
+    // Folder of a search result relative to the work drive, empty in the tree
+    val hint: String = "",
 )
 
 private fun buildFlatTree(
@@ -133,6 +135,25 @@ fun FileTreePanel(
             if (root != null) buildFlatTree(root, expandedDirs.toHashSet()) else emptyList()
         }
 
+    var query by remember { mutableStateOf("") }
+    var searchResults by remember { mutableStateOf<List<TreeEntry>>(emptyList()) }
+    var searching by remember { mutableStateOf(false) }
+    val searchActive = query.isNotBlank()
+
+    LaunchedEffect(query, refreshTick, workRoot) {
+        if (query.isBlank()) {
+            searchResults = emptyList()
+            searching = false
+            return@LaunchedEffect
+        }
+        searching = true
+        delay(250) // typing restarts this effect, so only the last query is searched
+        val root = runCatching { Path.of(workRoot) }.getOrNull()
+        searchResults = if (root != null) withContext(Dispatchers.IO) { searchTree(root, query) } else emptyList()
+        searching = false
+    }
+    val shownList = if (searchActive) searchResults else flatList
+
     // File watcher — watch root and all expanded dirs
     DisposableEffect(workRoot, expandedDirs.toList()) {
         val ws = FileSystems.getDefault().newWatchService()
@@ -172,6 +193,8 @@ fun FileTreePanel(
             Text("Project", color = GhostlyText, fontSize = 10.sp, modifier = Modifier.weight(1f))
         }
 
+        SearchField(query) { query = it }
+
         if (workRoot.isBlank()) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Text("Не задан workdrive", color = GhostlyText, fontSize = 11.sp)
@@ -179,7 +202,17 @@ fun FileTreePanel(
             return@Column
         }
 
-        LazyColumn(Modifier.fillMaxSize()) {
+        if (searchActive && !searching) {
+            val note =
+                when {
+                    searchResults.isEmpty() -> "Ничего не найдено"
+                    searchResults.size >= SEARCH_LIMIT -> "Показаны первые $SEARCH_LIMIT, уточните запрос"
+                    else -> "Найдено: ${searchResults.size}"
+                }
+            Text(note, color = GhostlyText, fontSize = 10.sp, modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp))
+        }
+
+        LazyColumn(Modifier.fillMaxWidth().weight(1f)) {
             // Inline creation row at top of a dir
             if (creatingIn != null) {
                 item(key = "creating") {
@@ -212,7 +245,7 @@ fun FileTreePanel(
                 }
             }
 
-            items(flatList, key = { it.path.toString() }) { entry ->
+            items(shownList, key = { it.path.toString() }) { entry ->
                 val isRenaming = renamingPath == entry.path
                 var showMenu by remember { mutableStateOf(false) }
                 var menuPos by remember { mutableStateOf(IntOffset.Zero) }
@@ -250,7 +283,16 @@ fun FileTreePanel(
                                 }
                             },
                             onDoubleClick = {
-                                if (entry.isDir) {
+                                if (entry.isDir && searchActive) {
+                                    val rootPath = runCatching { Path.of(workRoot) }.getOrNull()
+                                    var dir: Path? = entry.path
+                                    while (dir != null && dir != rootPath) {
+                                        if (!expandedDirs.contains(dir)) expandedDirs.add(dir)
+                                        dir = dir.parent
+                                    }
+                                    selectedPath = entry.path
+                                    query = ""
+                                } else if (entry.isDir) {
                                     if (expandedDirs.contains(entry.path)) {
                                         expandedDirs.remove(entry.path)
                                     } else {
@@ -439,6 +481,16 @@ private fun TreeRow(
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
+        if (entry.hint.isNotEmpty()) {
+            Text(
+                entry.hint,
+                color = GhostlyText,
+                fontSize = 9.sp,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.padding(start = 6.dp, end = 4.dp),
+            )
+        }
     }
 }
 
@@ -558,5 +610,108 @@ private fun ContextMenuItem(
         contentAlignment = Alignment.CenterStart,
     ) {
         Text(text, color = color, fontSize = 11.sp, maxLines = 1)
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Search
+// ---------------------------------------------------------------------------
+
+private const val SEARCH_LIMIT = 300
+
+/** Case-insensitive match of every space separated word against the file or folder name, anywhere under [root]. */
+private suspend fun searchTree(
+    root: Path,
+    query: String,
+): List<TreeEntry> =
+    coroutineScope {
+        val words =
+            query
+                .trim()
+                .lowercase()
+                .split(Regex("\\s+"))
+                .filter { it.isNotEmpty() }
+        val found = ArrayList<TreeEntry>()
+
+        fun visit(
+            path: Path,
+            isDir: Boolean,
+        ): FileVisitResult {
+            ensureActive() // a newer query cancels this walk
+            if (path != root) {
+                val name = path.fileName?.toString().orEmpty()
+                val lower = name.lowercase()
+                if (name.isNotEmpty() && words.all { lower.contains(it) }) {
+                    val folder = path.parent?.let { root.relativize(it).toString() }.orEmpty()
+                    found.add(TreeEntry(path, name, isDir, 0, folder))
+                }
+            }
+            return if (found.size >= SEARCH_LIMIT) FileVisitResult.TERMINATE else FileVisitResult.CONTINUE
+        }
+
+        // A folder that cannot be read is skipped instead of ending the whole search
+        runCatching {
+            Files.walkFileTree(
+                root,
+                object : SimpleFileVisitor<Path>() {
+                    override fun preVisitDirectory(
+                        dir: Path,
+                        attrs: java.nio.file.attribute.BasicFileAttributes,
+                    ) = visit(dir, true)
+
+                    override fun visitFile(
+                        file: Path,
+                        attrs: java.nio.file.attribute.BasicFileAttributes,
+                    ) = visit(file, false)
+
+                    override fun visitFileFailed(
+                        file: Path,
+                        exc: java.io.IOException,
+                    ) = FileVisitResult.CONTINUE
+                },
+            )
+        }
+        found.sortedWith(compareBy({ !it.isDir }, { it.name.lowercase() }))
+    }
+
+@Composable
+private fun SearchField(
+    value: String,
+    onChange: (String) -> Unit,
+) {
+    Box(
+        Modifier
+            .fillMaxWidth()
+            .height(24.dp)
+            .background(FrameBackground)
+            .border(1.dp, DarkenedBorder)
+            .padding(horizontal = 6.dp),
+        contentAlignment = Alignment.CenterStart,
+    ) {
+        BasicTextField(
+            value = value,
+            onValueChange = onChange,
+            singleLine = true,
+            textStyle = TextStyle(color = TextForeground, fontSize = 11.sp),
+            cursorBrush = SolidColor(TextForeground),
+            modifier = Modifier.fillMaxWidth().padding(end = 16.dp),
+        )
+        if (value.isEmpty()) {
+            Text("Поиск по имени…", color = GhostlyText, fontSize = 11.sp)
+        } else {
+            Box(
+                Modifier
+                    .align(Alignment.CenterEnd)
+                    .size(14.dp)
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                        onClick = { onChange("") },
+                    ),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text("×", color = GhostlyText, fontSize = 14.sp, lineHeight = 14.sp)
+            }
+        }
     }
 }
