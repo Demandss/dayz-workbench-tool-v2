@@ -50,80 +50,43 @@ private fun screenToWorld(
     pan: Offset,
 ) = (screen - pan) / zoom
 
-private fun computeRect(
-    node: EditorWidgetNode,
-    parentRect: Rect,
-): Rect {
-    val props = node.node.properties
-    val pp = (props["position"] ?: "0 0").trim().split(Regex("\\s+"))
-    val sp = (props["size"] ?: "0.1 0.1").trim().split(Regex("\\s+"))
-    val px = pp.getOrNull(0)?.toFloatOrNull() ?: 0f
-    val py = pp.getOrNull(1)?.toFloatOrNull() ?: 0f
-    val sw = sp.getOrNull(0)?.toFloatOrNull() ?: 0.1f
-    val sh = sp.getOrNull(1)?.toFloatOrNull() ?: 0.1f
-    val hxp = props["hexactpos"] == "1"
-    val vyp = props["vexactpos"] == "1"
-    val hxs = props["hexactsize"] == "1"
-    val vys = props["vexactsize"] == "1"
-    val ax = if (hxp) px else px * parentRect.width
-    val ay = if (vyp) py else py * parentRect.height
-    val aw = if (hxs) sw else sw * parentRect.width
-    val ah = if (vys) sh else sh * parentRect.height
-    val bx =
-        when (props["halign"]) {
-            "right_ref", "right" -> parentRect.right - aw - ax
-            "center_ref" -> parentRect.left + parentRect.width / 2f - aw / 2f + ax
-            else -> parentRect.left + ax
-        }
-    val posY =
-        when (props["valign"]) {
-            "bottom_ref", "bottom" -> parentRect.bottom - ah - ay
-            "center_ref" -> parentRect.top + parentRect.height / 2f - ah / 2f + ay
-            else -> parentRect.top + ay
-        }
-    return Rect(bx, posY, bx + aw, posY + ah)
+/** The rectangle of the screen the layout is drawn on: the chosen resolution, or the real screen for FitToWindow. */
+private fun screenRect(state: LayoutEditorState): Rect {
+    val r = state.selectedResolution
+    return if (r == Resolution.FIT) {
+        Rect(0f, 0f, state.screenSize.width, state.screenSize.height)
+    } else {
+        Rect(0f, 0f, r.width.toFloat(), r.height.toFloat())
+    }
 }
 
 private fun hitTest(
     node: EditorWidgetNode,
     worldPos: Offset,
-    parentRect: Rect,
-    isRoot: Boolean = false,
+    layout: TreeLayout,
 ): EditorWidgetNode? {
     if (!node.isVisible()) return null
-    val rect = if (isRoot) parentRect else computeRect(node, parentRect)
+    val rect = layout.rects[node.id] ?: return null
     val inside = rect.contains(worldPos)
     // Children that stick out of a parent which does not clip them can still be hit
     if (!inside && node.clipsChildren()) return null
     for (child in node.drawOrder().asReversed()) {
-        hitTest(child, worldPos, rect)?.let { return it }
+        hitTest(child, worldPos, layout)?.let { return it }
     }
     return if (inside) node else null
-}
-
-private fun buildParentRectMap(
-    node: EditorWidgetNode,
-    myParentRect: Rect,
-    result: MutableMap<UUID, Rect> = mutableMapOf(),
-    isRoot: Boolean = false,
-): Map<UUID, Rect> {
-    result[node.id] = myParentRect
-    val myRect = if (isRoot) myParentRect else computeRect(node, myParentRect)
-    for (child in node.children) buildParentRectMap(child, myRect, result)
-    return result
 }
 
 private fun selectInBox(
     node: EditorWidgetNode,
     box: Rect,
-    parentRect: Rect,
+    layout: TreeLayout,
     out: MutableList<UUID>,
     isRoot: Boolean = false,
 ) {
     if (!node.isVisible()) return
-    val rect = if (isRoot) parentRect else computeRect(node, parentRect)
+    val rect = layout.rects[node.id] ?: return
     if (!isRoot && box.overlaps(rect)) out.add(node.id)
-    for (child in node.children) selectInBox(child, box, rect, out)
+    for (child in node.children) selectInBox(child, box, layout, out)
 }
 
 private fun parseColor(v: String?): Color {
@@ -220,7 +183,7 @@ private fun DrawScope.drawEdgeDistances(
 
 private fun DrawScope.drawWidgetTree(
     node: EditorWidgetNode,
-    parentRect: Rect,
+    layout: TreeLayout,
     isRoot: Boolean,
     selectedIds: Set<UUID>,
     showBorders: Boolean,
@@ -230,7 +193,7 @@ private fun DrawScope.drawWidgetTree(
     textureFor: (String) -> ImageBitmap?,
 ) {
     if (!node.isVisible()) return
-    val wRect = if (isRoot) parentRect else computeRect(node, parentRect)
+    val wRect = layout.rects[node.id] ?: return
     val tl = worldToScreen(Offset(wRect.left, wRect.top), zoom, pan)
     val br = worldToScreen(Offset(wRect.right, wRect.bottom), zoom, pan)
     val ss = Size((br.x - tl.x).coerceAtLeast(0f), (br.y - tl.y).coerceAtLeast(0f))
@@ -329,12 +292,12 @@ private fun DrawScope.drawWidgetTree(
     if (node.clipsChildren()) {
         clipRect(tl.x, tl.y, br.x, br.y) {
             for (child in children) {
-                drawWidgetTree(child, wRect, false, selectedIds, showBorders, textMeasurer, zoom, pan, textureFor)
+                drawWidgetTree(child, layout, false, selectedIds, showBorders, textMeasurer, zoom, pan, textureFor)
             }
         }
     } else {
         for (child in children) {
-            drawWidgetTree(child, wRect, false, selectedIds, showBorders, textMeasurer, zoom, pan, textureFor)
+            drawWidgetTree(child, layout, false, selectedIds, showBorders, textMeasurer, zoom, pan, textureFor)
         }
     }
 
@@ -442,12 +405,12 @@ fun LayoutCanvas(
                                         isPrimary -> {
                                             val worldPos = screenToWorld(pos, zoom, pan)
                                             val doc = state.activeFile
-                                            val res = state.selectedResolution
-                                            val refRect = Rect(0f, 0f, res.width.toFloat(), res.height.toFloat())
-                                            val hit = doc?.let { hitTest(it.root, worldPos, refRect, isRoot = true) }
+                                            val refRect = screenRect(state)
+                                            val layout = doc?.let { layoutTree(it.root, refRect) }
+                                            val hit = if (doc != null && layout != null) hitTest(doc.root, worldPos, layout) else null
                                             val hitIsRoot = hit?.id == doc?.root?.id
 
-                                            if (hit != null && !hitIsRoot) {
+                                            if (doc != null && hit != null && !hitIsRoot) {
                                                 if (event.keyboardModifiers.isShiftPressed) {
                                                     if (state.selectedIds.contains(hit.id)) {
                                                         state.selectedIds.remove(hit.id)
@@ -458,7 +421,7 @@ fun LayoutCanvas(
                                                     state.selectedIds.clear()
                                                     state.selectedIds.add(hit.id)
                                                 }
-                                                val parentRects = buildParentRectMap(doc.root, refRect, isRoot = true)
+                                                val parentRects = layout?.parentRects.orEmpty()
                                                 dragInfos =
                                                     state.selectedIds.mapNotNull { id ->
                                                         val n = doc.root.findNode(id) ?: return@mapNotNull null
@@ -555,10 +518,8 @@ fun LayoutCanvas(
                                         val box = currentBox
                                         val doc = state.activeFile
                                         if (box != null && doc != null) {
-                                            val res2 = state.selectedResolution
-                                            val refRect = Rect(0f, 0f, res2.width.toFloat(), res2.height.toFloat())
                                             val hits = mutableListOf<UUID>()
-                                            selectInBox(doc.root, box, refRect, hits, isRoot = true)
+                                            selectInBox(doc.root, box, layoutTree(doc.root, screenRect(state)), hits, isRoot = true)
                                             hits.remove(doc.root.id)
                                             if (!event.keyboardModifiers.isShiftPressed) state.selectedIds.clear()
                                             for (id in hits) if (!state.selectedIds.contains(id)) state.selectedIds.add(id)
@@ -602,10 +563,11 @@ fun LayoutCanvas(
         drawRect(Color(0xFF555860), atl, aSize, style = Stroke(1f))
 
         // 5. Widgets
-        if (doc != null) {
+        val layout = doc?.let { layoutTree(it.root, Rect(0f, 0f, refW, refH)) }
+        if (doc != null && layout != null) {
             drawWidgetTree(
                 doc.root,
-                Rect(0f, 0f, refW, refH),
+                layout,
                 isRoot = true,
                 selectedSet,
                 state.showBorders,
@@ -641,16 +603,15 @@ fun LayoutCanvas(
         }
 
         // Gaps between the selected widgets and the edges of their parents
-        if (doc != null && state.showMeasure && selectedSet.isNotEmpty()) {
-            val screenRect = Rect(0f, 0f, refW, refH)
-            val parentRects = buildParentRectMap(doc.root, screenRect, isRoot = true)
+        if (doc != null && layout != null && state.showMeasure && selectedSet.isNotEmpty()) {
             for (id in selectedSet) {
                 val node = doc.root.findNode(id) ?: continue
-                val parent = parentRects[id]
-                if (node.id == doc.root.id || parent == null) continue
+                val rect = layout.rects[id]
+                val parent = layout.parentRects[id]
+                if (node.id == doc.root.id || rect == null || parent == null) continue
                 val props = node.node.properties
                 drawEdgeDistances(
-                    edgeDistances(computeRect(node, parent), parent, props["halign"], props["valign"]),
+                    edgeDistances(rect, parent, props["halign"], props["valign"]),
                     textMeasurer,
                     zoom,
                     pan,
