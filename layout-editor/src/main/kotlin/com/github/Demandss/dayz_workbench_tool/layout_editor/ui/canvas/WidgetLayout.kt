@@ -23,9 +23,12 @@ internal fun layoutTree(
         rect: Rect,
         parent: Rect,
     ) {
-        rects[node.id] = rect
+        // A spacer places its children itself and may change its own size to fit them
+        val spacer = layoutSpacer(node, rect)
+        val own = spacer?.rect ?: rect
+        rects[node.id] = own
         parents[node.id] = parent
-        for (child in node.children) visit(child, computeRect(child, rect), rect)
+        for (child in node.children) visit(child, spacer?.children?.get(child.id) ?: computeRect(child, own), own)
     }
     visit(root, screen, screen)
     return TreeLayout(rects, parents)
