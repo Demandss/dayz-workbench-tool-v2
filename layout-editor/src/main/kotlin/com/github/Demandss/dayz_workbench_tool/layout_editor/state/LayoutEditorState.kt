@@ -72,6 +72,11 @@ class LayoutEditorState(
     val selectedIds = mutableStateListOf<UUID>()
     val filesChangedOnDisk = mutableStateListOf<String>()
 
+    // Texture viewer tabs. When activeTextureIndex >= 0 the viewport shows that texture instead of a layout
+    val openTextures = mutableStateListOf<TextureDocument>()
+    var activeTextureIndex by mutableStateOf(-1)
+    val activeTexture get() = openTextures.getOrNull(activeTextureIndex)
+
     var zoom by mutableStateOf(1f)
     var panOffset by mutableStateOf(Offset.Zero)
     var selectedResolution by mutableStateOf(Resolution.R1920x1080)
@@ -117,13 +122,13 @@ class LayoutEditorState(
         val normalized = runCatching { File(path).canonicalPath }.getOrDefault(path)
         val existing = openFiles.indexOfFirst { it.path == normalized }
         if (existing >= 0) {
-            activeFileIndex = existing
+            selectLayout(existing)
             return
         }
         runCatching {
             val root = LayoutParser.parse(File(normalized).readText()).toEditorNode()
             openFiles += LayoutDocument(path = normalized, root = root)
-            activeFileIndex = openFiles.lastIndex
+            selectLayout(openFiles.lastIndex)
             File(normalized).parentFile?.toPath()?.let { watchDirectory(it) }
         }
     }
@@ -314,6 +319,66 @@ class LayoutEditorState(
                 ImageIO.read(file)
             }
         return image?.toComposeImageBitmap()
+    }
+
+    fun selectLayout(index: Int) {
+        activeFileIndex = index
+        activeTextureIndex = -1
+    }
+
+    /** Opens an .edds or an image file in a texture viewer tab, or switches to its tab when already open. */
+    fun openTexture(path: String) {
+        val normalized = runCatching { File(path).canonicalPath }.getOrDefault(path)
+        val existing = openTextures.indexOfFirst { it.path == normalized }
+        if (existing >= 0) {
+            activeTextureIndex = existing
+            return
+        }
+        openTextures += TextureDocument(path = normalized)
+        activeTextureIndex = openTextures.lastIndex
+        loadTextureDocument(normalized)
+    }
+
+    fun reloadTexture(path: String) {
+        val idx = openTextures.indexOfFirst { it.path == path }
+        if (idx < 0) return
+        openTextures[idx] = TextureDocument(path = path)
+        reloadTextures()
+        loadTextureDocument(path)
+    }
+
+    fun closeTexture(index: Int) {
+        if (index !in openTextures.indices) return
+        openTextures.removeAt(index)
+        activeTextureIndex =
+            when {
+                openTextures.isEmpty() -> -1
+                index < activeTextureIndex -> activeTextureIndex - 1
+                index == activeTextureIndex -> (index - 1).coerceAtLeast(0)
+                else -> activeTextureIndex
+            }
+    }
+
+    private fun loadTextureDocument(path: String) {
+        scope.launch(Dispatchers.IO) {
+            val file = File(path)
+            val loaded =
+                try {
+                    if (file.extension.equals("edds", ignoreCase = true)) {
+                        val image = EddsCodec.decode(file)
+                        TextureDocument(path, image.toBufferedImage(), image.format, image.mipCount, file.length(), loading = false)
+                    } else {
+                        val image = ImageIO.read(file) ?: error("Неподдерживаемый формат изображения")
+                        TextureDocument(path, image, file.extension.uppercase(), 1, file.length(), loading = false)
+                    }
+                } catch (e: Exception) {
+                    TextureDocument(path, null, "", 0, file.length(), e.message ?: e.javaClass.simpleName, false)
+                }
+            withContext(Dispatchers.Main) {
+                val idx = openTextures.indexOfFirst { it.path == path }
+                if (idx >= 0) openTextures[idx] = loaded
+            }
+        }
     }
 
     fun close() {
