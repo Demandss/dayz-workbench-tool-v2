@@ -10,13 +10,18 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.key.*
 import androidx.compose.ui.input.pointer.*
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.text.*
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.sp
 import com.github.demandss.dayz_workbench_tool.layout.WidgetType
 import com.github.demandss.dayz_workbench_tool.layout_editor.EditorWidgetNode
@@ -179,6 +184,7 @@ private fun DrawScope.drawWidgetTree(
     textMeasurer: TextMeasurer,
     zoom: Float,
     pan: Offset,
+    textureFor: (String) -> ImageBitmap?,
 ) {
     val wRect = if (isRoot) parentRect else computeRect(node, parentRect)
     val tl = worldToScreen(Offset(wRect.left, wRect.top), zoom, pan)
@@ -203,9 +209,22 @@ private fun DrawScope.drawWidgetTree(
         }
 
         WidgetType.IMAGE -> {
-            drawRect(Color(0x22FFFFFF), tl, ss)
-            drawLine(Color(0x55FFFFFF), tl, br, 1f)
-            drawLine(Color(0x55FFFFFF), Offset(tl.x, br.y), Offset(br.x, tl.y), 1f)
+            val texture = node.node.properties["imageTexture"]?.let(textureFor)
+            if (texture != null && ss.width >= 1f && ss.height >= 1f) {
+                val tint = node.node.properties["color"]?.let { parseColor(it) }
+                drawImage(
+                    image = texture,
+                    srcOffset = IntOffset.Zero,
+                    srcSize = IntSize(texture.width, texture.height),
+                    dstOffset = IntOffset(tl.x.toInt(), tl.y.toInt()),
+                    dstSize = IntSize(ss.width.toInt().coerceAtLeast(1), ss.height.toInt().coerceAtLeast(1)),
+                    colorFilter = tint?.let { ColorFilter.tint(it, BlendMode.Modulate) },
+                )
+            } else {
+                drawRect(Color(0x22FFFFFF), tl, ss)
+                drawLine(Color(0x55FFFFFF), tl, br, 1f)
+                drawLine(Color(0x55FFFFFF), Offset(tl.x, br.y), Offset(br.x, tl.y), 1f)
+            }
         }
 
         WidgetType.TEXT, WidgetType.MULTILINE_TEXT, WidgetType.RICH_TEXT -> {
@@ -263,7 +282,7 @@ private fun DrawScope.drawWidgetTree(
 
     // Recurse children
     for (child in node.children) {
-        drawWidgetTree(child, wRect, false, selectedIds, showBorders, textMeasurer, zoom, pan)
+        drawWidgetTree(child, wRect, false, selectedIds, showBorders, textMeasurer, zoom, pan, textureFor)
     }
 
     // Selection resize handles
@@ -528,6 +547,7 @@ fun LayoutCanvas(
                 textMeasurer,
                 zoom,
                 pan,
+                state::textureFor,
             )
         }
 

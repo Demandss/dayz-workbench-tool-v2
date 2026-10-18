@@ -4,6 +4,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.toComposeImageBitmap
 import com.github.demandss.dayz_workbench_tool.config.ConfigManager
 import com.github.demandss.dayz_workbench_tool.layout.LayoutParser
 import com.github.demandss.dayz_workbench_tool.layout.LayoutSerializer
@@ -16,11 +18,13 @@ import com.github.demandss.dayz_workbench_tool.layout_editor.removeNode
 import com.github.demandss.dayz_workbench_tool.layout_editor.toEditorNode
 import com.github.demandss.dayz_workbench_tool.layout_editor.toWidgetNode
 import com.github.demandss.dayz_workbench_tool.layout_editor.updateNode
+import com.github.demandss.dayz_workbench_tool.texture.EddsCodec
 import kotlinx.coroutines.*
 import java.awt.Toolkit
 import java.io.File
 import java.nio.file.*
 import java.util.UUID
+import javax.imageio.ImageIO
 import kotlin.math.min
 
 // ---------------------------------------------------------------------------
@@ -96,6 +100,9 @@ class LayoutEditorState(
     var pendingAdd by mutableStateOf<PendingAdd?>(null)
 
     val activeFile get() = openFiles.getOrNull(activeFileIndex)
+
+    private val textureCache = mutableStateMapOf<String, ImageBitmap?>()
+    private val texturesLoading = HashSet<String>()
 
     private val undoLimit get() = ConfigManager.LayoutEditor.load().undoLimit
 
@@ -268,6 +275,45 @@ class LayoutEditorState(
                 n.copy(children = (n.children + movingNode).toMutableList())
             }
         updateActiveRoot(newRoot)
+    }
+
+    /**
+     * Returns the decoded texture for an `imageTexture` value (`"{GUID}path/to/file.edds"`), or null while it is
+     * loading or when the file cannot be found or decoded. Reading it from a draw scope redraws once loaded.
+     */
+    fun textureFor(ref: String): ImageBitmap? {
+        val key =
+            ref
+                .trim()
+                .trim('"')
+                .replace(Regex("^\\{[0-9A-Fa-f]+}"), "")
+                .replace('\\', '/')
+        if (key.isEmpty()) return null
+        if (textureCache.containsKey(key)) return textureCache[key]
+        if (texturesLoading.add(key)) {
+            scope.launch(Dispatchers.IO) {
+                val bitmap = runCatching { loadTexture(key) }.getOrNull()
+                withContext(Dispatchers.Main) { textureCache[key] = bitmap }
+            }
+        }
+        return null
+    }
+
+    fun reloadTextures() {
+        textureCache.clear()
+        texturesLoading.clear()
+    }
+
+    private fun loadTexture(path: String): ImageBitmap? {
+        val file = File(workDrivePath, path)
+        if (!file.isFile) return null
+        val image =
+            if (file.extension.equals("edds", ignoreCase = true)) {
+                EddsCodec.decode(file).toBufferedImage()
+            } else {
+                ImageIO.read(file)
+            }
+        return image?.toComposeImageBitmap()
     }
 
     fun close() {
