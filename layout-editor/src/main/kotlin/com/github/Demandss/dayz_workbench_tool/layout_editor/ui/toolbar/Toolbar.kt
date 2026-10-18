@@ -1,8 +1,6 @@
 package com.github.demandss.dayz_workbench_tool.layout_editor.ui.toolbar
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -16,6 +14,8 @@ import androidx.compose.ui.unit.sp
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.LayoutEditorState
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.Resolution
 import com.github.demandss.dayz_workbench_tool.ui.components.DarkButton
+import com.github.demandss.dayz_workbench_tool.ui.components.DarkIconButton
+import com.github.demandss.dayz_workbench_tool.ui.icons.AppIcon
 import com.github.demandss.dayz_workbench_tool.ui.theme.*
 import kotlin.math.roundToInt
 
@@ -36,26 +36,36 @@ fun Toolbar(
         Spacer(Modifier.width(4.dp))
 
         // File
-        DarkButton("Открыть...", onClick = onOpenFile)
-        DarkButton("Сохранить", onClick = { state.saveActiveFile() }, enabled = state.activeFile != null)
+        DarkIconButton(AppIcon.FOLDER_OPEN, "Открыть layout…", onClick = onOpenFile)
+        DarkIconButton(AppIcon.UI_SAVE, "Сохранить (Ctrl+S)", onClick = { state.saveActiveFile() }, enabled = state.activeFile != null)
 
         Divider()
 
         // Undo/Redo
-        DarkButton("↩ Undo", onClick = { state.undo(state.activeFileIndex) }, enabled = state.activeFile?.undoStack?.isNotEmpty() == true)
-        DarkButton("↪ Redo", onClick = { state.redo(state.activeFileIndex) }, enabled = state.activeFile?.redoStack?.isNotEmpty() == true)
+        DarkIconButton(
+            AppIcon.UI_UNDO,
+            "Отменить (Ctrl+Z)",
+            onClick = { state.undo(state.activeFileIndex) },
+            enabled = state.activeFile?.undoStack?.isNotEmpty() == true,
+        )
+        DarkIconButton(
+            AppIcon.UI_REDO,
+            "Повторить (Ctrl+Y)",
+            onClick = { state.redo(state.activeFileIndex) },
+            enabled = state.activeFile?.redoStack?.isNotEmpty() == true,
+        )
 
         Divider()
 
         // Zoom controls
-        DarkButton("⊙", onClick = { state.centerView() })
-        DarkButton("−", onClick = {
+        DarkIconButton(AppIcon.UI_ZOOMOUT, "Уменьшить", onClick = {
             state.zoom = (state.zoom * 0.9f).coerceIn(0.1f, 8f)
         })
         ZoomLabel(state.zoom)
-        DarkButton("+", onClick = {
+        DarkIconButton(AppIcon.UI_ZOOMIN, "Увеличить", onClick = {
             state.zoom = (state.zoom * 1.1f).coerceIn(0.1f, 8f)
         })
+        DarkIconButton(AppIcon.UI_FIT, "Вписать в окно", onClick = { state.centerView() })
         DarkButton("100%", onClick = {
             state.zoom = 1f
             state.centerView()
@@ -72,9 +82,24 @@ fun Toolbar(
         Divider()
 
         // View toggles
-        ToggleButton("Borders", state.showBorders) { state.showBorders = it }
-        ToggleButton("Grid", state.snapToGrid) { state.snapToGrid = it }
-        ToggleButton("Safe", state.showSafeFrame) { state.showSafeFrame = it }
+        DarkIconButton(
+            AppIcon.WIDGET_FRAME,
+            "Рамки виджетов",
+            onClick = { state.showBorders = !state.showBorders },
+            active = state.showBorders,
+        )
+        DarkIconButton(
+            AppIcon.UI_GRID,
+            "Сетка и привязка к ней",
+            onClick = { state.snapToGrid = !state.snapToGrid },
+            active = state.snapToGrid,
+        )
+        DarkIconButton(
+            AppIcon.UI_SAFE,
+            "Безопасная зона",
+            onClick = { state.showSafeFrame = !state.showSafeFrame },
+            active = state.showSafeFrame,
+        )
 
         Spacer(Modifier.width(4.dp))
     }
@@ -100,29 +125,6 @@ private fun ZoomLabel(zoom: Float) {
             color = GhostlyText,
             fontSize = 11.sp,
         )
-    }
-}
-
-@Composable
-private fun ToggleButton(
-    label: String,
-    active: Boolean,
-    onToggle: (Boolean) -> Unit,
-) {
-    val bg = if (active) SelectColor else Color.Transparent
-    val textColor = if (active) TextForeground else GhostlyText
-    Box(
-        modifier =
-            Modifier
-                .background(bg)
-                .clickable(
-                    interactionSource = remember { MutableInteractionSource() },
-                    indication = null,
-                ) { onToggle(!active) }
-                .padding(horizontal = 6.dp, vertical = 4.dp),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(label, color = textColor, fontSize = 11.sp)
     }
 }
 
