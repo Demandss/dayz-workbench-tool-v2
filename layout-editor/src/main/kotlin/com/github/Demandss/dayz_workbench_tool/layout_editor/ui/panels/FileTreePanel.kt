@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.LayoutEditorState
+import com.github.demandss.dayz_workbench_tool.texture.EddsCodec
 import com.github.demandss.dayz_workbench_tool.ui.theme.*
 import kotlinx.coroutines.*
 import java.nio.file.*
@@ -252,6 +253,37 @@ fun FileTreePanel(
                                         showMenu = false
                                         creatingIn = entry.path
                                         creatingDir = true
+                                    },
+                                )
+                            }
+                            val isEdds = !entry.isDir && entry.name.endsWith(".edds", ignoreCase = true)
+                            val isPng = !entry.isDir && entry.name.endsWith(".png", ignoreCase = true)
+                            if (isEdds || isPng) {
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(
+                                            if (isEdds) "Конвертировать в PNG" else "Конвертировать в EDDS",
+                                            color = TextForeground,
+                                            fontSize = 11.sp,
+                                        )
+                                    },
+                                    onClick = {
+                                        showMenu = false
+                                        scope.launch(Dispatchers.IO) {
+                                            runCatching {
+                                                if (isEdds) {
+                                                    EddsCodec.edds2png(
+                                                        entry.path.toFile(),
+                                                    )
+                                                } else {
+                                                    EddsCodec.png2edds(entry.path.toFile())
+                                                }
+                                            }
+                                            withContext(Dispatchers.Main) {
+                                                state.reloadTextures()
+                                                refreshTick++
+                                            }
+                                        }
                                     },
                                 )
                             }
