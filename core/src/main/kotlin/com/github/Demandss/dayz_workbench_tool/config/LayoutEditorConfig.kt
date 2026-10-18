@@ -21,4 +21,5 @@ data class EditorSession(
     val referencePath: String = "",
     val referenceOpacity: Float = 0.5f,
     val referenceShown: Boolean = false,
+    val recent: List<String> = emptyList(),
 )

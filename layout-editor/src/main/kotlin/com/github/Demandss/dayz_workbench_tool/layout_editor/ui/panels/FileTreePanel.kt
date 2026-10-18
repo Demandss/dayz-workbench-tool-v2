@@ -9,6 +9,7 @@ import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -22,6 +23,7 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.input.key.*
 import androidx.compose.ui.input.pointer.*
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
@@ -32,6 +34,7 @@ import androidx.compose.ui.window.PopupProperties
 import com.github.demandss.dayz_workbench_tool.layout.NewFileKind
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.LayoutEditorState
 import com.github.demandss.dayz_workbench_tool.texture.EddsCodec
+import com.github.demandss.dayz_workbench_tool.ui.components.DarkIconButton
 import com.github.demandss.dayz_workbench_tool.ui.icons.AppIcon
 import com.github.demandss.dayz_workbench_tool.ui.icons.AppIconView
 import com.github.demandss.dayz_workbench_tool.ui.icons.fileIcon
@@ -189,12 +192,30 @@ fun FileTreePanel(
         Row(
             Modifier
                 .fillMaxWidth()
-                .height(22.dp)
+                .height(26.dp)
                 .background(ElementsBackground)
-                .padding(horizontal = 6.dp),
+                .padding(start = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text("Project", color = GhostlyText, fontSize = 10.sp, modifier = Modifier.weight(1f))
+            if (workRoot.isNotBlank()) {
+                Text(
+                    java.io
+                        .File(workRoot)
+                        .name
+                        .ifEmpty { workRoot },
+                    color = GhostlyText,
+                    fontSize = 10.sp,
+                    maxLines = 1,
+                    modifier =
+                        Modifier
+                            .widthIn(max = 90.dp)
+                            .background(FrameBackground)
+                            .border(1.dp, DarkenedBorder)
+                            .padding(horizontal = 6.dp, vertical = 1.dp),
+                )
+            }
+            DarkIconButton(AppIcon.UI_LAYERS, "Свернуть все папки", onClick = { expandedDirs.clear() })
         }
 
         SearchField(query) { query = it }
@@ -291,10 +312,19 @@ fun FileTreePanel(
                         )
                     } else {
                         Box {
+                            val realPath =
+                                remember(
+                                    entry.path,
+                                ) { runCatching { entry.path.toFile().canonicalPath }.getOrDefault(entry.path.toString()) }
+                            val layoutDoc = state.openFiles.firstOrNull { it.path == realPath }
+                            val textureDoc = state.openTextures.firstOrNull { it.path == realPath }
                             TreeRow(
                                 entry = entry,
                                 isSelected = selectedPath == entry.path,
                                 isExpanded = expandedDirs.contains(entry.path),
+                                isOpen = layoutDoc != null || textureDoc != null,
+                                isModified = layoutDoc?.isModified == true,
+                                hasError = textureDoc?.error != null,
                                 onSelect = { selectedPath = entry.path },
                                 onToggle = {
                                     if (expandedDirs.contains(entry.path)) {
@@ -332,6 +362,18 @@ fun FileTreePanel(
                             )
                             if (showMenu) {
                                 ContextMenu(menuPos, onDismiss = { showMenu = false }) {
+                                    if (!entry.isDir &&
+                                        (
+                                            entry.name.endsWith(".layout", ignoreCase = true) ||
+                                                TEXTURE_EXTENSIONS.any { entry.name.endsWith(it, ignoreCase = true) }
+                                        )
+                                    ) {
+                                        ContextMenuItem("Открыть", icon = fileIcon(entry.name)) {
+                                            showMenu = false
+                                            state.openAny(entry.path.toString())
+                                        }
+                                        ContextMenuSeparator()
+                                    }
                                     // Next to a file, inside a folder
                                     val createDir = if (entry.isDir) entry.path else entry.path.parent
                                     CreateMenuItems { kind ->
@@ -394,6 +436,7 @@ fun FileTreePanel(
                 }
             }
         }
+        RecentFiles(state)
     }
 
     // Delete confirmation dialog
@@ -434,19 +477,32 @@ private fun TreeRow(
     entry: TreeEntry,
     isSelected: Boolean,
     isExpanded: Boolean,
+    isOpen: Boolean,
+    isModified: Boolean,
+    hasError: Boolean,
     onSelect: () -> Unit,
     onToggle: () -> Unit,
     onDoubleClick: () -> Unit,
     onRightClick: (Offset) -> Unit,
 ) {
     var clickTime by remember { mutableStateOf(0L) }
+    val hover = remember { MutableInteractionSource() }
+    val hovered by hover.collectIsHoveredAsState()
 
     Row(
         modifier =
             Modifier
                 .fillMaxWidth()
                 .height(22.dp)
-                .background(if (isSelected) SubSelectColor else Color.Transparent)
+                .background(
+                    if (isSelected) {
+                        SelectColor
+                    } else if (hovered) {
+                        Color(0x14FFFFFF)
+                    } else {
+                        Color.Transparent
+                    },
+                ).hoverable(hover)
                 .padding(start = (entry.depth * 12 + 2).dp)
                 .pointerInput(entry.path) {
                     awaitPointerEventScope {
@@ -498,6 +554,7 @@ private fun TreeRow(
             entry.name,
             color = TextForeground,
             fontSize = 11.sp,
+            fontWeight = if (isOpen) FontWeight.SemiBold else null,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
@@ -511,6 +568,9 @@ private fun TreeRow(
                 modifier = Modifier.padding(start = 6.dp, end = 4.dp),
             )
         }
+        Spacer(Modifier.weight(1f))
+        if (isModified) Box(Modifier.padding(end = 8.dp).size(6.dp).background(Color(0xFF4A9EFF), CircleShape))
+        if (hasError) AppIconView(AppIcon.UI_WARN, size = 14.dp, modifier = Modifier.padding(end = 6.dp))
     }
 }
 
@@ -787,6 +847,36 @@ private fun SearchField(
                 contentAlignment = Alignment.Center,
             ) {
                 Text("×", color = GhostlyText, fontSize = 14.sp, lineHeight = 14.sp)
+            }
+        }
+    }
+}
+
+/** The files used last, three of them, under the tree. */
+@Composable
+private fun RecentFiles(state: LayoutEditorState) {
+    val recent = state.recentFiles.take(3)
+    if (recent.isEmpty()) return
+    Column(Modifier.fillMaxWidth().background(FrameBackground)) {
+        Box(Modifier.fillMaxWidth().height(1.dp).background(DarkenedBorder))
+        Row(Modifier.padding(horizontal = 8.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+            AppIconView(AppIcon.UI_CLOCK, size = 12.dp, tint = GhostlyText)
+            Spacer(Modifier.width(6.dp))
+            Text("НЕДАВНЕЕ", color = GhostlyText, fontSize = 10.sp)
+        }
+        recent.forEach { path ->
+            val name = java.io.File(path).name
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .height(22.dp)
+                    .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { state.openAny(path) }
+                    .padding(start = 14.dp, end = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                AppIconView(fileIcon(name), size = 14.dp)
+                Spacer(Modifier.width(6.dp))
+                Text(name, color = TextForeground, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
         }
     }

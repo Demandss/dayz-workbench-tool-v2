@@ -113,6 +113,14 @@ fun Toolbar(
             active = state.showReference,
         )
 
+        Spacer(Modifier.weight(1f))
+        DarkIconButton(
+            AppIcon.UI_PLAY,
+            "Live Preview: чистый вид без рамок, подписей и выделения",
+            onClick = { state.livePreview = !state.livePreview },
+            active = state.livePreview,
+        )
+
         Spacer(Modifier.width(4.dp))
     }
 }

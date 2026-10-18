@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
@@ -42,11 +43,15 @@ import com.github.demandss.dayz_workbench_tool.layout_editor.state.LayoutEditorS
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.PendingAdd
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.LayoutCanvas
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.TextureViewer
+import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.Breadcrumbs
+import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.EmptyState
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.FileTreePanel
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.HierarchyPanel
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.PaletteContent
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.PropertiesContent
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.ReferencePanel
+import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.StatusBar
+import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.ViewportChips
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.toolbar.Toolbar
 import com.github.demandss.dayz_workbench_tool.ui.components.DarkButton
 import com.github.demandss.dayz_workbench_tool.ui.components.DarkTabRow
@@ -175,60 +180,73 @@ fun LayoutEditorWindow(
                     },
             ) {
                 // ── Main layout ───────────────────────────────────────────
-                Row(Modifier.fillMaxSize()) {
-                    FileTreePanel(state, width = 220.dp)
+                Column(Modifier.fillMaxSize()) {
+                    Row(Modifier.weight(1f).fillMaxWidth()) {
+                        FileTreePanel(state, width = 220.dp)
 
-                    Box(Modifier.width(1.dp).fillMaxHeight().background(DarkenedBorder))
+                        Box(Modifier.width(1.dp).fillMaxHeight().background(DarkenedBorder))
 
-                    Column(Modifier.weight(1f).fillMaxHeight()) {
-                        FileTabBar(state)
+                        Column(Modifier.weight(1f).fillMaxHeight()) {
+                            FileTabBar(state)
 
-                        val texture = state.activeTexture
-                        if (texture != null) {
-                            TextureViewer(state, texture, Modifier.weight(1f).fillMaxWidth())
-                        } else {
-                            Toolbar(state) {
-                                scope.launch {
-                                    val path =
-                                        pickFile(
-                                            "Открыть layout-файл",
-                                            "layout",
-                                            state.workDrivePath.ifBlank { null },
-                                        )
-                                    if (path != null) state.openFile(path)
+                            val texture = state.activeTexture
+                            if (state.openFiles.isEmpty() && state.openTextures.isEmpty()) {
+                                EmptyState(state, Modifier.weight(1f).fillMaxWidth()) {
+                                    scope.launch {
+                                        pickFile("Открыть файл", "*", state.workDrivePath.ifBlank { null })?.let { state.openAny(it) }
+                                    }
                                 }
-                            }
+                            } else if (texture != null) {
+                                TextureViewer(state, texture, Modifier.weight(1f).fillMaxWidth())
+                            } else {
+                                Toolbar(state) {
+                                    scope.launch {
+                                        val path =
+                                            pickFile(
+                                                "Открыть layout-файл",
+                                                "layout",
+                                                state.workDrivePath.ifBlank { null },
+                                            )
+                                        if (path != null) state.openFile(path)
+                                    }
+                                }
 
-                            val changedPath =
-                                state.activeFile
-                                    ?.path
-                                    ?.takeIf { state.filesChangedOnDisk.contains(it) }
-                            if (changedPath != null) {
-                                ChangedOnDiskBanner(
-                                    onReload = { state.reloadFile(changedPath) },
-                                    onIgnore = { state.dismissChangedNotification(changedPath) },
-                                )
-                            }
-
-                            Row(Modifier.weight(1f).fillMaxWidth()) {
-                                Box(Modifier.weight(1f).fillMaxHeight()) {
-                                    LayoutCanvas(
-                                        state,
-                                        Modifier
-                                            .fillMaxSize()
-                                            .onGloballyPositioned { coords ->
-                                                state.canvasBoundsInWindow = coords.boundsInWindow()
-                                            },
+                                val changedPath =
+                                    state.activeFile
+                                        ?.path
+                                        ?.takeIf { state.filesChangedOnDisk.contains(it) }
+                                if (changedPath != null) {
+                                    ChangedOnDiskBanner(
+                                        onReload = { state.reloadFile(changedPath) },
+                                        onIgnore = { state.dismissChangedNotification(changedPath) },
                                     )
-                                    ReferencePanel(state, Modifier.align(Alignment.TopEnd).padding(12.dp))
                                 }
 
-                                Box(Modifier.width(1.dp).fillMaxHeight().background(DarkenedBorder))
+                                Breadcrumbs(state)
 
-                                RightPanel(state)
+                                Row(Modifier.weight(1f).fillMaxWidth()) {
+                                    Box(Modifier.weight(1f).fillMaxHeight()) {
+                                        LayoutCanvas(
+                                            state,
+                                            Modifier
+                                                .fillMaxSize()
+                                                .onGloballyPositioned { coords ->
+                                                    state.canvasBoundsInWindow = coords.boundsInWindow()
+                                                },
+                                        )
+                                        ReferencePanel(state, Modifier.align(Alignment.TopEnd).padding(12.dp))
+                                        ViewportChips(state, Modifier.align(Alignment.BottomStart).padding(10.dp))
+                                    }
+
+                                    Box(Modifier.width(1.dp).fillMaxHeight().background(DarkenedBorder))
+
+                                    RightPanel(state)
+                                }
                             }
                         }
                     }
+
+                    StatusBar(state)
                 }
 
                 // ── Drag ghost ────────────────────────────────────────────
@@ -420,7 +438,8 @@ private fun FileTabBar(state: LayoutEditorState) {
         state.openFiles.forEachIndexed { index, doc ->
             FileTab(
                 icon = AppIcon.LAYOUT,
-                label = doc.fileName + if (doc.isModified) " *" else "",
+                label = doc.fileName,
+                modified = doc.isModified,
                 isActive = state.activeTextureIndex < 0 && index == state.activeFileIndex,
                 onClick = { state.selectLayout(index) },
                 onClose = { state.closeFile(index) },
@@ -443,6 +462,7 @@ private fun FileTabBar(state: LayoutEditorState) {
 private fun FileTab(
     icon: AppIcon,
     label: String,
+    modified: Boolean = false,
     isActive: Boolean,
     onClick: () -> Unit,
     onClose: () -> Unit,
@@ -465,6 +485,10 @@ private fun FileTab(
         AppIconView(icon)
         Spacer(Modifier.width(6.dp))
         Text(label, color = TextForeground, fontSize = 12.sp, maxLines = 1)
+        if (modified) {
+            Spacer(Modifier.width(6.dp))
+            Box(Modifier.size(6.dp).background(Color(0xFF4A9EFF), CircleShape))
+        }
         Spacer(Modifier.width(6.dp))
         Box(
             Modifier

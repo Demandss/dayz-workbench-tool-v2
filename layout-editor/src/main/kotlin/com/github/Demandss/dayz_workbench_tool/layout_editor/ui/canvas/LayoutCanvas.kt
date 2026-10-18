@@ -60,7 +60,7 @@ private fun textureAspect(
 }
 
 /** The rectangle of the screen the layout is drawn on: the chosen resolution, or the real screen for FitToWindow. */
-private fun screenRect(state: LayoutEditorState): Rect {
+internal fun screenRect(state: LayoutEditorState): Rect {
     val r = state.selectedResolution
     return if (r == Resolution.FIT) {
         Rect(0f, 0f, state.screenSize.width, state.screenSize.height)
@@ -185,6 +185,7 @@ private fun DrawScope.drawWidgetTree(
     isRoot: Boolean,
     selectedIds: Set<UUID>,
     showBorders: Boolean,
+    showLabels: Boolean,
     textMeasurer: TextMeasurer,
     zoom: Float,
     pan: Offset,
@@ -231,7 +232,7 @@ private fun DrawScope.drawWidgetTree(
         WidgetType.TEXT, WidgetType.MULTILINE_TEXT, WidgetType.RICH_TEXT -> {
             drawRect(Color(0x15FFFFFF), tl, ss)
             val label = node.node.properties["text"] ?: node.node.name
-            if (label.isNotEmpty() && ss.width > 4f && ss.height > 8f) {
+            if (showLabels && label.isNotEmpty() && ss.width > 4f && ss.height > 8f) {
                 val measured =
                     textMeasurer.measure(
                         label,
@@ -244,7 +245,7 @@ private fun DrawScope.drawWidgetTree(
         WidgetType.BUTTON -> {
             drawRect(Color(0x22AAAAFF), tl, ss)
             val label = node.node.properties["text"] ?: node.node.name
-            if (label.isNotEmpty() && ss.width > 4f && ss.height > 8f) {
+            if (showLabels && label.isNotEmpty() && ss.width > 4f && ss.height > 8f) {
                 val measured =
                     textMeasurer.measure(
                         label,
@@ -268,7 +269,7 @@ private fun DrawScope.drawWidgetTree(
     }
 
     // Widget type label (screen-space, fixed 10sp, only when big enough)
-    if (!isRoot && ss.width > 40f && ss.height > 14f) {
+    if (showLabels && !isRoot && ss.width > 40f && ss.height > 14f) {
         val className =
             node.node.type.className
                 .removeSuffix("WidgetClass")
@@ -286,12 +287,12 @@ private fun DrawScope.drawWidgetTree(
     if (node.clipsChildren()) {
         clipRect(tl.x, tl.y, br.x, br.y) {
             for (child in children) {
-                drawWidgetTree(child, layout, false, selectedIds, showBorders, textMeasurer, zoom, pan, textureFor)
+                drawWidgetTree(child, layout, false, selectedIds, showBorders, showLabels, textMeasurer, zoom, pan, textureFor)
             }
         }
     } else {
         for (child in children) {
-            drawWidgetTree(child, layout, false, selectedIds, showBorders, textMeasurer, zoom, pan, textureFor)
+            drawWidgetTree(child, layout, false, selectedIds, showBorders, showLabels, textMeasurer, zoom, pan, textureFor)
         }
     }
 
@@ -569,8 +570,9 @@ fun LayoutCanvas(
                 doc.root,
                 layout,
                 isRoot = true,
-                selectedSet,
-                state.showBorders,
+                if (state.livePreview) emptySet() else selectedSet,
+                state.showBorders && !state.livePreview,
+                !state.livePreview,
                 textMeasurer,
                 zoom,
                 pan,
@@ -603,7 +605,7 @@ fun LayoutCanvas(
         }
 
         // Gaps between the selected widgets and the edges of their parents
-        if (doc != null && layout != null && state.showMeasure && selectedSet.isNotEmpty()) {
+        if (doc != null && layout != null && state.showMeasure && !state.livePreview && selectedSet.isNotEmpty()) {
             for (id in selectedSet) {
                 val node = doc.root.findNode(id) ?: continue
                 val rect = layout.rects[id]

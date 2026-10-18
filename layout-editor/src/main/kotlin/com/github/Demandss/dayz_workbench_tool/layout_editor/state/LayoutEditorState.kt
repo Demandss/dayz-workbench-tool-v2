@@ -60,6 +60,8 @@ data class PendingAdd(
 // State
 // ---------------------------------------------------------------------------
 
+private const val MAX_RECENT = 8
+
 class LayoutEditorState(
     val workDrivePath: String,
     private val scope: CoroutineScope,
@@ -89,6 +91,12 @@ class LayoutEditorState(
     var showBorders by mutableStateOf(true)
     var showSafeFrame by mutableStateOf(false)
     var showMeasure by mutableStateOf(true)
+
+    // A clean view: no borders, labels, selection or measurements, only what the widgets draw
+    var livePreview by mutableStateOf(false)
+
+    // Files opened last, newest first
+    val recentFiles = mutableStateListOf<String>()
 
     // A Workbench screenshot laid over the work area to compare the canvas with
     var showReference by mutableStateOf(false)
@@ -139,6 +147,7 @@ class LayoutEditorState(
         loadSession().let {
             treeExpanded = it.expandedDirs
             treeSelected = it.selectedPath
+            recentFiles.addAll(it.recent.filter { f -> File(f).isFile })
         }
     }
 
@@ -146,12 +155,14 @@ class LayoutEditorState(
         val normalized = runCatching { File(path).canonicalPath }.getOrDefault(path)
         val existing = openFiles.indexOfFirst { it.path == normalized }
         if (existing >= 0) {
+            noteRecent(normalized)
             selectLayout(existing)
             return
         }
         runCatching {
             val root = LayoutParser.parse(File(normalized).readText()).toEditorNode()
             openFiles += LayoutDocument(path = normalized, root = root)
+            noteRecent(normalized)
             selectLayout(openFiles.lastIndex)
             File(normalized).parentFile?.toPath()?.let { watchDirectory(it) }
         }
@@ -346,6 +357,18 @@ class LayoutEditorState(
         return image?.toComposeImageBitmap()
     }
 
+    /** Puts a file at the top of the recent list, keeping the last eight. */
+    fun noteRecent(path: String) {
+        recentFiles.remove(path)
+        recentFiles.add(0, path)
+        while (recentFiles.size > MAX_RECENT) recentFiles.removeAt(recentFiles.lastIndex)
+    }
+
+    /** Opens a layout in the editor and anything else as a texture. */
+    fun openAny(path: String) {
+        if (path.endsWith(".layout", ignoreCase = true)) openFile(path) else openTexture(path)
+    }
+
     fun selectLayout(index: Int) {
         activeFileIndex = index
         activeTextureIndex = -1
@@ -363,10 +386,12 @@ class LayoutEditorState(
         val normalized = runCatching { File(path).canonicalPath }.getOrDefault(path)
         val existing = openTextures.indexOfFirst { it.path == normalized }
         if (existing >= 0) {
+            noteRecent(normalized)
             selectTexture(existing)
             return
         }
         openTextures += TextureDocument(path = normalized)
+        noteRecent(normalized)
         selectTexture(openTextures.lastIndex)
         loadTextureDocument(normalized)
     }
@@ -468,6 +493,7 @@ class LayoutEditorState(
                     referencePath = referencePath,
                     referenceOpacity = referenceOpacity,
                     referenceShown = showReference,
+                    recent = recentFiles.toList(),
                 )
             ConfigManager.LayoutEditor.save(config.copy(sessions = config.sessions + (sessionKey to session)))
         }
