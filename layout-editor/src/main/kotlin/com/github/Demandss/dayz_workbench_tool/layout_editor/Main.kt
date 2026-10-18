@@ -10,6 +10,7 @@ import java.io.File
 /**
  * An optional first argument overrides the work drive path from the app settings,
  * so a test stand can be opened without touching the saved config.
+ * Further arguments are files (.layout, .edds, .png) to open on start.
  */
 fun main(args: Array<String>) =
     application {
@@ -18,7 +19,14 @@ fun main(args: Array<String>) =
             remember {
                 args.firstOrNull()?.takeIf { File(it).isDirectory } ?: ConfigManager.App.load().workDrivePath
             }
-        val state = remember { LayoutEditorState(workDrivePath, scope) }
+        val state =
+            remember {
+                LayoutEditorState(workDrivePath, scope).also { s ->
+                    args.drop(1).forEach { path ->
+                        if (path.endsWith(".layout", ignoreCase = true)) s.openFile(path) else s.openTexture(path)
+                    }
+                }
+            }
 
         LayoutEditorWindow(
             state = state,
