@@ -155,6 +155,8 @@ private data class WidgetDragInfo(
     val origPosY: Float,
     val hexactpos: Boolean,
     val vexactpos: Boolean,
+    val signX: Float,
+    val signY: Float,
     val parentRect: Rect,
 )
 
@@ -468,6 +470,8 @@ fun LayoutCanvas(
                                                             origPosY = pp.getOrNull(1)?.toFloatOrNull() ?: 0f,
                                                             hexactpos = n.node.properties["hexactpos"] == "1",
                                                             vexactpos = n.node.properties["vexactpos"] == "1",
+                                                            signX = anchorDirection(n.node.properties["halign"]),
+                                                            signY = anchorDirection(n.node.properties["valign"]),
                                                             parentRect = pr,
                                                         )
                                                     }
@@ -507,9 +511,11 @@ fun LayoutCanvas(
                                                 for (info in dragInfos) {
                                                     val nx =
                                                         info.origPosX +
+                                                            info.signX *
                                                             if (info.hexactpos) worldDelta.x else worldDelta.x / info.parentRect.width
                                                     val ny =
                                                         info.origPosY +
+                                                            info.signY *
                                                             if (info.vexactpos) worldDelta.y else worldDelta.y / info.parentRect.height
                                                     newRoot =
                                                         newRoot.updateNode(info.id) { n ->
