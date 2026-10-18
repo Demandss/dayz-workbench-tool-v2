@@ -106,6 +106,12 @@ fun Toolbar(
             onClick = { state.showMeasure = !state.showMeasure },
             active = state.showMeasure,
         )
+        DarkIconButton(
+            AppIcon.UI_COMPARE,
+            "Эталон Workbench",
+            onClick = { state.showReference = !state.showReference },
+            active = state.showReference,
+        )
 
         Spacer(Modifier.width(4.dp))
     }

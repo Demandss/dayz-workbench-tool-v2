@@ -46,6 +46,7 @@ import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.FileTreeP
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.HierarchyPanel
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.PaletteContent
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.PropertiesContent
+import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.ReferencePanel
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.toolbar.Toolbar
 import com.github.demandss.dayz_workbench_tool.ui.components.DarkButton
 import com.github.demandss.dayz_workbench_tool.ui.components.DarkTabRow
@@ -210,15 +211,17 @@ fun LayoutEditorWindow(
                             }
 
                             Row(Modifier.weight(1f).fillMaxWidth()) {
-                                LayoutCanvas(
-                                    state,
-                                    Modifier
-                                        .weight(1f)
-                                        .fillMaxHeight()
-                                        .onGloballyPositioned { coords ->
-                                            state.canvasBoundsInWindow = coords.boundsInWindow()
-                                        },
-                                )
+                                Box(Modifier.weight(1f).fillMaxHeight()) {
+                                    LayoutCanvas(
+                                        state,
+                                        Modifier
+                                            .fillMaxSize()
+                                            .onGloballyPositioned { coords ->
+                                                state.canvasBoundsInWindow = coords.boundsInWindow()
+                                            },
+                                    )
+                                    ReferencePanel(state, Modifier.align(Alignment.TopEnd).padding(12.dp))
+                                }
 
                                 Box(Modifier.width(1.dp).fillMaxHeight().background(DarkenedBorder))
 
