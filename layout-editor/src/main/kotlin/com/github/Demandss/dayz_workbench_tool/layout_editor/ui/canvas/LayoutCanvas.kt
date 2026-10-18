@@ -13,6 +13,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -30,6 +31,7 @@ import com.github.demandss.dayz_workbench_tool.layout_editor.state.LayoutEditorS
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.Resolution
 import com.github.demandss.dayz_workbench_tool.layout_editor.updateNode
 import java.util.UUID
+import kotlin.math.roundToInt
 
 // ---------------------------------------------------------------------------
 // Pure helpers
@@ -590,6 +592,20 @@ fun LayoutCanvas(
             val sbr = worldToScreen(Offset(refW - sx, refH - sy), zoom, pan)
             drawRect(Color(0x22FFFF44), stl, Size(sbr.x - stl.x, sbr.y - stl.y))
             drawRect(Color(0x88FFFF44), stl, Size(sbr.x - stl.x, sbr.y - stl.y), style = Stroke(1f))
+        }
+
+        // The Workbench screenshot over the work area, under the measurements
+        val reference = state.referenceImage
+        if (state.showReference && reference != null) {
+            drawImage(
+                reference,
+                srcOffset = IntOffset.Zero,
+                srcSize = IntSize(reference.width, reference.height),
+                dstOffset = IntOffset(atl.x.roundToInt(), atl.y.roundToInt()),
+                dstSize = IntSize(aSize.width.roundToInt().coerceAtLeast(1), aSize.height.roundToInt().coerceAtLeast(1)),
+                alpha = state.referenceOpacity,
+                filterQuality = FilterQuality.Medium,
+            )
         }
 
         // Gaps between the selected widgets and the edges of their parents

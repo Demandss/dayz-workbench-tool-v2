@@ -89,6 +89,12 @@ class LayoutEditorState(
     var showBorders by mutableStateOf(true)
     var showSafeFrame by mutableStateOf(false)
     var showMeasure by mutableStateOf(true)
+
+    // A Workbench screenshot laid over the work area to compare the canvas with
+    var showReference by mutableStateOf(false)
+    var referenceImage by mutableStateOf<ImageBitmap?>(null)
+    var referencePath by mutableStateOf("")
+    var referenceOpacity by mutableStateOf(0.5f)
     var scaledMode by mutableStateOf(false)
     var gridSize by mutableStateOf(10)
     var snapMargin by mutableStateOf(5)
@@ -395,11 +401,41 @@ class LayoutEditorState(
             } else {
                 openFiles.indexOfFirst { it.path == session.active }.takeIf { it >= 0 }?.let { selectLayout(it) }
             }
+            session.referencePath.takeIf { it.isNotBlank() && File(it).isFile }?.let {
+                referenceOpacity = session.referenceOpacity
+                loadReference(it, show = session.referenceShown)
+            }
         } finally {
             restoring = false
         }
         saveSession()
     }
+
+    /** Loads a screenshot to lay over the canvas and shows it. */
+    fun loadReference(
+        path: String,
+        show: Boolean = true,
+    ) {
+        scope.launch(Dispatchers.IO) {
+            val bitmap = runCatching { ImageIO.read(File(path))?.toComposeImageBitmap() }.getOrNull()
+            withContext(Dispatchers.Main) {
+                if (bitmap != null) {
+                    referenceImage = bitmap
+                    referencePath = path
+                    showReference = show
+                    saveSession()
+                }
+            }
+        }
+    }
+
+    fun clearReference() {
+        referenceImage = null
+        referencePath = ""
+        saveSession()
+    }
+
+    fun saveReferenceSettings() = saveSession()
 
     fun saveTreeState(
         expanded: List<String>,
@@ -426,6 +462,9 @@ class LayoutEditorState(
                     activeIsTexture = texture != null,
                     expandedDirs = treeExpanded,
                     selectedPath = treeSelected,
+                    referencePath = referencePath,
+                    referenceOpacity = referenceOpacity,
+                    referenceShown = showReference,
                 )
             ConfigManager.LayoutEditor.save(config.copy(sessions = config.sessions + (sessionKey to session)))
         }
