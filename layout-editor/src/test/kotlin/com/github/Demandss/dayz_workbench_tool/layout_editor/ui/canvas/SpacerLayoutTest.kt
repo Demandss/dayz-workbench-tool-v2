@@ -126,7 +126,7 @@ class SpacerLayoutTest {
 
     @Test
     fun `size to content V grows the container to its rows and keeps the width`() {
-        // Two rows of 40 with a gap of 8 are 88 high, whatever height the file gave
+        // Two rows of 40 with a gap of 8 are 96 high in Workbench: every row is followed by the gap, the last one too
         val container =
             wrap(
                 130,
@@ -139,7 +139,7 @@ class SpacerLayoutTest {
 
         val layout = layoutOf(container)
 
-        assertEquals(Rect(0f, 0f, 130f, 88f), layout.of(container))
+        assertEquals(Rect(0f, 0f, 130f, 96f), layout.of(container))
     }
 
     @Test
@@ -151,9 +151,10 @@ class SpacerLayoutTest {
 
         val layout = layoutOf(container)
 
-        // the row is 88 wide and 40 high
-        assertEquals(Rect(56f, 30f, 96f, 70f), layout.of(a))
-        assertEquals(Rect(104f, 30f, 144f, 70f), layout.of(b))
+        // the row is 88 wide, so 56 from the left. Vertically Workbench centres the row together with the gap after it
+        // (48), which puts it at 26 and not at 30; measured at (436, 46) for a container at (380, 20)
+        assertEquals(Rect(56f, 26f, 96f, 66f), layout.of(a))
+        assertEquals(Rect(104f, 26f, 144f, 66f), layout.of(b))
     }
 
     @Test

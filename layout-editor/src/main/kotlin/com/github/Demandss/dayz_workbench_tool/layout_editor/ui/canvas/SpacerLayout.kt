@@ -97,12 +97,14 @@ private fun layoutWrap(
         }
     }
     val rowHeights = rows.map { row -> row.maxOf { sizes[it].height } }
+    // Measured in Workbench: centring and "Size To Content V" count the gap after the last row too, bottom alignment does not
     val blockH = rowHeights.sum() + gap * (rows.size - 1).coerceAtLeast(0)
+    val blockWithTrailingGap = rowHeights.sum() + gap * rows.size
 
     // "Size To Content V": the height follows the rows, the width stays as set
     val own =
         if (node.boolProp("Size To Content V", false)) {
-            Rect(rect.left, rect.top, rect.right, rect.top + 2 * margin + blockH)
+            Rect(rect.left, rect.top, rect.right, rect.top + 2 * margin + blockWithTrailingGap)
         } else {
             rect
         }
@@ -113,7 +115,7 @@ private fun layoutWrap(
     var y =
         own.top + margin +
             when (valign) {
-                "center" -> (availH - blockH) / 2f
+                "center" -> (availH - blockWithTrailingGap) / 2f
                 "bottom" -> availH - blockH
                 else -> 0f
             }
