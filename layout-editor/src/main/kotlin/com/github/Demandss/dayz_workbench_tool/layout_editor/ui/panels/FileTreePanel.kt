@@ -101,13 +101,31 @@ fun FileTreePanel(
     val workRoot = state.workDrivePath
     val scope = rememberCoroutineScope()
 
-    val expandedDirs = remember { mutableStateListOf<Path>() }
+    val expandedDirs =
+        remember {
+            mutableStateListOf<Path>().apply {
+                state.savedExpandedDirs.forEach { dir ->
+                    runCatching { Path.of(dir) }.getOrNull()?.takeIf { Files.isDirectory(it) }?.let { add(it) }
+                }
+            }
+        }
     var refreshTick by remember { mutableStateOf(0) }
     var renamingPath by remember { mutableStateOf<Path?>(null) }
     var deletingEntry by remember { mutableStateOf<TreeEntry?>(null) }
     var creatingIn by remember { mutableStateOf<Path?>(null) }
     var creatingDir by remember { mutableStateOf(false) }
-    var selectedPath by remember { mutableStateOf<Path?>(null) }
+    var selectedPath by remember {
+        mutableStateOf(
+            state.savedSelectedPath
+                .takeIf { it.isNotEmpty() }
+                ?.let { runCatching { Path.of(it) }.getOrNull() }
+                ?.takeIf { Files.exists(it) },
+        )
+    }
+
+    LaunchedEffect(expandedDirs.toList(), selectedPath) {
+        state.saveTreeState(expandedDirs.map { it.toString() }, selectedPath?.toString().orEmpty())
+    }
 
     val flatList =
         remember(refreshTick, expandedDirs.toList()) {

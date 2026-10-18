@@ -398,7 +398,7 @@ private fun FileTabBar(state: LayoutEditorState) {
             FileTab(
                 label = doc.fileName,
                 isActive = index == state.activeTextureIndex,
-                onClick = { state.activeTextureIndex = index },
+                onClick = { state.selectTexture(index) },
                 onClose = { state.closeTexture(index) },
             )
         }

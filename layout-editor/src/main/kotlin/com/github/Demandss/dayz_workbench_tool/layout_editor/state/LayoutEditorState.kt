@@ -7,6 +7,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.toComposeImageBitmap
 import com.github.demandss.dayz_workbench_tool.config.ConfigManager
+import com.github.demandss.dayz_workbench_tool.config.EditorSession
 import com.github.demandss.dayz_workbench_tool.layout.LayoutParser
 import com.github.demandss.dayz_workbench_tool.layout.LayoutSerializer
 import com.github.demandss.dayz_workbench_tool.layout.WidgetNode
@@ -114,8 +115,21 @@ class LayoutEditorState(
     private val watchService: WatchService = FileSystems.getDefault().newWatchService()
     private val watchedDirs = mutableMapOf<Path, WatchKey>()
 
+    // Session persistence: stored per work drive so a test stand does not mix with the real project
+    private val sessionKey = workDrivePath.trim().trimEnd('\\', '/').lowercase()
+    private var restoring = false
+    private var treeExpanded: List<String> = emptyList()
+    private var treeSelected: String = ""
+
+    val savedExpandedDirs: List<String> get() = treeExpanded
+    val savedSelectedPath: String get() = treeSelected
+
     init {
         startWatcher()
+        loadSession().let {
+            treeExpanded = it.expandedDirs
+            treeSelected = it.selectedPath
+        }
     }
 
     fun openFile(path: String) {
@@ -141,6 +155,7 @@ class LayoutEditorState(
                 index <= activeFileIndex -> (activeFileIndex - 1).coerceAtLeast(0)
                 else -> activeFileIndex
             }
+        saveSession()
     }
 
     fun saveActiveFile() {
@@ -324,6 +339,13 @@ class LayoutEditorState(
     fun selectLayout(index: Int) {
         activeFileIndex = index
         activeTextureIndex = -1
+        saveSession()
+    }
+
+    fun selectTexture(index: Int) {
+        if (index !in openTextures.indices) return
+        activeTextureIndex = index
+        saveSession()
     }
 
     /** Opens an .edds or an image file in a texture viewer tab, or switches to its tab when already open. */
@@ -331,11 +353,11 @@ class LayoutEditorState(
         val normalized = runCatching { File(path).canonicalPath }.getOrDefault(path)
         val existing = openTextures.indexOfFirst { it.path == normalized }
         if (existing >= 0) {
-            activeTextureIndex = existing
+            selectTexture(existing)
             return
         }
         openTextures += TextureDocument(path = normalized)
-        activeTextureIndex = openTextures.lastIndex
+        selectTexture(openTextures.lastIndex)
         loadTextureDocument(normalized)
     }
 
@@ -357,6 +379,55 @@ class LayoutEditorState(
                 index == activeTextureIndex -> (index - 1).coerceAtLeast(0)
                 else -> activeTextureIndex
             }
+        saveSession()
+    }
+
+    /** Reopens what was open when the editor was last closed on this work drive. Missing files are skipped. */
+    fun restoreSession() {
+        val session = loadSession()
+        restoring = true
+        try {
+            session.layouts.filter { File(it).isFile }.forEach { openFile(it) }
+            session.textures.filter { File(it).isFile }.forEach { openTexture(it) }
+            if (session.activeIsTexture) {
+                openTextures.indexOfFirst { it.path == session.active }.takeIf { it >= 0 }?.let { selectTexture(it) }
+            } else {
+                openFiles.indexOfFirst { it.path == session.active }.takeIf { it >= 0 }?.let { selectLayout(it) }
+            }
+        } finally {
+            restoring = false
+        }
+        saveSession()
+    }
+
+    fun saveTreeState(
+        expanded: List<String>,
+        selected: String,
+    ) {
+        treeExpanded = expanded
+        treeSelected = selected
+        saveSession()
+    }
+
+    private fun loadSession(): EditorSession =
+        runCatching { ConfigManager.LayoutEditor.load().sessions[sessionKey] }.getOrNull() ?: EditorSession()
+
+    private fun saveSession() {
+        if (restoring) return
+        runCatching {
+            val config = ConfigManager.LayoutEditor.load()
+            val texture = activeTexture
+            val session =
+                EditorSession(
+                    layouts = openFiles.map { it.path },
+                    textures = openTextures.map { it.path },
+                    active = texture?.path ?: activeFile?.path.orEmpty(),
+                    activeIsTexture = texture != null,
+                    expandedDirs = treeExpanded,
+                    selectedPath = treeSelected,
+                )
+            ConfigManager.LayoutEditor.save(config.copy(sessions = config.sessions + (sessionKey to session)))
+        }
     }
 
     private fun loadTextureDocument(path: String) {
