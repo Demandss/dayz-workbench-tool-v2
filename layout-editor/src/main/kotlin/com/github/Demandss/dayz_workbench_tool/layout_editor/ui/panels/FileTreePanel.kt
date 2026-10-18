@@ -1,8 +1,11 @@
 package com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.hoverable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -13,6 +16,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.input.key.*
@@ -20,14 +24,18 @@ import androidx.compose.ui.input.pointer.*
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Popup
+import androidx.compose.ui.window.PopupProperties
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.LayoutEditorState
 import com.github.demandss.dayz_workbench_tool.texture.EddsCodec
 import com.github.demandss.dayz_workbench_tool.ui.theme.*
 import kotlinx.coroutines.*
 import java.nio.file.*
 import java.nio.file.StandardWatchEventKinds.*
+import kotlin.math.roundToInt
 
 // ---------------------------------------------------------------------------
 // Data model
@@ -189,6 +197,7 @@ fun FileTreePanel(
             items(flatList, key = { it.path.toString() }) { entry ->
                 val isRenaming = renamingPath == entry.path
                 var showMenu by remember { mutableStateOf(false) }
+                var menuPos by remember { mutableStateOf(IntOffset.Zero) }
 
                 if (isRenaming) {
                     InlineNameField(
@@ -235,50 +244,34 @@ fun FileTreePanel(
                                     state.openTexture(entry.path.toString())
                                 }
                             },
-                            onRightClick = { showMenu = true },
+                            onRightClick = { pos ->
+                                menuPos = IntOffset(pos.x.roundToInt(), pos.y.roundToInt())
+                                showMenu = true
+                            },
                         )
-                        DropdownMenu(
-                            expanded = showMenu,
-                            onDismissRequest = { showMenu = false },
-                            modifier = Modifier.background(ElementsBackground),
-                        ) {
-                            if (entry.isDir) {
-                                DropdownMenuItem(
-                                    text = { Text("Новый .layout", color = TextForeground, fontSize = 11.sp) },
-                                    onClick = {
+                        if (showMenu) {
+                            ContextMenu(menuPos, onDismiss = { showMenu = false }) {
+                                if (entry.isDir) {
+                                    ContextMenuItem("Новый .layout") {
                                         showMenu = false
                                         creatingIn = entry.path
                                         creatingDir = false
-                                    },
-                                )
-                                DropdownMenuItem(
-                                    text = { Text("Новая папка", color = TextForeground, fontSize = 11.sp) },
-                                    onClick = {
+                                    }
+                                    ContextMenuItem("Новая папка") {
                                         showMenu = false
                                         creatingIn = entry.path
                                         creatingDir = true
-                                    },
-                                )
-                            }
-                            val isEdds = !entry.isDir && entry.name.endsWith(".edds", ignoreCase = true)
-                            val isPng = !entry.isDir && entry.name.endsWith(".png", ignoreCase = true)
-                            if (isEdds || isPng) {
-                                DropdownMenuItem(
-                                    text = {
-                                        Text(
-                                            if (isEdds) "Конвертировать в PNG" else "Конвертировать в EDDS",
-                                            color = TextForeground,
-                                            fontSize = 11.sp,
-                                        )
-                                    },
-                                    onClick = {
+                                    }
+                                }
+                                val isEdds = !entry.isDir && entry.name.endsWith(".edds", ignoreCase = true)
+                                val isPng = !entry.isDir && entry.name.endsWith(".png", ignoreCase = true)
+                                if (isEdds || isPng) {
+                                    ContextMenuItem(if (isEdds) "Конвертировать в PNG" else "Конвертировать в EDDS") {
                                         showMenu = false
                                         scope.launch(Dispatchers.IO) {
                                             runCatching {
                                                 if (isEdds) {
-                                                    EddsCodec.edds2png(
-                                                        entry.path.toFile(),
-                                                    )
+                                                    EddsCodec.edds2png(entry.path.toFile())
                                                 } else {
                                                     EddsCodec.png2edds(entry.path.toFile())
                                                 }
@@ -288,34 +281,25 @@ fun FileTreePanel(
                                                 refreshTick++
                                             }
                                         }
-                                    },
-                                )
-                            }
-                            DropdownMenuItem(
-                                text = { Text("Переименовать", color = TextForeground, fontSize = 11.sp) },
-                                onClick = {
+                                    }
+                                }
+                                ContextMenuItem("Переименовать") {
                                     showMenu = false
                                     renamingPath = entry.path
-                                },
-                            )
-                            DropdownMenuItem(
-                                text = { Text("Удалить...", color = Color(0xFFFF5555), fontSize = 11.sp) },
-                                onClick = {
+                                }
+                                ContextMenuItem("Удалить...", color = Color(0xFFFF5555)) {
                                     showMenu = false
                                     deletingEntry = entry
-                                },
-                            )
-                            DropdownMenuItem(
-                                text = { Text("Показать в проводнике", color = TextForeground, fontSize = 11.sp) },
-                                onClick = {
+                                }
+                                ContextMenuItem("Показать в проводнике") {
                                     showMenu = false
                                     scope.launch(Dispatchers.IO) {
                                         runCatching {
                                             ProcessBuilder("explorer.exe", "/select,${entry.path.toAbsolutePath()}").start()
                                         }
                                     }
-                                },
-                            )
+                                }
+                            }
                         }
                     }
                 }
@@ -364,7 +348,7 @@ private fun TreeRow(
     onSelect: () -> Unit,
     onToggle: () -> Unit,
     onDoubleClick: () -> Unit,
-    onRightClick: () -> Unit,
+    onRightClick: (Offset) -> Unit,
 ) {
     var clickTime by remember { mutableStateOf(0L) }
 
@@ -389,7 +373,9 @@ private fun TreeRow(
                                 }
 
                                 event.type == PointerEventType.Press && event.buttons.isSecondaryPressed -> {
-                                    onRightClick()
+                                    val pos = event.changes.first().position
+                                    // Position is inside the row padding, the menu is anchored to the whole row
+                                    onRightClick(Offset(pos.x + (entry.depth * 12 + 2).dp.toPx(), pos.y))
                                     event.changes.forEach { it.consume() }
                                 }
                             }
@@ -503,5 +489,56 @@ private fun InlineNameField(
                         }
                     },
         )
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Context menu
+// ---------------------------------------------------------------------------
+
+/** Compact popup menu shown with its top-left corner at [position] inside the anchor. */
+@Composable
+private fun ContextMenu(
+    position: IntOffset,
+    onDismiss: () -> Unit,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    Popup(
+        alignment = Alignment.TopStart,
+        offset = position,
+        onDismissRequest = onDismiss,
+        properties = PopupProperties(focusable = true),
+    ) {
+        Column(
+            Modifier
+                .width(IntrinsicSize.Max)
+                .widthIn(min = 150.dp)
+                .background(ElementsBackground)
+                .border(1.dp, DarkenedBorder)
+                .padding(vertical = 2.dp),
+            content = content,
+        )
+    }
+}
+
+@Composable
+private fun ContextMenuItem(
+    text: String,
+    color: Color = TextForeground,
+    onClick: () -> Unit,
+) {
+    val interaction = remember { MutableInteractionSource() }
+    val hovered by interaction.collectIsHoveredAsState()
+    Box(
+        Modifier
+            .fillMaxWidth()
+            .height(22.dp)
+            .background(if (hovered) SubSelectColor else Color.Transparent)
+            .hoverable(interaction)
+            .clickable(interactionSource = interaction, indication = null, onClick = onClick)
+            .padding(horizontal = 10.dp),
+        contentAlignment = Alignment.CenterStart,
+    ) {
+        Text(text, color = color, fontSize = 11.sp, maxLines = 1)
     }
 }
