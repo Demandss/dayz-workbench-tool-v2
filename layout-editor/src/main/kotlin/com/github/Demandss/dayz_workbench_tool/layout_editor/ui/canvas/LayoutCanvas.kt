@@ -17,6 +17,7 @@ import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.input.key.*
 import androidx.compose.ui.input.pointer.*
 import androidx.compose.ui.layout.onSizeChanged
@@ -89,12 +90,15 @@ private fun hitTest(
     parentRect: Rect,
     isRoot: Boolean = false,
 ): EditorWidgetNode? {
+    if (!node.isVisible()) return null
     val rect = if (isRoot) parentRect else computeRect(node, parentRect)
-    if (!rect.contains(worldPos)) return null
-    for (child in node.children.asReversed()) {
+    val inside = rect.contains(worldPos)
+    // Children that stick out of a parent which does not clip them can still be hit
+    if (!inside && node.clipsChildren()) return null
+    for (child in node.drawOrder().asReversed()) {
         hitTest(child, worldPos, rect)?.let { return it }
     }
-    return node
+    return if (inside) node else null
 }
 
 private fun buildParentRectMap(
@@ -116,6 +120,7 @@ private fun selectInBox(
     out: MutableList<UUID>,
     isRoot: Boolean = false,
 ) {
+    if (!node.isVisible()) return
     val rect = if (isRoot) parentRect else computeRect(node, parentRect)
     if (!isRoot && box.overlaps(rect)) out.add(node.id)
     for (child in node.children) selectInBox(child, box, rect, out)
@@ -222,6 +227,7 @@ private fun DrawScope.drawWidgetTree(
     pan: Offset,
     textureFor: (String) -> ImageBitmap?,
 ) {
+    if (!node.isVisible()) return
     val wRect = if (isRoot) parentRect else computeRect(node, parentRect)
     val tl = worldToScreen(Offset(wRect.left, wRect.top), zoom, pan)
     val br = worldToScreen(Offset(wRect.right, wRect.bottom), zoom, pan)
@@ -316,9 +322,18 @@ private fun DrawScope.drawWidgetTree(
         drawText(measured, topLeft = Offset(tl.x + 2f, tl.y + 2f))
     }
 
-    // Recurse children
-    for (child in node.children) {
-        drawWidgetTree(child, wRect, false, selectedIds, showBorders, textMeasurer, zoom, pan, textureFor)
+    // Recurse children: by priority, and cut at the parent's edge unless clipchildren is 0
+    val children = node.drawOrder()
+    if (node.clipsChildren()) {
+        clipRect(tl.x, tl.y, br.x, br.y) {
+            for (child in children) {
+                drawWidgetTree(child, wRect, false, selectedIds, showBorders, textMeasurer, zoom, pan, textureFor)
+            }
+        }
+    } else {
+        for (child in children) {
+            drawWidgetTree(child, wRect, false, selectedIds, showBorders, textMeasurer, zoom, pan, textureFor)
+        }
     }
 
     // Selection resize handles
