@@ -31,6 +31,9 @@ import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.LayoutEditorState
 import com.github.demandss.dayz_workbench_tool.texture.EddsCodec
+import com.github.demandss.dayz_workbench_tool.ui.icons.AppIcon
+import com.github.demandss.dayz_workbench_tool.ui.icons.AppIconView
+import com.github.demandss.dayz_workbench_tool.ui.icons.fileIcon
 import com.github.demandss.dayz_workbench_tool.ui.theme.*
 import kotlinx.coroutines.*
 import java.nio.file.*
@@ -416,7 +419,7 @@ private fun TreeRow(
         modifier =
             Modifier
                 .fillMaxWidth()
-                .height(20.dp)
+                .height(22.dp)
                 .background(if (isSelected) SubSelectColor else Color.Transparent)
                 .padding(start = (entry.depth * 12 + 2).dp)
                 .pointerInput(entry.path) {
@@ -457,26 +460,17 @@ private fun TreeRow(
             contentAlignment = Alignment.Center,
         ) {
             if (entry.isDir) {
-                Text(if (isExpanded) "▾" else "▸", color = GhostlyText, fontSize = 9.sp, lineHeight = 9.sp)
+                AppIconView(if (isExpanded) AppIcon.UI_DOWN else AppIcon.UI_RIGHT, size = 12.dp, tint = GhostlyText)
             }
         }
 
-        // Icon
-        Text(
-            when {
-                entry.isDir -> if (isExpanded) "📂" else "📁"
-                entry.name.endsWith(".layout") -> "📐"
-                else -> "📄"
-            },
-            fontSize = 11.sp,
-            modifier = Modifier.padding(end = 4.dp),
-        )
+        // Icon: the file type is told by its shape and colour
+        AppIconView(fileIcon(entry.name, entry.isDir, isExpanded), modifier = Modifier.padding(end = 6.dp))
 
         // Name
-        val isLayout = !entry.isDir && entry.name.endsWith(".layout")
         Text(
             entry.name,
-            color = if (isLayout) Color(0xFF8EC6FF) else TextForeground,
+            color = TextForeground,
             fontSize = 11.sp,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,

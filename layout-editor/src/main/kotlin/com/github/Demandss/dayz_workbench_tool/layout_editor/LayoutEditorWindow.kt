@@ -43,6 +43,9 @@ import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.Propertie
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.toolbar.Toolbar
 import com.github.demandss.dayz_workbench_tool.ui.components.DarkButton
 import com.github.demandss.dayz_workbench_tool.ui.components.DarkTabRow
+import com.github.demandss.dayz_workbench_tool.ui.icons.AppIcon
+import com.github.demandss.dayz_workbench_tool.ui.icons.AppIconView
+import com.github.demandss.dayz_workbench_tool.ui.icons.fileIcon
 import com.github.demandss.dayz_workbench_tool.ui.pickFile
 import com.github.demandss.dayz_workbench_tool.ui.theme.*
 import com.github.demandss.dayz_workbench_tool.ui.theme.AppColors
@@ -388,6 +391,7 @@ private fun FileTabBar(state: LayoutEditorState) {
     ) {
         state.openFiles.forEachIndexed { index, doc ->
             FileTab(
+                icon = AppIcon.LAYOUT,
                 label = doc.fileName + if (doc.isModified) " *" else "",
                 isActive = state.activeTextureIndex < 0 && index == state.activeFileIndex,
                 onClick = { state.selectLayout(index) },
@@ -396,6 +400,7 @@ private fun FileTabBar(state: LayoutEditorState) {
         }
         state.openTextures.forEachIndexed { index, doc ->
             FileTab(
+                icon = fileIcon(doc.fileName),
                 label = doc.fileName,
                 isActive = index == state.activeTextureIndex,
                 onClick = { state.selectTexture(index) },
@@ -407,6 +412,7 @@ private fun FileTabBar(state: LayoutEditorState) {
 
 @Composable
 private fun FileTab(
+    icon: AppIcon,
     label: String,
     isActive: Boolean,
     onClick: () -> Unit,
@@ -424,6 +430,8 @@ private fun FileTab(
                 ).padding(horizontal = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        AppIconView(icon)
+        Spacer(Modifier.width(6.dp))
         Text(label, color = TextForeground, fontSize = 12.sp, maxLines = 1)
         Spacer(Modifier.width(6.dp))
         Box(
@@ -436,7 +444,7 @@ private fun FileTab(
                 ),
             contentAlignment = Alignment.Center,
         ) {
-            Text("×", color = GhostlyText, fontSize = 14.sp, lineHeight = 14.sp)
+            AppIconView(AppIcon.UI_CLOSE, size = 12.dp, tint = GhostlyText)
         }
         Spacer(Modifier.width(2.dp))
     }
