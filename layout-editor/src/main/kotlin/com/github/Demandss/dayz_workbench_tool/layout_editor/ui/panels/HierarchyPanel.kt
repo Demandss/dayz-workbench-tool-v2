@@ -23,6 +23,9 @@ import com.github.demandss.dayz_workbench_tool.layout_editor.EditorWidgetNode
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.DragSession
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.DragSource
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.LayoutEditorState
+import com.github.demandss.dayz_workbench_tool.ui.icons.AppIcon
+import com.github.demandss.dayz_workbench_tool.ui.icons.AppIconView
+import com.github.demandss.dayz_workbench_tool.ui.icons.widgetIcon
 import com.github.demandss.dayz_workbench_tool.ui.theme.*
 import java.util.UUID
 
@@ -165,7 +168,7 @@ private fun HierarchyRow(
         modifier =
             Modifier
                 .fillMaxWidth()
-                .height(20.dp)
+                .height(22.dp)
                 .then(borderMod)
                 .background(bg)
                 .padding(start = (depth * 14).dp)
@@ -240,24 +243,11 @@ private fun HierarchyRow(
             contentAlignment = Alignment.Center,
         ) {
             if (node.children.isNotEmpty()) {
-                Text(
-                    if (isExpanded) "▾" else "▸",
-                    color = GhostlyText,
-                    fontSize = 10.sp,
-                    lineHeight = 10.sp,
-                )
+                AppIconView(if (isExpanded) AppIcon.UI_DOWN else AppIcon.UI_RIGHT, size = 12.dp, tint = GhostlyText)
             }
         }
 
-        Text(
-            node.node.type.className
-                .removeSuffix("WidgetClass")
-                .take(4),
-            color = Color(0xFF7A9CC0),
-            fontSize = 9.sp,
-            modifier = Modifier.width(30.dp),
-            maxLines = 1,
-        )
+        AppIconView(widgetIcon(node.node.type), modifier = Modifier.padding(horizontal = 3.dp))
 
         Text(
             node.node.name.ifEmpty { if (depth == 0) "(root)" else "—" },
