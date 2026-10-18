@@ -1,6 +1,7 @@
 package com.github.demandss.dayz_workbench_tool.ui.icons
 
 import androidx.compose.ui.graphics.vector.PathParser
+import com.github.demandss.dayz_workbench_tool.layout.WidgetType
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -32,6 +33,16 @@ class AppIconTest {
         assertEquals(AppIcon.META, fileIcon("orientation.edds.meta"))
         assertEquals(AppIcon.FILE, fileIcon("notes.txt"))
         assertEquals(AppIcon.FILE, fileIcon("no_extension"))
+    }
+
+    @Test
+    fun `every widget class has an icon and related classes share one`() {
+        for (type in WidgetType.entries) assertTrue(widgetIcon(type).name.startsWith("WIDGET_"), "${type.name} has no widget icon")
+
+        assertEquals(widgetIcon(WidgetType.EDIT_BOX), widgetIcon(WidgetType.PASSWORD_EDIT_BOX))
+        assertEquals(widgetIcon(WidgetType.TEXT), widgetIcon(WidgetType.MULTILINE_TEXT))
+        assertEquals(AppIcon.WIDGET_PANEL, widgetIcon(WidgetType.PANEL))
+        assertEquals(AppIcon.WIDGET_GENERIC, widgetIcon(WidgetType.UNKNOWN))
     }
 
     @Test
