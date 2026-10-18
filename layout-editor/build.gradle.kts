@@ -61,3 +61,11 @@ compose.desktop {
         }
     }
 }
+
+dependencies {
+    testImplementation(kotlin("test"))
+}
+
+tasks.test {
+    useJUnitPlatform()
+}
