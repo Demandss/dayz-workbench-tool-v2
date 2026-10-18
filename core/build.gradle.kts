@@ -35,3 +35,11 @@ tasks.matching { it.name == "run" }.configureEach {
     enabled = false
     group = ""
 }
+
+// Command line access to the EDDS codec, used by the test stand: ./gradlew :core:eddsTool --args="verify ..."
+tasks.register<JavaExec>("eddsTool") {
+    group = "verification"
+    description = "Runs the EDDS command line tool"
+    classpath = sourceSets["main"].runtimeClasspath
+    mainClass.set("com.github.demandss.dayz_workbench_tool.texture.EddsCliKt")
+}
