@@ -18,4 +18,7 @@ data class EditorSession(
     val activeIsTexture: Boolean = false,
     val expandedDirs: List<String> = emptyList(),
     val selectedPath: String = "",
+    val referencePath: String = "",
+    val referenceOpacity: Float = 0.5f,
+    val referenceShown: Boolean = false,
 )

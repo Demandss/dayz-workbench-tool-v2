@@ -30,6 +30,9 @@ class LayoutEditorConfigTest {
                 activeIsTexture = true,
                 expandedDirs = listOf("K:\\MF_Mods\\gui"),
                 selectedPath = "K:\\MF_Mods\\b.edds",
+                referencePath = "K:\\shots\\workbench.png",
+                referenceOpacity = 0.75f,
+                referenceShown = true,
             )
         val config = LayoutEditorConfig(sessions = mapOf("k:\\mf_mods" to session))
 
