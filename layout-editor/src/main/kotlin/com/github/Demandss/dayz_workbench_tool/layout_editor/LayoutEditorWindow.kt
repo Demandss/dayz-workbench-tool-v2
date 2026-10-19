@@ -592,7 +592,7 @@ private fun ChangedOnDiskBanner(
 
 @Composable
 private fun RightPanel(state: LayoutEditorState) {
-    var rightTab by remember { mutableStateOf(0) }
+    var rightTab by state::rightTab
     Column(Modifier.width(300.dp).fillMaxHeight()) {
         HierarchyPanel(state, Modifier.weight(1f).fillMaxWidth())
         Box(Modifier.fillMaxWidth().height(1.dp).background(DarkenedBorder))

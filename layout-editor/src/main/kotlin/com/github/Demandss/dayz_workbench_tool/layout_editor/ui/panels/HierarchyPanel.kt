@@ -124,6 +124,7 @@ fun HierarchyPanel(
                             }
                         },
                         onSelect = { shift ->
+                            state.canvasFocusTick++
                             if (shift) {
                                 if (state.selectedIds.contains(node.id)) {
                                     state.selectedIds.remove(node.id)

@@ -329,6 +329,7 @@ fun LayoutCanvas(
         if (state.lastCanvasSize != Size.Zero) state.centerView()
     }
     LaunchedEffect(Unit) { focusRequester.requestFocus() }
+    LaunchedEffect(state.canvasFocusTick) { if (state.canvasFocusTick > 0) runCatching { focusRequester.requestFocus() } }
 
     Canvas(
         modifier =
@@ -340,8 +341,7 @@ fun LayoutCanvas(
                     if (ev.key == Key.Spacebar) {
                         spacePressed = ev.type == KeyEventType.KeyDown
                         true
-                    } else if (ev.key == Key.Delete && ev.type == KeyEventType.KeyDown) {
-                        state.deleteSelected()
+                    } else if (handleCanvasKey(state, ev)) {
                         true
                     } else {
                         false
@@ -402,6 +402,7 @@ fun LayoutCanvas(
                                         }
 
                                         isPrimary -> {
+                                            runCatching { focusRequester.requestFocus() }
                                             val worldPos = screenToWorld(pos, zoom, pan)
                                             val doc = state.activeFile
                                             val refRect = screenRect(state)
@@ -427,10 +428,18 @@ fun LayoutCanvas(
                                                     state.selectedIds.clear()
                                                     state.selectedIds.add(hit.id)
                                                 }
-                                                val parentRects = layout?.parentRects.orEmpty()
+                                                // Alt drags a copy and leaves the original where it is
+                                                var dragDoc = doc
+                                                var dragLayout = layout
+                                                if (event.keyboardModifiers.isAltPressed) {
+                                                    state.duplicateSelected(0f)
+                                                    dragDoc = state.activeFile ?: doc
+                                                    dragLayout = layoutTree(dragDoc.root, refRect) { n -> textureAspect(state, n) }
+                                                }
+                                                val parentRects = dragLayout?.parentRects.orEmpty()
                                                 dragInfos =
                                                     state.selectedIds.mapNotNull { id ->
-                                                        val n = doc.root.findNode(id) ?: return@mapNotNull null
+                                                        val n = dragDoc.root.findNode(id) ?: return@mapNotNull null
                                                         val pr = parentRects[id] ?: refRect
                                                         val pp = (n.node.properties["position"] ?: "0 0").trim().split(Regex("\\s+"))
                                                         WidgetDragInfo(
@@ -446,7 +455,7 @@ fun LayoutCanvas(
                                                     }
                                                 isDragging = true
                                                 dragStartScreen = pos
-                                                dragStartRoot = doc.root
+                                                dragStartRoot = dragDoc.root
                                                 undoPushed = false
                                                 event.changes.forEach { it.consume() }
                                             } else {

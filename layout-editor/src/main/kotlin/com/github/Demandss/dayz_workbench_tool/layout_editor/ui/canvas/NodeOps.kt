@@ -107,3 +107,13 @@ internal fun EditorWidgetNode.withCopyOf(id: UUID): Pair<EditorWidgetNode, UUID>
 }
 
 internal fun EditorWidgetNode.hasNode(id: UUID): Boolean = findNode(id) != null
+
+/** The parent of the widget [id], or null for the root and for an id that is not in the tree. */
+internal fun EditorWidgetNode.parentOf(id: UUID): EditorWidgetNode? {
+    if (children.any { it.id == id }) return this
+    for (child in children) child.parentOf(id)?.let { return it }
+    return null
+}
+
+/** The names of all widgets in the tree. */
+internal fun EditorWidgetNode.allNames(): Set<String> = (listOf(node.name) + children.flatMap { it.allNames() }).toSet()

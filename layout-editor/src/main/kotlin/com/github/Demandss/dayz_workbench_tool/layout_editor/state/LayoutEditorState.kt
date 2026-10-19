@@ -20,9 +20,14 @@ import com.github.demandss.dayz_workbench_tool.layout_editor.toEditorNode
 import com.github.demandss.dayz_workbench_tool.layout_editor.toWidgetNode
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.AlignMode
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.alignedRoot
+import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.allNames
+import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.clipboardText
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.layoutTree
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.movedBy
+import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.parentOf
+import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.parseClipboard
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.screenRect
+import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.uniqueName
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.withCopyOf
 import com.github.demandss.dayz_workbench_tool.layout_editor.updateNode
 import com.github.demandss.dayz_workbench_tool.texture.EddsCodec
@@ -237,6 +242,88 @@ class LayoutEditorState(
     }
 
     var commandPaletteOpen by mutableStateOf(false)
+
+    // The tab of the right panel, and signals other parts of the window send: put the cursor in the name field,
+    // give the canvas the keyboard back
+    var rightTab by mutableStateOf(0)
+    var focusNameTick by mutableStateOf(0)
+    var canvasFocusTick by mutableStateOf(0)
+
+    fun requestRename() {
+        if (selectedIds.size != 1) return
+        rightTab = 0
+        focusNameTick++
+    }
+
+    private var lastNudgeAt = 0L
+
+    /** Moves the selection by [dx], [dy] layout pixels. Keys pressed in a row become one step of the history. */
+    fun nudgeSelected(
+        dx: Float,
+        dy: Float,
+    ) {
+        val idx = activeFileIndex
+        val doc = openFiles.getOrNull(idx) ?: return
+        val ids = selectedIds.filter { it != doc.root.id && it !in lockedIds }
+        if (ids.isEmpty()) return
+        val layout = layoutTree(doc.root, screenRect(this))
+        val moved = ids.fold(doc.root) { acc, id -> acc.movedBy(id, dx, dy, layout.parentRects[id] ?: screenRect(this)) }
+        val now = System.currentTimeMillis()
+        if (doc.undoLabels.lastOrNull() != "Сдвиг" || now - lastNudgeAt > 800) pushUndo(idx, doc.root, "Сдвиг")
+        lastNudgeAt = now
+        updateActiveRoot(moved)
+    }
+
+    fun copySelected(): Boolean {
+        val doc = activeFile ?: return false
+        val nodes = selectedIds.filter { it != doc.root.id }.mapNotNull { doc.root.findNode(it) }
+        if (nodes.isEmpty()) return false
+        runCatching {
+            Toolkit.getDefaultToolkit().systemClipboard.setContents(java.awt.datatransfer.StringSelection(clipboardText(nodes)), null)
+        }.onFailure {
+            notify("Не удалось скопировать: ${it.message ?: it.javaClass.simpleName}", ToastKind.ERROR)
+            return false
+        }
+        notify(if (nodes.size == 1) "Скопировано: ${nodes[0].node.name}" else "Скопировано виджетов: ${nodes.size}")
+        return true
+    }
+
+    fun cutSelected() {
+        if (copySelected()) deleteSelected()
+    }
+
+    /** Puts the widgets of the clipboard next to the selected widget, or into the root. */
+    fun paste() {
+        val idx = activeFileIndex
+        val doc = openFiles.getOrNull(idx) ?: return
+        val text =
+            runCatching {
+                Toolkit.getDefaultToolkit().systemClipboard.getData(java.awt.datatransfer.DataFlavor.stringFlavor) as? String
+            }.getOrNull().orEmpty()
+        val pasted = parseClipboard(text)
+        if (pasted == null) {
+            notify("В буфере нет виджетов", ToastKind.INFO)
+            return
+        }
+        val target = selectedIds.firstOrNull()?.takeIf { it != doc.root.id }?.let { doc.root.parentOf(it) } ?: doc.root
+        val taken = doc.root.allNames().toMutableSet()
+        val named =
+            pasted.map { n ->
+                val name = uniqueName(n.node.name, taken)
+                taken += name
+                n.copy(node = n.node.copy(name = name))
+            }
+        val screen = screenRect(this)
+        var root = doc.root.updateNode(target.id) { it.copy(children = (it.children + named).toMutableList()) }
+        val parentRect = layoutTree(root, screen).rects[target.id] ?: screen
+        // Shifted, so that a copy pasted over the original does not hide it
+        for (n in named) root = root.movedBy(n.id, 10f, 10f, parentRect)
+        pushUndo(idx, doc.root, if (named.size == 1) "Вставка ${named[0].node.name}" else "Вставка (${named.size})")
+        updateActiveRoot(root)
+        selectedIds.clear()
+        selectedIds.addAll(named.map { it.id })
+    }
+
     var showRulers by mutableStateOf(false)
     var showMinimap by mutableStateOf(false)
 
@@ -252,7 +339,7 @@ class LayoutEditorState(
         selectedIds.clear()
     }
 
-    fun duplicateSelected() {
+    fun duplicateSelected(offset: Float = 10f) {
         val idx = activeFileIndex
         val doc = openFiles.getOrNull(idx) ?: return
         val ids = selectedIds.filter { it != doc.root.id }
@@ -264,7 +351,7 @@ class LayoutEditorState(
             val (withCopy, copyId) = root.withCopyOf(id) ?: continue
             val parent = layoutTree(withCopy, screen).parentRects[copyId] ?: screen
             // The copy is shifted a little, so that it does not hide the original
-            root = withCopy.movedBy(copyId, 10f, 10f, parent)
+            root = if (offset == 0f) withCopy else withCopy.movedBy(copyId, offset, offset, parent)
             copies += copyId
         }
         if (copies.isEmpty()) return

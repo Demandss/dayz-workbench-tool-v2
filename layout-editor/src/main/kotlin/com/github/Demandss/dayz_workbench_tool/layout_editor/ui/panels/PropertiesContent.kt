@@ -19,6 +19,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -28,9 +30,11 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.key.*
 import androidx.compose.ui.input.pointer.*
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -256,7 +260,7 @@ private fun PropertiesHeader(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         AppIconView(widgetIcon(type), size = 18.dp)
-        StringField(name, Modifier.weight(1f)) { commitName(state, id, it) }
+        StringField(name, Modifier.weight(1f), focusTick = state.focusNameTick) { commitName(state, id, it) }
         TypeDropdown(type) { commitType(state, id, it) }
     }
 
@@ -978,13 +982,22 @@ private fun SmallButton(
 private fun StringField(
     value: String,
     modifier: Modifier = Modifier,
+    focusTick: Int = 0,
     onCommit: (String) -> Unit,
 ) {
-    var text by remember(value) { mutableStateOf(value) }
+    var field by remember(value) { mutableStateOf(TextFieldValue(value)) }
     var focused by remember { mutableStateOf(false) }
+    val requester = remember { FocusRequester() }
+    // F2: the cursor comes here and the whole name is selected, so that typing replaces it
+    LaunchedEffect(focusTick) {
+        if (focusTick > 0) {
+            runCatching { requester.requestFocus() }
+            field = field.copy(selection = TextRange(0, field.text.length))
+        }
+    }
     BasicTextField(
-        value = text,
-        onValueChange = { text = it },
+        value = field,
+        onValueChange = { field = it },
         singleLine = true,
         textStyle = TextStyle(color = TextForeground, fontSize = 11.sp, fontFamily = FontFamily.Monospace),
         cursorBrush = SolidColor(TextForeground),
@@ -993,12 +1006,13 @@ private fun StringField(
         },
         modifier =
             modifier
+                .focusRequester(requester)
                 .onFocusChanged { fs ->
-                    if (focused && !fs.isFocused && text != value) onCommit(text)
+                    if (focused && !fs.isFocused && field.text != value) onCommit(field.text)
                     focused = fs.isFocused
                 }.onKeyEvent { ev ->
-                    if (ev.key == Key.Enter && ev.type == KeyEventType.KeyDown && text != value) {
-                        onCommit(text)
+                    if (ev.key == Key.Enter && ev.type == KeyEventType.KeyDown) {
+                        if (field.text != value) onCommit(field.text)
                         true
                     } else {
                         false
