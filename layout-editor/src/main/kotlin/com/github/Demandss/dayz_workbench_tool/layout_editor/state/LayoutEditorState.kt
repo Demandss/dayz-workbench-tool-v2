@@ -20,16 +20,24 @@ import com.github.demandss.dayz_workbench_tool.layout_editor.toEditorNode
 import com.github.demandss.dayz_workbench_tool.layout_editor.toWidgetNode
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.AlignMode
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.GuideLine
+import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.Reorder
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.alignedRoot
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.allNames
+import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.appearance
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.clipboardText
+import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.distributed
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.layoutTree
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.movedBy
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.parentOf
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.parseClipboard
+import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.reanchored
+import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.reordered
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.screenRect
+import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.ungrouped
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.uniqueName
+import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.withAppearance
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.withCopyOf
+import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.wrapped
 import com.github.demandss.dayz_workbench_tool.layout_editor.updateNode
 import com.github.demandss.dayz_workbench_tool.texture.EddsCodec
 import kotlinx.coroutines.*
@@ -243,6 +251,123 @@ class LayoutEditorState(
     }
 
     var commandPaletteOpen by mutableStateOf(false)
+
+    // The look copied with "Copy properties"
+    private var copiedAppearance: Map<String, String>? = null
+
+    /** Wraps the selected widgets (they must share a parent) in a new container of [type]. */
+    fun groupSelected(
+        type: WidgetType = WidgetType.FRAME,
+        label: String = "Группа",
+    ) {
+        val idx = activeFileIndex
+        val doc = openFiles.getOrNull(idx) ?: return
+        val ids = selectedIds.filter { it != doc.root.id }
+        if (ids.isEmpty()) return
+        val layout = layoutTree(doc.root, screenRect(this))
+        val name = uniqueName(label, doc.root.allNames())
+        val result = wrapped(doc.root, ids, layout, type, name)
+        if (result == null) {
+            notify("Группировать можно виджеты одного родителя", ToastKind.INFO)
+            return
+        }
+        pushUndo(idx, doc.root, "Группировка в $name")
+        updateActiveRoot(result.first)
+        selectedIds.clear()
+        selectedIds.add(result.second)
+    }
+
+    fun ungroupSelected() {
+        val idx = activeFileIndex
+        val doc = openFiles.getOrNull(idx) ?: return
+        val id = selectedIds.singleOrNull()?.takeIf { it != doc.root.id } ?: return
+        val result = ungrouped(doc.root, id, layoutTree(doc.root, screenRect(this)))
+        if (result == null) {
+            notify("Разгруппировать можно контейнер с виджетами внутри", ToastKind.INFO)
+            return
+        }
+        pushUndo(idx, doc.root, "Разгруппировка")
+        updateActiveRoot(result.first)
+        selectedIds.clear()
+        selectedIds.addAll(result.second)
+    }
+
+    fun reorderSelected(how: Reorder) {
+        val idx = activeFileIndex
+        val doc = openFiles.getOrNull(idx) ?: return
+        val ids = selectedIds.filter { it != doc.root.id }
+        if (ids.isEmpty()) return
+        // Going forward the one nearest the end goes first, going back the first one, so that they do not step over each other
+        val ordered = if (how == Reorder.FORWARD || how == Reorder.FRONT) ids.reversed() else ids
+        var root = doc.root
+        var changed = false
+        for (id in ordered) {
+            root = reordered(root, id, how)?.also { changed = true } ?: root
+        }
+        if (!changed) return
+        pushUndo(idx, doc.root, "Порядок отрисовки")
+        updateActiveRoot(root)
+    }
+
+    fun distributeSelected(horizontal: Boolean) {
+        val idx = activeFileIndex
+        val doc = openFiles.getOrNull(idx) ?: return
+        val ids = selectedIds.filter { it != doc.root.id }
+        if (ids.size < 3) {
+            notify("Для равных интервалов нужно выбрать три виджета и больше", ToastKind.INFO)
+            return
+        }
+        val result = distributed(doc.root, ids, layoutTree(doc.root, screenRect(this)), horizontal)
+        pushUndo(idx, doc.root, if (horizontal) "Интервалы по горизонтали" else "Интервалы по вертикали")
+        updateActiveRoot(result)
+    }
+
+    /** Changes the anchor of a widget so that it stays where it is. */
+    fun reanchor(
+        id: UUID,
+        halign: String,
+        valign: String,
+    ) {
+        val idx = activeFileIndex
+        val doc = openFiles.getOrNull(idx) ?: return
+        val result = reanchored(doc.root, id, layoutTree(doc.root, screenRect(this)), halign, valign)
+        pushUndo(idx, doc.root, "Якорь $halign, $valign")
+        updateActiveRoot(result)
+    }
+
+    fun copyAppearance() {
+        val node = selectedIds.firstOrNull()?.let { id -> activeFile?.root?.findNode(id) } ?: return
+        copiedAppearance = node.appearance()
+        notify("Свойства скопированы: ${node.node.name}")
+    }
+
+    fun pasteAppearance() {
+        val look = copiedAppearance
+        if (look == null) {
+            notify("Сначала скопируйте свойства (Ctrl+Alt+C)", ToastKind.INFO)
+            return
+        }
+        val idx = activeFileIndex
+        val doc = openFiles.getOrNull(idx) ?: return
+        val ids = selectedIds.filter { it != doc.root.id }
+        if (ids.isEmpty()) return
+        pushUndo(idx, doc.root, "Вставка свойств")
+        updateActiveRoot(ids.fold(doc.root) { acc, id -> acc.updateNode(id) { it.withAppearance(look) } })
+    }
+
+    /** Zooms so that the selected widgets fill most of the canvas. */
+    fun zoomToSelection() {
+        val doc = activeFile ?: return
+        val cs = lastCanvasSize
+        if (cs == Size.Zero) return
+        val layout = layoutTree(doc.root, screenRect(this))
+        val rects = selectedIds.mapNotNull { layout.rects[it] }
+        if (rects.isEmpty()) return
+        val union = Rect(rects.minOf { it.left }, rects.minOf { it.top }, rects.maxOf { it.right }, rects.maxOf { it.bottom })
+        val z = min(cs.width * 0.8f / union.width.coerceAtLeast(1f), cs.height * 0.8f / union.height.coerceAtLeast(1f)).coerceIn(0.1f, 8f)
+        zoom = z
+        panOffset = Offset(cs.width / 2f - union.center.x * z, cs.height / 2f - union.center.y * z)
+    }
 
     // Shown while dragging (snap guides) and while Alt is held over another widget (distances between the two)
     var snapGuides by mutableStateOf<List<GuideLine>>(emptyList())

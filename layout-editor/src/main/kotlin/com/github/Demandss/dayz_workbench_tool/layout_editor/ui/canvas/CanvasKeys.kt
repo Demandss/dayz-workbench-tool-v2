@@ -8,6 +8,7 @@ import androidx.compose.ui.input.key.isCtrlPressed
 import androidx.compose.ui.input.key.isShiftPressed
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.type
+import com.github.demandss.dayz_workbench_tool.layout.WidgetType
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.LayoutEditorState
 
 /** The keys that work while the canvas has the keyboard. Returns true when the key was used. */
@@ -47,6 +48,51 @@ internal fun handleCanvasKey(
 
         ev.key == Key.F2 -> {
             state.requestRename()
+            true
+        }
+
+        ctrl && ev.isAltPressed && ev.key == Key.C -> {
+            state.copyAppearance()
+            true
+        }
+
+        ctrl && ev.isAltPressed && ev.key == Key.V -> {
+            state.pasteAppearance()
+            true
+        }
+
+        ctrl && shift && ev.key == Key.G -> {
+            state.ungroupSelected()
+            true
+        }
+
+        ctrl && ev.key == Key.G -> {
+            state.groupSelected()
+            true
+        }
+
+        shift && !ctrl && ev.key == Key.A -> {
+            state.groupSelected(WidgetType.WRAP_SPACER, "Auto")
+            true
+        }
+
+        ev.key == Key.RightBracket -> {
+            state.reorderSelected(if (ctrl) Reorder.FRONT else Reorder.FORWARD)
+            true
+        }
+
+        ev.key == Key.LeftBracket -> {
+            state.reorderSelected(if (ctrl) Reorder.BACK else Reorder.BACKWARD)
+            true
+        }
+
+        shift && !ctrl && ev.key == Key.One -> {
+            state.centerView()
+            true
+        }
+
+        shift && !ctrl && ev.key == Key.Two -> {
+            state.zoomToSelection()
             true
         }
 

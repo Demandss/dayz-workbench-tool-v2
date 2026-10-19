@@ -40,8 +40,10 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.github.demandss.dayz_workbench_tool.layout.WidgetType
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.LayoutEditorState
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.AlignMode
+import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.Reorder
 import com.github.demandss.dayz_workbench_tool.ui.icons.AppIcon
 import com.github.demandss.dayz_workbench_tool.ui.icons.AppIconView
 import com.github.demandss.dayz_workbench_tool.ui.icons.fileIcon
@@ -85,7 +87,24 @@ fun buildCommands(
         add(Command("Повторить", AppIcon.UI_REDO, "Ctrl+Y", hasDoc) { state.redo(state.activeFileIndex) })
         add(Command("Дублировать выбранное", AppIcon.UI_COPY, "Ctrl+D", hasSelection) { state.duplicateSelected() })
         add(Command("Удалить выбранное", AppIcon.UI_TRASH, "Delete", hasSelection) { state.deleteSelected() })
-        add(Command("Вписать в окно", AppIcon.UI_FIT, enabled = hasDoc) { state.centerView() })
+        add(Command("Вписать в окно", AppIcon.UI_FIT, "Shift+1", hasDoc) { state.centerView() })
+        add(Command("Масштаб по выделению", AppIcon.UI_ZOOMIN, "Shift+2", hasSelection) { state.zoomToSelection() })
+        add(Command("Сгруппировать в Frame", AppIcon.UI_LAYERS, "Ctrl+G", hasSelection) { state.groupSelected() })
+        add(
+            Command("Сгруппировать в WrapSpacer", AppIcon.WIDGET_WRAP, "Shift+A", hasSelection) {
+                state.groupSelected(WidgetType.WRAP_SPACER, "Auto")
+            },
+        )
+        add(Command("Разгруппировать", AppIcon.UI_LAYERS, "Ctrl+Shift+G", hasSelection) { state.ungroupSelected() })
+        add(Command("Выше в порядке отрисовки", AppIcon.UI_DOWN, "]", hasSelection) { state.reorderSelected(Reorder.FORWARD) })
+        add(Command("Ниже в порядке отрисовки", AppIcon.UI_DOWN, "[", hasSelection) { state.reorderSelected(Reorder.BACKWARD) })
+        add(Command("На самый верх", AppIcon.UI_DOWN, "Ctrl+]", hasSelection) { state.reorderSelected(Reorder.FRONT) })
+        add(Command("На самый низ", AppIcon.UI_DOWN, "Ctrl+[", hasSelection) { state.reorderSelected(Reorder.BACK) })
+        add(Command("Равные интервалы по горизонтали", AppIcon.UI_ALIGNCH, enabled = several) { state.distributeSelected(true) })
+        add(Command("Равные интервалы по вертикали", AppIcon.UI_ALIGNMV, enabled = several) { state.distributeSelected(false) })
+        add(Command("Копировать свойства", AppIcon.UI_COPY, "Ctrl+Alt+C", hasSelection) { state.copyAppearance() })
+        add(Command("Вставить свойства", AppIcon.UI_COPY, "Ctrl+Alt+V", hasSelection) { state.pasteAppearance() })
+        add(Command("Переименовать", AppIcon.UI_SEARCH, "F2", hasSelection) { state.requestRename() })
         add(
             Command("Масштаб 100%", AppIcon.UI_ZOOMIN, enabled = hasDoc) {
                 state.zoom = 1f

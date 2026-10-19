@@ -304,8 +304,7 @@ private fun PropertiesHeader(
 
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             AlignmentGrid(props["halign"].orEmpty(), props["valign"].orEmpty()) { h, v ->
-                commit("halign", h)
-                commit("valign", v)
+                state.reanchor(id, h, v)
             }
             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 AlignText("halign", props["halign"])

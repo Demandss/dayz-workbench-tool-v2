@@ -14,6 +14,7 @@ import androidx.compose.ui.unit.dp
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.LayoutEditorState
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.AlignMode
 import com.github.demandss.dayz_workbench_tool.ui.components.DarkIconButton
+import com.github.demandss.dayz_workbench_tool.ui.components.DarkToolButton
 import com.github.demandss.dayz_workbench_tool.ui.icons.AppIcon
 import com.github.demandss.dayz_workbench_tool.ui.theme.DarkenedBorder
 import com.github.demandss.dayz_workbench_tool.ui.theme.ElementsBackground
@@ -34,6 +35,7 @@ fun SelectionBar(
     ) {
         DarkIconButton(AppIcon.UI_COPY, "Дублировать (Ctrl+D)", onClick = { state.duplicateSelected() })
         DarkIconButton(AppIcon.UI_TRASH, "Удалить (Delete)", onClick = { state.deleteSelected() })
+        DarkIconButton(AppIcon.UI_LAYERS, "Сгруппировать в Frame (Ctrl+G), в WrapSpacer: Shift+A", onClick = { state.groupSelected() })
         if (ids.size >= 2) {
             Box(
                 Modifier
@@ -48,6 +50,8 @@ fun SelectionBar(
             DarkIconButton(AppIcon.UI_ALIGNT, "По верхнему краю", onClick = { state.alignSelected(AlignMode.TOP) })
             DarkIconButton(AppIcon.UI_ALIGNMV, "По центру по вертикали", onClick = { state.alignSelected(AlignMode.CENTER_V) })
             DarkIconButton(AppIcon.UI_ALIGNB, "По нижнему краю", onClick = { state.alignSelected(AlignMode.BOTTOM) })
+            DarkToolButton("⇔", { state.distributeSelected(true) }, tooltip = "Равные интервалы по горизонтали (от трёх виджетов)")
+            DarkToolButton("⇕", { state.distributeSelected(false) }, tooltip = "Равные интервалы по вертикали (от трёх виджетов)")
         }
     }
 }
