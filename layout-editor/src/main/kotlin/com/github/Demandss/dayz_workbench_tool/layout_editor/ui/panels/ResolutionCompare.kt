@@ -63,6 +63,7 @@ fun ResolutionCompare(
                             zoom,
                             Offset.Zero,
                             state::textureFor,
+                            { n -> state.skinFor(n, doc.path) },
                         )
                     }
                 }

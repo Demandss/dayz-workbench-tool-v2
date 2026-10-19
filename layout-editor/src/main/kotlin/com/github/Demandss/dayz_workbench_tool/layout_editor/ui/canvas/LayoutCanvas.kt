@@ -32,6 +32,7 @@ import com.github.demandss.dayz_workbench_tool.layout_editor.EditorWidgetNode
 import com.github.demandss.dayz_workbench_tool.layout_editor.findNode
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.LayoutEditorState
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.Resolution
+import com.github.demandss.dayz_workbench_tool.layout_editor.state.WidgetSkin
 import com.github.demandss.dayz_workbench_tool.layout_editor.updateNode
 import java.awt.Cursor
 import java.util.UUID
@@ -194,6 +195,7 @@ internal fun DrawScope.drawWidgetTree(
     zoom: Float,
     pan: Offset,
     textureFor: (String) -> ImageBitmap?,
+    skinFor: (EditorWidgetNode) -> WidgetSkin? = { null },
 ) {
     if (!node.isVisible() || node.id in hidden) return
     val wRect = layout.rects[node.id] ?: return
@@ -202,8 +204,14 @@ internal fun DrawScope.drawWidgetTree(
     val ss = Size((br.x - tl.x).coerceAtLeast(0f), (br.y - tl.y).coerceAtLeast(0f))
     val isSelected = selectedIds.contains(node.id)
 
+    // A vanilla style with images is drawn from them; everything else falls back to the flat approximation below
+    val skin = if (node.node.type in SKINNED_TYPES) skinFor(node) else null
+    if (skin != null) drawSkin(skin, node, tl, ss, zoom)
+
     // Fill by type
-    when (node.node.type) {
+    when (if (skin != null) null else node.node.type) {
+        null -> {}
+
         WidgetType.PANEL, WidgetType.SMART_PANEL, WidgetType.WRAP_SPACER, WidgetType.GRID_SPACER, WidgetType.SCROLL, WidgetType.WINDOW -> {
             // What the style paints; a widget that paints nothing still gets a faint tint so it can be found
             val fill = node.fillColor()
@@ -291,12 +299,25 @@ internal fun DrawScope.drawWidgetTree(
     if (node.clipsChildren()) {
         clipRect(tl.x, tl.y, br.x, br.y) {
             for (child in children) {
-                drawWidgetTree(child, layout, false, selectedIds, hidden, showBorders, showLabels, textMeasurer, zoom, pan, textureFor)
+                drawWidgetTree(
+                    child,
+                    layout,
+                    false,
+                    selectedIds,
+                    hidden,
+                    showBorders,
+                    showLabels,
+                    textMeasurer,
+                    zoom,
+                    pan,
+                    textureFor,
+                    skinFor,
+                )
             }
         }
     } else {
         for (child in children) {
-            drawWidgetTree(child, layout, false, selectedIds, hidden, showBorders, showLabels, textMeasurer, zoom, pan, textureFor)
+            drawWidgetTree(child, layout, false, selectedIds, hidden, showBorders, showLabels, textMeasurer, zoom, pan, textureFor, skinFor)
         }
     }
 
@@ -758,6 +779,7 @@ fun LayoutCanvas(
                 zoom,
                 pan,
                 state::textureFor,
+                { n -> state.skinFor(n, doc.path) },
             )
         }
 
@@ -891,3 +913,36 @@ internal fun resizeCursor(handle: ResizeHandle?): PointerIcon =
         ResizeHandle.SE -> PointerIcon(Cursor(Cursor.SE_RESIZE_CURSOR))
         ResizeHandle.SW -> PointerIcon(Cursor(Cursor.SW_RESIZE_CURSOR))
     }
+
+private val SKINNED_TYPES = setOf(WidgetType.PANEL, WidgetType.SMART_PANEL, WidgetType.BUTTON, WidgetType.WINDOW)
+
+/**
+ * Draws the pieces of a style as a 9-slice: corners at their size, edges and centre stretched. The widget's own `color`
+ * replaces the colour of the style when it is set.
+ */
+private fun DrawScope.drawSkin(
+    skin: WidgetSkin,
+    node: EditorWidgetNode,
+    tl: Offset,
+    ss: Size,
+    zoom: Float,
+) {
+    if (ss.width < 1f || ss.height < 1f) return
+    val tint = node.node.properties["color"]?.let { parseWidgetColor(it) } ?: skin.styleColor
+    val dst =
+        androidx.compose.ui.geometry
+            .Rect(tl.x, tl.y, tl.x + ss.width, tl.y + ss.height)
+    val rects = sliceRects(dst, skin.native.mapValues { (_, v) -> Size(v.width * zoom, v.height * zoom) })
+    for ((slot, r) in rects) {
+        val src = skin.source[slot] ?: continue
+        if (r.width < 0.5f || r.height < 0.5f) continue
+        drawImage(
+            image = skin.atlas,
+            srcOffset = IntOffset(src.left, src.top),
+            srcSize = IntSize(src.width, src.height),
+            dstOffset = IntOffset(r.left.toInt(), r.top.toInt()),
+            dstSize = IntSize(r.width.toInt().coerceAtLeast(1), r.height.toInt().coerceAtLeast(1)),
+            colorFilter = ColorFilter.tint(tint, BlendMode.Modulate),
+        )
+    }
+}

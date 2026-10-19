@@ -980,6 +980,92 @@ class LayoutEditorState(
         return roots.map { File(it, relative) }.firstOrNull { it.isFile }
     }
 
+    // imageset name -> file, for the folder gui/imagesets next to gui/looknfeel
+    private var imageSetIndex: Map<String, File> = emptyMap()
+    private var imageSetIndexFor: String? = null
+    private val skinPlans = HashMap<String, SkinPlan?>()
+    private val parsedImageSets = HashMap<String, com.github.demandss.dayz_workbench_tool.imageset.ImageSet?>()
+
+    /**
+     * What the vanilla style of [node] paints in the normal state, or null when the widget has no vanilla style, the
+     * style draws nothing or its atlas is still loading (reading it from a draw scope redraws once it is there).
+     */
+    fun skinFor(
+        node: EditorWidgetNode,
+        nearPath: String?,
+    ): WidgetSkin? {
+        val styleName =
+            node.node.properties["style"]
+                ?.trim()
+                ?.trim('"')
+                .orEmpty()
+        if (styleName.isEmpty()) return null
+        val key = "${node.node.type.className}|$styleName|$workDrivePath|$nearPath"
+        val plan =
+            if (skinPlans.containsKey(key)) {
+                skinPlans[key]
+            } else {
+                buildSkinPlan(node.node.type.className, styleName, nearPath).also { skinPlans[key] = it }
+            } ?: return null
+        val atlas = imageSetBitmap(plan.textureFile) ?: return null
+        val kx = atlas.width.toFloat() / plan.refWidth
+        val ky = atlas.height.toFloat() / plan.refHeight
+        val source = HashMap<String, androidx.compose.ui.unit.IntRect>()
+        val native = HashMap<String, Size>()
+        for ((slot, d) in plan.images) {
+            source[slot] =
+                androidx.compose.ui.unit.IntRect(
+                    (d.x * kx).toInt(),
+                    (d.y * ky).toInt(),
+                    ((d.x + d.width) * kx).toInt(),
+                    ((d.y + d.height) * ky).toInt(),
+                )
+            native[slot] = Size(d.width.toFloat(), d.height.toFloat())
+        }
+        return WidgetSkin(atlas, source, native, plan.styleColor)
+    }
+
+    private fun buildSkinPlan(
+        widgetClass: String,
+        styleName: String,
+        nearPath: String?,
+    ): SkinPlan? {
+        val style = vanillaStylesFor(widgetClass, nearPath).firstOrNull { it.name == styleName } ?: return null
+        val stylesFile = findVanillaStyles(nearPath) ?: return null
+        val gui = stylesFile.parentFile?.parentFile ?: return null
+        val setsDir = File(gui, "imagesets")
+        if (imageSetIndexFor != setsDir.absolutePath) {
+            imageSetIndexFor = setsDir.absolutePath
+            parsedImageSets.clear()
+            imageSetIndex =
+                setsDir
+                    .listFiles { f -> f.extension.equals("imageset", ignoreCase = true) }
+                    .orEmpty()
+                    .mapNotNull { f ->
+                        val name =
+                            runCatching { ImageSetFormat.parse(f.readText())?.name }.getOrNull()
+                        name?.let { it to f }
+                    }.toMap()
+        }
+        val setFile = imageSetIndex[style.imageSet] ?: return null
+        val set =
+            parsedImageSets.getOrPut(setFile.absolutePath) { runCatching { ImageSetFormat.parse(setFile.readText()) }.getOrNull() }
+                ?: return null
+        val state = style.states.firstOrNull { it.name == "Normal" } ?: return null
+        val byName = set.all.associateBy { it.name }
+        val images =
+            state.items
+                .filter {
+                    it.name in com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.NINE_SLICE_SLOTS &&
+                        it.image.isNotEmpty()
+                }.mapNotNull { item -> byName[item.image]?.let { item.name to it } }
+                .toMap()
+        if (images.isEmpty()) return null
+        val texture = set.textures.minByOrNull { it.mpix } ?: return null
+        val file = resolveImageSetTexture(setFile.absolutePath, texture.path) ?: return null
+        return SkinPlan(file, set.refWidth, set.refHeight, images, styleColorOf(style.color))
+    }
+
     fun reloadImageSetTextures() {
         imageSetBitmaps.clear()
         imageSetBitmapsLoading.clear()
