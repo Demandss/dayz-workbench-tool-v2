@@ -73,16 +73,18 @@ private fun hitTest(
     node: EditorWidgetNode,
     worldPos: Offset,
     layout: TreeLayout,
+    hidden: Set<UUID>,
+    locked: Set<UUID>,
 ): EditorWidgetNode? {
-    if (!node.isVisible()) return null
+    if (!node.isVisible() || node.id in hidden) return null
     val rect = layout.rects[node.id] ?: return null
     val inside = rect.contains(worldPos)
     // Children that stick out of a parent which does not clip them can still be hit
     if (!inside && node.clipsChildren()) return null
     for (child in node.drawOrder().asReversed()) {
-        hitTest(child, worldPos, layout)?.let { return it }
+        hitTest(child, worldPos, layout, hidden, locked)?.let { return it }
     }
-    return if (inside) node else null
+    return if (inside && node.id !in locked) node else null
 }
 
 private fun selectInBox(
@@ -90,12 +92,14 @@ private fun selectInBox(
     box: Rect,
     layout: TreeLayout,
     out: MutableList<UUID>,
+    hidden: Set<UUID>,
+    locked: Set<UUID>,
     isRoot: Boolean = false,
 ) {
-    if (!node.isVisible()) return
+    if (!node.isVisible() || node.id in hidden) return
     val rect = layout.rects[node.id] ?: return
-    if (!isRoot && box.overlaps(rect)) out.add(node.id)
-    for (child in node.children) selectInBox(child, box, layout, out)
+    if (!isRoot && node.id !in locked && box.overlaps(rect)) out.add(node.id)
+    for (child in node.children) selectInBox(child, box, layout, out, hidden, locked)
 }
 
 private fun fmt(f: Float): String {
@@ -184,6 +188,7 @@ private fun DrawScope.drawWidgetTree(
     layout: TreeLayout,
     isRoot: Boolean,
     selectedIds: Set<UUID>,
+    hidden: Set<UUID>,
     showBorders: Boolean,
     showLabels: Boolean,
     textMeasurer: TextMeasurer,
@@ -191,7 +196,7 @@ private fun DrawScope.drawWidgetTree(
     pan: Offset,
     textureFor: (String) -> ImageBitmap?,
 ) {
-    if (!node.isVisible()) return
+    if (!node.isVisible() || node.id in hidden) return
     val wRect = layout.rects[node.id] ?: return
     val tl = worldToScreen(Offset(wRect.left, wRect.top), zoom, pan)
     val br = worldToScreen(Offset(wRect.right, wRect.bottom), zoom, pan)
@@ -287,12 +292,12 @@ private fun DrawScope.drawWidgetTree(
     if (node.clipsChildren()) {
         clipRect(tl.x, tl.y, br.x, br.y) {
             for (child in children) {
-                drawWidgetTree(child, layout, false, selectedIds, showBorders, showLabels, textMeasurer, zoom, pan, textureFor)
+                drawWidgetTree(child, layout, false, selectedIds, hidden, showBorders, showLabels, textMeasurer, zoom, pan, textureFor)
             }
         }
     } else {
         for (child in children) {
-            drawWidgetTree(child, layout, false, selectedIds, showBorders, showLabels, textMeasurer, zoom, pan, textureFor)
+            drawWidgetTree(child, layout, false, selectedIds, hidden, showBorders, showLabels, textMeasurer, zoom, pan, textureFor)
         }
     }
 
@@ -402,7 +407,14 @@ fun LayoutCanvas(
                                             val doc = state.activeFile
                                             val refRect = screenRect(state)
                                             val layout = doc?.let { layoutTree(it.root, refRect) { n -> textureAspect(state, n) } }
-                                            val hit = if (doc != null && layout != null) hitTest(doc.root, worldPos, layout) else null
+                                            val hit =
+                                                if (doc != null &&
+                                                    layout != null
+                                                ) {
+                                                    hitTest(doc.root, worldPos, layout, state.hiddenIds.toSet(), state.lockedIds.toSet())
+                                                } else {
+                                                    null
+                                                }
                                             val hitIsRoot = hit?.id == doc?.root?.id
 
                                             if (doc != null && hit != null && !hitIsRoot) {
@@ -519,6 +531,8 @@ fun LayoutCanvas(
                                                 box,
                                                 layoutTree(doc.root, screenRect(state)) { n -> textureAspect(state, n) },
                                                 hits,
+                                                state.hiddenIds.toSet(),
+                                                state.lockedIds.toSet(),
                                                 isRoot = true,
                                             )
                                             hits.remove(doc.root.id)
@@ -571,6 +585,7 @@ fun LayoutCanvas(
                 layout,
                 isRoot = true,
                 if (state.livePreview) emptySet() else selectedSet,
+                state.hiddenIds.toHashSet(),
                 state.showBorders && !state.livePreview,
                 !state.livePreview,
                 textMeasurer,

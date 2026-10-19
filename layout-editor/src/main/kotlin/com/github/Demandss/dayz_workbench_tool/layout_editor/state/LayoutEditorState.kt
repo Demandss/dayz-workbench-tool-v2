@@ -73,6 +73,24 @@ class LayoutEditorState(
     val openFiles = mutableStateListOf<LayoutDocument>()
     var activeFileIndex by mutableStateOf(-1)
     val selectedIds = mutableStateListOf<UUID>()
+
+    // Editor-only: hidden widgets are not drawn or hit, locked ones cannot be picked on the canvas. Never saved.
+    val hiddenIds = mutableStateListOf<UUID>()
+    val lockedIds = mutableStateListOf<UUID>()
+
+    fun toggleHidden(id: UUID) {
+        if (!hiddenIds.remove(id)) hiddenIds.add(id)
+    }
+
+    fun toggleLocked(id: UUID) {
+        if (!lockedIds.remove(id)) {
+            lockedIds.add(id)
+            selectedIds.remove(id)
+        } else {
+            lockedIds.remove(id)
+        }
+    }
+
     val filesChangedOnDisk = mutableStateListOf<String>()
 
     // Texture viewer tabs. When activeTextureIndex >= 0 the viewport shows that texture instead of a layout

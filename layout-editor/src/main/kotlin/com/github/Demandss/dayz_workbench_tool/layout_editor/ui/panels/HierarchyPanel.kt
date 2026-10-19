@@ -110,6 +110,10 @@ fun HierarchyPanel(
                         isSelected = isSelected,
                         isDragTarget = isDragTarget,
                         isDragSource = isDragSource,
+                        isHidden = state.hiddenIds.contains(node.id),
+                        isLocked = state.lockedIds.contains(node.id),
+                        onToggleHidden = { state.toggleHidden(node.id) },
+                        onToggleLocked = { state.toggleLocked(node.id) },
                         onToggleExpand = {
                             if (expandedIds.contains(node.id)) {
                                 expandedIds.remove(node.id)
@@ -147,6 +151,10 @@ private fun HierarchyRow(
     isSelected: Boolean,
     isDragTarget: Boolean,
     isDragSource: Boolean,
+    isHidden: Boolean,
+    isLocked: Boolean,
+    onToggleHidden: () -> Unit,
+    onToggleLocked: () -> Unit,
     onToggleExpand: () -> Unit,
     onSelect: (shift: Boolean) -> Unit,
     onDragStart: () -> Unit,
@@ -187,7 +195,7 @@ private fun HierarchyRow(
 
                             when (event.type) {
                                 PointerEventType.Press -> {
-                                    if (event.buttons.isPrimaryPressed) {
+                                    if (event.buttons.isPrimaryPressed && event.changes.none { it.isConsumed }) {
                                         pressPos = pos
                                         pressed = true
                                         dragStarted = false
@@ -255,7 +263,42 @@ private fun HierarchyRow(
             fontSize = 11.sp,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.padding(start = 2.dp),
+            modifier = Modifier.padding(start = 2.dp).weight(1f),
         )
+        RowToggle(if (isHidden) AppIcon.UI_EYEOFF else AppIcon.UI_EYE, "Скрыть на холсте (только в редакторе)", isHidden, onToggleHidden)
+        RowToggle(
+            if (isLocked) AppIcon.UI_LOCK else AppIcon.UI_UNLOCK,
+            "Заблокировать выбор на холсте (только в редакторе)",
+            isLocked,
+            onToggleLocked,
+        )
+    }
+}
+
+/** A small icon at the end of a hierarchy row. Shown dimmed until it is switched on. */
+@Composable
+private fun RowToggle(
+    icon: AppIcon,
+    hint: String,
+    on: Boolean,
+    onClick: () -> Unit,
+) {
+    Box(
+        Modifier
+            .size(20.dp)
+            .pointerInput(Unit) {
+                awaitPointerEventScope {
+                    while (true) {
+                        val event = awaitPointerEvent(PointerEventPass.Main)
+                        if (event.type == PointerEventType.Press && event.buttons.isPrimaryPressed) {
+                            onClick()
+                            event.changes.forEach { it.consume() }
+                        }
+                    }
+                }
+            },
+        contentAlignment = Alignment.Center,
+    ) {
+        AppIconView(icon, size = 13.dp, tint = if (on) Color(0xFF4A9EFF) else GhostlyText)
     }
 }
