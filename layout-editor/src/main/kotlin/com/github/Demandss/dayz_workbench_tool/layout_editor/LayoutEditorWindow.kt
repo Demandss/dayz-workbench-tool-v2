@@ -54,6 +54,7 @@ import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.ConfirmDi
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.EmptyState
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.FileTreePanel
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.FlatDialog
+import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.FpsOverlay
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.HierarchyPanel
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.HistoryPanel
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.Minimap
@@ -125,6 +126,10 @@ fun LayoutEditorWindow(
                     .background(FrameBackground)
                     .onPreviewKeyEvent { event ->
                         if (event.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
+                        if (event.key == Key.F3) {
+                            state.debugOverlay = !state.debugOverlay
+                            return@onPreviewKeyEvent true
+                        }
                         val imageSet = state.activeImageSet
                         if (imageSet != null && !state.commandPaletteOpen) {
                             return@onPreviewKeyEvent when {
@@ -366,6 +371,7 @@ fun LayoutEditorWindow(
 
                 BulkEditDialog(state)
                 ConfirmDialog(state)
+                if (state.debugOverlay) FpsOverlay(Modifier.align(Alignment.TopEnd).padding(top = 34.dp, end = 12.dp))
                 ToastHost(state, Modifier.align(Alignment.BottomEnd).padding(bottom = 22.dp))
                 CommandPalette(state) {
                     scope.launch {

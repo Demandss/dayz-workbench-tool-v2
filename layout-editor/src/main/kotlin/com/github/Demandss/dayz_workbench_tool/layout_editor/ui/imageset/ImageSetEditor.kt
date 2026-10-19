@@ -38,6 +38,8 @@ import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.toAwtImage
+import androidx.compose.ui.graphics.toComposeImageBitmap
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
@@ -686,20 +688,21 @@ private fun ImageRow(
                 }.padding(horizontal = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
+            // Cut once into a small picture; drawing a piece of a 2048 px atlas for every row on every frame is very slow
+            val thumb =
+                remember(bitmap, def.x, def.y, def.width, def.height, doc.model.refWidth, doc.model.refHeight) {
+                    bitmap?.let { thumbnailOf(it, def, doc.model.refWidth, doc.model.refHeight) }
+                }
             Canvas(Modifier.size(22.dp).background(Color(0xFF2B2B30))) {
-                if (bitmap != null && def.width > 0 && def.height > 0) {
-                    val k = (size.width / def.width).coerceAtMost(size.height / def.height)
-                    val w = (def.width * k).coerceAtLeast(1f)
-                    val h = (def.height * k).coerceAtLeast(1f)
-                    val sx = bitmap.width.toFloat() / doc.model.refWidth.coerceAtLeast(1)
-                    val sy = bitmap.height.toFloat() / doc.model.refHeight.coerceAtLeast(1)
+                if (thumb != null) {
+                    val k = (size.width / thumb.width).coerceAtMost(size.height / thumb.height)
+                    val w = (thumb.width * k).coerceAtLeast(1f)
+                    val h = (thumb.height * k).coerceAtLeast(1f)
                     drawImage(
-                        bitmap,
-                        srcOffset = IntOffset((def.x * sx).roundToInt(), (def.y * sy).roundToInt()),
-                        srcSize = IntSize((def.width * sx).roundToInt().coerceAtLeast(1), (def.height * sy).roundToInt().coerceAtLeast(1)),
+                        thumb,
                         dstOffset = IntOffset(((size.width - w) / 2f).roundToInt(), ((size.height - h) / 2f).roundToInt()),
                         dstSize = IntSize(w.roundToInt(), h.roundToInt()),
-                        filterQuality = FilterQuality.None,
+                        filterQuality = FilterQuality.Low,
                     )
                 }
             }
@@ -752,4 +755,35 @@ private fun ProblemsSection(
         }
     }
     if (problems.size > 50) Text("И ещё ${problems.size - 50}", color = GhostlyText, fontSize = 11.sp, modifier = Modifier.padding(8.dp))
+}
+
+private val awtOfAtlas = java.util.WeakHashMap<androidx.compose.ui.graphics.ImageBitmap, java.awt.image.BufferedImage>()
+
+/** The part of the atlas an image covers, at most 64 px on a side. Null when the image is empty or outside the texture. */
+private fun thumbnailOf(
+    atlas: androidx.compose.ui.graphics.ImageBitmap,
+    def: com.github.demandss.dayz_workbench_tool.imageset.ImageDef,
+    refWidth: Int,
+    refHeight: Int,
+): androidx.compose.ui.graphics.ImageBitmap? {
+    if (def.width <= 0 || def.height <= 0 || refWidth <= 0 || refHeight <= 0) return null
+    val sx = atlas.width.toDouble() / refWidth
+    val sy = atlas.height.toDouble() / refHeight
+    val x = (def.x * sx).roundToInt().coerceIn(0, atlas.width - 1)
+    val y = (def.y * sy).roundToInt().coerceIn(0, atlas.height - 1)
+    val w = (def.width * sx).roundToInt().coerceIn(1, atlas.width - x)
+    val h = (def.height * sy).roundToInt().coerceIn(1, atlas.height - y)
+    return runCatching {
+        val full = synchronized(awtOfAtlas) { awtOfAtlas.getOrPut(atlas) { atlas.toAwtImage() } }
+        val part = full.getSubimage(x, y, w, h)
+        val k = minOf(1.0, 64.0 / maxOf(w, h))
+        val tw = (w * k).roundToInt().coerceAtLeast(1)
+        val th = (h * k).roundToInt().coerceAtLeast(1)
+        val out = java.awt.image.BufferedImage(tw, th, java.awt.image.BufferedImage.TYPE_INT_ARGB)
+        val g = out.createGraphics()
+        g.setRenderingHint(java.awt.RenderingHints.KEY_INTERPOLATION, java.awt.RenderingHints.VALUE_INTERPOLATION_BILINEAR)
+        g.drawImage(part, 0, 0, tw, th, null)
+        g.dispose()
+        out.toComposeImageBitmap()
+    }.getOrNull()
 }

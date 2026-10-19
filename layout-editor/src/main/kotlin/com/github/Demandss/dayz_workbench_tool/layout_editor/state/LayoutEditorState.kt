@@ -153,6 +153,9 @@ class LayoutEditorState(
     // A clean view: no borders, labels, selection or measurements, only what the widgets draw
     var livePreview by mutableStateOf(false)
 
+    /** F3: frame counter in the corner. */
+    var debugOverlay by mutableStateOf(false)
+
     // Files opened last, newest first
     val recentFiles = mutableStateListOf<String>()
 
