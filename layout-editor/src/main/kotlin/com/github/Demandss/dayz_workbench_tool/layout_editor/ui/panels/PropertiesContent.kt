@@ -123,6 +123,51 @@ private val IMAGE_KEYS =
 
 private val IMAGE_TYPES = setOf(WidgetType.IMAGE, WidgetType.VIDEO)
 
+/** What each property does, shown when the pointer rests on its name. */
+private val PROPERTY_HINTS =
+    mapOf(
+        "visible" to "Показан ли виджет. Скрытый не рисуется и не получает мышь",
+        "disabled" to "Виджет виден, но не отвечает на ввод",
+        "clipchildren" to "Обрезать детей по границам виджета. Выключено: они торчат наружу",
+        "inheritalpha" to "Прозрачность родителя действует и на этот виджет",
+        "ignorepointer" to "Мышь проходит сквозь виджет к тому, что под ним",
+        "ignoregloballv" to "Флаг ignoregloballv из файла. Что он делает в движке, не проверялось",
+        "keepsafezone" to "Держать виджет внутри безопасной зоны экрана (по названию флага)",
+        "color" to "Цвета в файле линейные; Workbench показывает их в sRGB. Клик по образцу открывает палитру",
+        "scaled" to "Пересчитывает размеры под относительное разрешение (в редакторе не учитывается)",
+        "fixaspect" to "Держит пропорции виджета с относительным размером: fixwidth берёт ширину из высоты, fixheight наоборот",
+        "priority" to "Порядок отрисовки среди соседей: больше значит выше",
+        "userID" to "Числовой идентификатор виджета, который скрипт читает через GetUserID()",
+        "draggable" to "Виджет можно перетаскивать мышью",
+        "scriptclass" to "Класс скрипта, привязанный к виджету",
+        "image0" to "Картинка: путь к текстуре или запись вида set:имя image:имя из imageset",
+        "imageTexture" to "Файл текстуры, который рисует виджет. Кнопка «..» выбирает файл",
+        "mode" to "Как картинка смешивается с тем, что под ней: blend, add, multiply, color, alpha, overlay",
+        "src alpha" to "Брать прозрачность из альфа-канала картинки",
+        "clamp mode" to "Что за краем текстуры: clamp тянет край, wrap повторяет, mirror отражает",
+        "stretch mode" to "Как картинка заполняет виджет: tile повторяет, stretch растягивает",
+        "flip u" to "Отразить картинку по горизонтали",
+        "flip v" to "Отразить картинку по вертикали",
+        "filter" to "Сглаживать картинку при масштабировании",
+        "nocache" to "Не держать текстуру в кэше",
+        "rotation" to "Поворот картинки в градусах",
+        "pivot" to "Точка, вокруг которой картинка поворачивается, от 0 до 1 по каждой оси",
+        "pivot x" to "Точка поворота по горизонтали, от 0 до 1",
+        "pivot y" to "Точка поворота по вертикали, от 0 до 1",
+        "Mask" to "Текстура маски, через которую картинка проявляется",
+        "mask" to "Текстура маски, через которую картинка проявляется",
+        "Transition width" to "Ширина мягкого края маски, от 0 до 1",
+        "transition width" to "Ширина мягкого края маски, от 0 до 1",
+        "Progress" to "Сколько картинки уже проявилось через маску, от 0 до 1",
+        "progress" to "Сколько картинки уже проявилось через маску, от 0 до 1",
+        "X" to "Положение по горизонтали: пиксели или доля родителя, как выбран переключатель",
+        "Y" to "Положение по вертикали: пиксели или доля родителя, как выбран переключатель",
+        "W" to "Ширина: пиксели или доля родителя, как выбран переключатель",
+        "H" to "Высота: пиксели или доля родителя, как выбран переключатель",
+    )
+
+private const val UNKNOWN_PROPERTY_HINT = "Свойство из файла, которого нет в списке известных редактору"
+
 // ---------------------------------------------------------------------------
 // Commit helpers
 // ---------------------------------------------------------------------------
@@ -457,7 +502,7 @@ private fun ImageWidgetSection(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(2.dp),
     ) {
-        Text("image0", color = GhostlyText, fontSize = 10.sp, modifier = Modifier.width(LABEL_W), maxLines = 1)
+        PropLabel("image0", "image0" in props, null, Modifier.width(LABEL_W))
         StringField(props["image0"] ?: "", Modifier.weight(1f)) { commit("image0", it) }
         SmallButton("..") { scope.launch { pickFile("Выбрать текстуру", "*", basePath)?.let { commit("image0", it) } } }
     }
@@ -467,7 +512,7 @@ private fun ImageWidgetSection(
         Modifier.fillMaxWidth().height(ROW_H).padding(horizontal = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text("imageTexture", color = GhostlyText, fontSize = 10.sp, modifier = Modifier.width(LABEL_W), maxLines = 1)
+        PropLabel("imageTexture", "imageTexture" in props, null, Modifier.width(LABEL_W))
         Spacer(Modifier.weight(1f))
         SmallButton("..") { scope.launch { pickFile("Выбрать текстуру", "*", basePath)?.let { commit("imageTexture", it) } } }
     }
@@ -506,7 +551,7 @@ private fun ImageWidgetSection(
         Modifier.fillMaxWidth().height(ROW_H).padding(horizontal = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text("Mask", color = GhostlyText, fontSize = 10.sp, modifier = Modifier.width(LABEL_W), maxLines = 1)
+        PropLabel("Mask", "mask" in props, null, Modifier.width(LABEL_W))
         Spacer(Modifier.weight(1f))
         SmallButton("..") { scope.launch { pickFile("Выбрать маску", "*", basePath)?.let { commit("mask", it) } } }
     }
@@ -529,7 +574,9 @@ private fun RawSection(
     SectionHeader("Extra", expanded) { expanded = !expanded }
     if (!expanded) return
     for ((key, value) in props) {
-        PropRow(key, set = true) { StringField(value, Modifier.weight(1f)) { commit(key, it) } }
+        PropRow(key, set = true, hint = PROPERTY_HINTS[key] ?: UNKNOWN_PROPERTY_HINT) {
+            StringField(value, Modifier.weight(1f)) { commit(key, it) }
+        }
     }
 }
 
@@ -622,14 +669,7 @@ private fun SliderRow(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        Text(
-            label,
-            color = GhostlyText,
-            fontSize = 10.sp,
-            modifier = Modifier.width(LABEL_W),
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
+        PropLabel(label, raw != null, null, Modifier.width(LABEL_W))
         Slider(
             value = current,
             onValueChange = { v ->
@@ -727,9 +767,10 @@ private fun PropLabel(
     hint: String?,
     modifier: Modifier = Modifier,
 ) {
+    val tip = hint ?: PROPERTY_HINTS[label.trim()]
     val text: @Composable () -> Unit = {
         Text(
-            label,
+            label.trim(),
             color = if (set) TextForeground else GhostlyText,
             fontWeight = if (set) FontWeight.SemiBold else null,
             fontSize = 10.sp,
@@ -738,13 +779,13 @@ private fun PropLabel(
             overflow = TextOverflow.Ellipsis,
         )
     }
-    if (hint == null) {
+    if (tip == null) {
         text()
     } else {
         TooltipArea(
             tooltip = {
                 Text(
-                    hint,
+                    tip,
                     color = TextForeground,
                     fontSize = 11.sp,
                     modifier =
@@ -771,14 +812,7 @@ private fun SubRow(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        Text(
-            label,
-            color = GhostlyText,
-            fontSize = 10.sp,
-            modifier = Modifier.width(LABEL_W),
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
+        PropLabel(label, false, null, Modifier.width(LABEL_W))
         content()
     }
     HLine()
@@ -845,7 +879,7 @@ private fun NumberField(
     }
 
     Row(modifier, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(3.dp)) {
-        Text(label, color = GhostlyText, fontSize = 11.sp, modifier = Modifier.width(14.dp))
+        PropLabel(label, false, null, Modifier.width(14.dp))
         BasicTextField(
             value = text,
             onValueChange = { text = it },
