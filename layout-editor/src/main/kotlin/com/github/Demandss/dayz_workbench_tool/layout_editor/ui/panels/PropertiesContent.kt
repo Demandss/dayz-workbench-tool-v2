@@ -239,32 +239,28 @@ private fun PropertiesHeader(
 
     Row(
         Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 2.dp),
-        verticalAlignment = Alignment.Top,
+        verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        SpinLabel("X")
-        SpinInput(px, hexactpos, Modifier.weight(1f)) { v ->
+        NumberField("X", px, hexactpos, Modifier.weight(1f), { commit("hexactpos", if (it) "1" else "0") }) { v ->
             px = v
             commit("position", "$v $py")
         }
-        SpinLabel("Y")
-        SpinInput(py, vexactpos, Modifier.weight(1f)) { v ->
+        NumberField("Y", py, vexactpos, Modifier.weight(1f), { commit("vexactpos", if (it) "1" else "0") }) { v ->
             py = v
             commit("position", "$px $v")
         }
     }
     Row(
         Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 2.dp),
-        verticalAlignment = Alignment.Top,
+        verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        SpinLabel("W")
-        SpinInput(sw, hexactsize, Modifier.weight(1f)) { v ->
+        NumberField("W", sw, hexactsize, Modifier.weight(1f), { commit("hexactsize", if (it) "1" else "0") }) { v ->
             sw = v
             commit("size", "$v $sh")
         }
-        SpinLabel("H")
-        SpinInput(sh, vexactsize, Modifier.weight(1f)) { v ->
+        NumberField("H", sh, vexactsize, Modifier.weight(1f), { commit("vexactsize", if (it) "1" else "0") }) { v ->
             sh = v
             commit("size", "$sw $v")
         }
@@ -280,14 +276,12 @@ private fun PropertiesHeader(
             commit("halign", h)
             commit("valign", v)
         }
-        CoordSystemGrid("Pos", props["hexactpos"] == "1", props["vexactpos"] == "1") { hx, vy ->
-            commit("hexactpos", if (hx) "1" else "0")
-            commit("vexactpos", if (vy) "1" else "0")
-        }
-        CoordSystemGrid("Size", props["hexactsize"] == "1", props["vexactsize"] == "1") { hx, vy ->
-            commit("hexactsize", if (hx) "1" else "0")
-            commit("vexactsize", if (vy) "1" else "0")
-        }
+        Text(
+            "px: значение в пикселях\n%: доля родителя",
+            color = GhostlyText,
+            fontSize = 10.sp,
+            modifier = Modifier.padding(start = 6.dp, top = 4.dp),
+        )
     }
 }
 
@@ -346,55 +340,6 @@ private fun AlignCell(
                     else -> size.height - p
                 }
             drawCircle(if (active) Color.White else Color(0xAAFFFFFF), 2.5f, Offset(dotX, dotY))
-        }
-    }
-}
-
-// ---------------------------------------------------------------------------
-// CoordSystem 2×2
-// ---------------------------------------------------------------------------
-
-@Composable
-private fun CoordSystemGrid(
-    label: String,
-    hexact: Boolean,
-    vexact: Boolean,
-    onSet: (Boolean, Boolean) -> Unit,
-) {
-    val cells = listOf(true to true, false to true, true to false, false to false)
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(label, color = GhostlyText, fontSize = 8.sp)
-        Spacer(Modifier.height(2.dp))
-        Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
-            cells.chunked(2).forEach { rowCells ->
-                Row(horizontalArrangement = Arrangement.spacedBy(1.dp)) {
-                    rowCells.forEach { (hx, vy) ->
-                        CoordCell(hx, vy, hexact == hx && vexact == vy) { onSet(hx, vy) }
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun CoordCell(
-    hexact: Boolean,
-    vexact: Boolean,
-    active: Boolean,
-    onClick: () -> Unit,
-) {
-    Box(
-        Modifier
-            .size(22.dp)
-            .background(if (active) SelectColor else Color(0xFF2A2C30))
-            .border(1.dp, DarkenedBorder)
-            .clickable(remember { MutableInteractionSource() }, null, onClick = onClick),
-        contentAlignment = Alignment.Center,
-    ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text("↔", color = if (hexact) Color(0xFF4A9EFF) else Color(0xFFFF5555), fontSize = 9.sp, lineHeight = 10.sp)
-            Text("↕", color = if (vexact) Color(0xFF4A9EFF) else Color(0xFFFF5555), fontSize = 9.sp, lineHeight = 10.sp)
         }
     }
 }
@@ -804,21 +749,17 @@ private fun HLine() {
 }
 
 // ---------------------------------------------------------------------------
-// SpinInput
+// NumberField
 // ---------------------------------------------------------------------------
 
+/** A label, a one-line number and its own px/% switch. Arrows and the wheel step by 1, with Shift by 10. */
 @Composable
-private fun SpinLabel(text: String) {
-    Box(Modifier.width(10.dp).padding(top = 9.dp), contentAlignment = Alignment.TopCenter) {
-        Text(text, color = GhostlyText, fontSize = 9.sp)
-    }
-}
-
-@Composable
-private fun SpinInput(
+private fun NumberField(
+    label: String,
     value: String,
     isPx: Boolean,
     modifier: Modifier = Modifier,
+    onUnit: (Boolean) -> Unit,
     onCommit: (String) -> Unit,
 ) {
     var text by remember(value) { mutableStateOf(value) }
@@ -831,9 +772,8 @@ private fun SpinInput(
         onCommit(result)
     }
 
-    Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) {
-        SpinButton(up = true) { isShift -> step(if (isShift) 10f else 1f) }
-
+    Row(modifier, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+        Text(label, color = GhostlyText, fontSize = 10.sp, modifier = Modifier.width(10.dp))
         BasicTextField(
             value = text,
             onValueChange = { text = it },
@@ -841,27 +781,25 @@ private fun SpinInput(
             textStyle =
                 TextStyle(
                     color = TextForeground,
-                    fontSize = 10.sp,
+                    fontSize = 11.sp,
                     fontFamily = FontFamily.Monospace,
                     textAlign = TextAlign.End,
                 ),
             cursorBrush = SolidColor(TextForeground),
             decorationBox = { inner ->
-                Row(
+                Box(
                     Modifier
                         .fillMaxWidth()
+                        .height(22.dp)
                         .background(FrameBackground)
-                        .border(1.dp, DarkenedBorder)
-                        .padding(horizontal = 3.dp, vertical = 1.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Box(Modifier.weight(1f)) { inner() }
-                    Text(if (isPx) "px" else "%", color = GhostlyText, fontSize = 8.sp)
-                }
+                        .border(1.dp, if (focused) SubSelectColor else DarkenedBorder)
+                        .padding(horizontal = 4.dp),
+                    contentAlignment = Alignment.CenterEnd,
+                ) { inner() }
             },
             modifier =
                 Modifier
-                    .fillMaxWidth()
+                    .weight(1f)
                     .pointerInput(Unit) {
                         awaitPointerEventScope {
                             while (true) {
@@ -904,36 +842,29 @@ private fun SpinInput(
                         }
                     },
         )
-
-        SpinButton(up = false) { isShift -> step(if (isShift) -10f else -1f) }
+        UnitSwitch(isPx, onUnit)
     }
 }
 
 @Composable
-private fun SpinButton(
-    up: Boolean,
-    onClick: (isShift: Boolean) -> Unit,
+private fun UnitSwitch(
+    isPx: Boolean,
+    onChange: (Boolean) -> Unit,
 ) {
-    Box(
-        Modifier
-            .fillMaxWidth()
-            .height(9.dp)
-            .background(Color(0xFF2A2C30))
-            .border(1.dp, DarkenedBorder)
-            .pointerInput(Unit) {
-                awaitPointerEventScope {
-                    while (true) {
-                        val event = awaitPointerEvent(PointerEventPass.Main)
-                        if (event.type == PointerEventType.Press && event.buttons.isPrimaryPressed) {
-                            onClick(event.keyboardModifiers.isShiftPressed)
-                            event.changes.forEach { it.consume() }
-                        }
-                    }
-                }
-            },
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(if (up) "▲" else "▼", color = GhostlyText, fontSize = 7.sp, lineHeight = 7.sp)
+    Row(Modifier.height(22.dp).border(1.dp, DarkenedBorder)) {
+        for ((label, px) in listOf("px" to true, "%" to false)) {
+            val active = isPx == px
+            Box(
+                Modifier
+                    .width(22.dp)
+                    .fillMaxHeight()
+                    .background(if (active) SubSelectColor else Color(0xFF2A2C30))
+                    .clickable(remember { MutableInteractionSource() }, null) { if (!active) onChange(px) },
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(label, color = if (active) Color.White else GhostlyText, fontSize = 9.sp)
+            }
+        }
     }
 }
 
