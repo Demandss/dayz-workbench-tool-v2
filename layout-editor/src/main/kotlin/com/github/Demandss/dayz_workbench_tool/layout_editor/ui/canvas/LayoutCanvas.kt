@@ -20,6 +20,8 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.input.key.*
 import androidx.compose.ui.input.pointer.*
+import androidx.compose.ui.input.pointer.PointerIcon
+import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.text.*
 import androidx.compose.ui.unit.IntOffset
@@ -31,6 +33,7 @@ import com.github.demandss.dayz_workbench_tool.layout_editor.findNode
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.LayoutEditorState
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.Resolution
 import com.github.demandss.dayz_workbench_tool.layout_editor.updateNode
+import java.awt.Cursor
 import java.util.UUID
 import kotlin.math.round
 import kotlin.math.roundToInt
@@ -346,7 +349,8 @@ fun LayoutCanvas(
                     } else {
                         false
                     }
-                }.onSizeChanged {
+                }.pointerHoverIcon(resizeCursor(state.hoverHandle))
+                .onSizeChanged {
                     val newSize = Size(it.width.toFloat(), it.height.toFloat())
                     val first = state.lastCanvasSize == Size.Zero
                     state.lastCanvasSize = newSize
@@ -364,6 +368,16 @@ fun LayoutCanvas(
                         var dragUnion: Rect? = null
                         var dragCandidates: List<Rect> = emptyList()
                         var undoPushed = false
+
+                        // Resizing: which handle, the rectangle at the start and what the widget sits in
+                        var resizeHandle: ResizeHandle? = null
+                        var resizeId: UUID? = null
+                        var resizeStart: Rect? = null
+                        var resizeParent: Rect? = null
+                        var resizeRoot: EditorWidgetNode? = null
+                        var resizeCandidates: List<Rect> = emptyList()
+                        var resizePushed = false
+                        var resizeStartScreen = Offset.Zero
 
                         var isBoxSelecting = false
                         var boxStartWorld = Offset.Zero
@@ -416,6 +430,21 @@ fun LayoutCanvas(
                                             isPanning = true
                                             panStartScreen = pos
                                             panStartOffset = pan
+                                            event.changes.forEach { it.consume() }
+                                        }
+
+                                        isPrimary && state.hoverHandle != null && state.selectedIds.size == 1 &&
+                                            resizeTargetFor(state) != null -> {
+                                            runCatching { focusRequester.requestFocus() }
+                                            val target = resizeTargetFor(state)!!
+                                            resizeHandle = state.hoverHandle
+                                            resizeId = target.id
+                                            resizeStart = target.rect
+                                            resizeParent = target.parent
+                                            resizeRoot = target.root
+                                            resizeCandidates = target.candidates
+                                            resizePushed = false
+                                            resizeStartScreen = pos
                                             event.changes.forEach { it.consume() }
                                         }
 
@@ -520,6 +549,42 @@ fun LayoutCanvas(
                                             event.changes.forEach { it.consume() }
                                         }
 
+                                        resizeHandle != null -> {
+                                            val handle = resizeHandle!!
+                                            val start = resizeStart!!
+                                            if (!resizePushed && (pos - resizeStartScreen).getDistance() >= DRAG_THRESHOLD) {
+                                                resizeRoot?.let { state.pushUndo(state.activeFileIndex, it, "Изменение размера") }
+                                                resizePushed = true
+                                            }
+                                            if (resizePushed) {
+                                                val delta = (pos - resizeStartScreen) / zoom
+                                                var rect =
+                                                    resizedRect(
+                                                        start,
+                                                        handle,
+                                                        delta,
+                                                        keepAspect = event.keyboardModifiers.isShiftPressed,
+                                                        fromCentre = event.keyboardModifiers.isAltPressed,
+                                                    )
+                                                if (!event.keyboardModifiers.isCtrlPressed) {
+                                                    val (snapped, guides) = snapResized(rect, handle, resizeCandidates, 6f / zoom)
+                                                    rect = snapped
+                                                    state.snapGuides = guides
+                                                } else {
+                                                    state.snapGuides = emptyList()
+                                                }
+                                                val doc = state.activeFile
+                                                val parent = resizeParent
+                                                val id = resizeId
+                                                if (doc != null && parent != null && id != null) {
+                                                    state.updateActiveRoot(withRect(doc.root, id, rect, parent))
+                                                    state.resizeLabel =
+                                                        rect to "${formatNumber(round(rect.width))} × ${formatNumber(round(rect.height))}"
+                                                }
+                                            }
+                                            event.changes.forEach { it.consume() }
+                                        }
+
                                         isDragging && dragInfos.isNotEmpty() -> {
                                             // A plain click only selects. The first real step of a drag is what counts as an edit
                                             if (!undoPushed && (pos - dragStartScreen).getDistance() >= DRAG_THRESHOLD) {
@@ -607,6 +672,12 @@ fun LayoutCanvas(
                                             // No button is down: remember where the pointer is for the Alt measurement
                                             state.hoverWorld = screenToWorld(pos, zoom, pan)
                                             state.altHeld = event.keyboardModifiers.isAltPressed
+                                            state.hoverHandle =
+                                                if (state.selectedIds.size == 1 && !spacePressed) {
+                                                    resizeTargetFor(state)?.let { handleAt(it.rect, state.hoverWorld!!, 6f / zoom) }
+                                                } else {
+                                                    null
+                                                }
                                         }
                                     }
                                 }
@@ -634,6 +705,8 @@ fun LayoutCanvas(
                                         currentBox = null
                                     }
                                     isPanning = false
+                                    resizeHandle = null
+                                    state.resizeLabel = null
                                     isDragging = false
                                     state.snapGuides = emptyList()
                                     state.snapDistances = emptyList()
@@ -738,6 +811,16 @@ fun LayoutCanvas(
         // The gaps to the widgets that the dragged one snapped to, in layout pixels
         if (state.snapDistances.isNotEmpty()) drawEdgeDistances(state.snapDistances, textMeasurer, zoom, pan)
 
+        // While a widget is resized its new size shows under it
+        state.resizeLabel?.let { (rect, text) ->
+            val label = textMeasurer.measure(text, TextStyle(color = Color.White, fontSize = 10.sp))
+            val bl = worldToScreen(Offset(rect.center.x, rect.bottom), zoom, pan)
+            val chip = Size(label.size.width + 10f, label.size.height + 6f)
+            val topLeft = Offset(bl.x - chip.width / 2f, bl.y + 8f)
+            drawRect(Color(0xFF346BD8), topLeft, chip)
+            drawText(label, topLeft = Offset(topLeft.x + 5f, topLeft.y + 3f))
+        }
+
         // Alt over another widget: the distances between it and the selected one
         val hover = state.hoverWorld
         if (doc != null && layout != null && state.altHeld && hover != null && selectedSet.size == 1 && !state.livePreview) {
@@ -763,3 +846,48 @@ fun LayoutCanvas(
         }
     }
 }
+
+/** What a resize needs to know about the one selected widget. */
+private class ResizeTarget(
+    val id: UUID,
+    val rect: Rect,
+    val parent: Rect,
+    val root: EditorWidgetNode,
+    val candidates: List<Rect>,
+)
+
+/** The selected widget with its rectangle, or null when it cannot be resized by hand (root, locked, hidden, nothing). */
+private fun resizeTargetFor(state: LayoutEditorState): ResizeTarget? {
+    val doc = state.activeFile ?: return null
+    val id = state.selectedIds.singleOrNull() ?: return null
+    if (id == doc.root.id || id in state.lockedIds || id in state.hiddenIds || state.livePreview) return null
+    val layout = layoutTree(doc.root, screenRect(state)) { n -> textureAspect(state, n) }
+    val rect = layout.rects[id] ?: return null
+    val parent = layout.parentRects[id] ?: return null
+    val own =
+        doc.root
+            .findNode(id)
+            ?.allIds()
+            .orEmpty()
+            .toSet()
+    val others =
+        layout.rects
+            .filter { (other, _) -> other !in own && other !in state.hiddenIds }
+            .values
+            .toList()
+    return ResizeTarget(id, rect, parent, doc.root, others)
+}
+
+/** The mouse cursor for a handle: arrows along the edge or the diagonal. */
+private fun resizeCursor(handle: ResizeHandle?): PointerIcon =
+    when (handle) {
+        null -> PointerIcon.Default
+        ResizeHandle.E -> PointerIcon(Cursor(Cursor.E_RESIZE_CURSOR))
+        ResizeHandle.W -> PointerIcon(Cursor(Cursor.W_RESIZE_CURSOR))
+        ResizeHandle.N -> PointerIcon(Cursor(Cursor.N_RESIZE_CURSOR))
+        ResizeHandle.S -> PointerIcon(Cursor(Cursor.S_RESIZE_CURSOR))
+        ResizeHandle.NE -> PointerIcon(Cursor(Cursor.NE_RESIZE_CURSOR))
+        ResizeHandle.NW -> PointerIcon(Cursor(Cursor.NW_RESIZE_CURSOR))
+        ResizeHandle.SE -> PointerIcon(Cursor(Cursor.SE_RESIZE_CURSOR))
+        ResizeHandle.SW -> PointerIcon(Cursor(Cursor.SW_RESIZE_CURSOR))
+    }

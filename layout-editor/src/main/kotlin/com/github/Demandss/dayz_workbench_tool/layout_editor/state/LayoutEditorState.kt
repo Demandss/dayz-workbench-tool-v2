@@ -23,6 +23,7 @@ import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.BulkMode
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.EdgeDistance
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.GuideLine
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.Reorder
+import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.ResizeHandle
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.alignedRoot
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.allNames
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.appearance
@@ -414,6 +415,10 @@ class LayoutEditorState(
 
     // Shown while dragging (snap guides) and while Alt is held over another widget (distances between the two)
     var snapGuides by mutableStateOf<List<GuideLine>>(emptyList())
+
+    // The edge or corner under the pointer, for the cursor, and the size shown while a widget is resized
+    var hoverHandle by mutableStateOf<ResizeHandle?>(null)
+    var resizeLabel by mutableStateOf<Pair<Rect, String>?>(null)
     var snapDistances by mutableStateOf<List<EdgeDistance>>(emptyList())
     var hoverWorld by mutableStateOf<Offset?>(null)
     var altHeld by mutableStateOf(false)
