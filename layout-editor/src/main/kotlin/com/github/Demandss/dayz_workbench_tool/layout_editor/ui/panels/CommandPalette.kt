@@ -42,6 +42,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.github.demandss.dayz_workbench_tool.layout.WidgetType
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.LayoutEditorState
+import com.github.demandss.dayz_workbench_tool.layout_editor.state.PaletteMode
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.AlignMode
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.BulkMode
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.Reorder
@@ -146,18 +147,66 @@ fun buildCommands(
     }
 }
 
-/** Ctrl+P: type a few letters, pick with the arrows, Enter runs it, Esc closes. */
+/** Ctrl+P: the files of the work drive that can be opened, the ones used last first. */
+fun buildFileCommands(state: LayoutEditorState): List<Command> {
+    val root = state.workDrivePath.takeIf { it.isNotBlank() }?.let { File(it) }
+
+    fun hintOf(file: File) = root?.let { runCatching { file.parentFile.relativeTo(it).invariantSeparatorsPath }.getOrNull() }.orEmpty()
+    val recent = state.recentFiles.map { File(it) }
+    val rest = state.workFiles.filter { f -> recent.none { it == f } }.sortedBy { it.name.lowercase() }
+    return (recent + rest).map { file -> Command(file.name, fileIcon(file.name), hintOf(file)) { state.openAny(file.absolutePath) } }
+}
+
+/** Ctrl+F in a layout: the widgets of the open file by name; Enter selects the widget and shows it. */
+fun buildWidgetCommands(state: LayoutEditorState): List<Command> {
+    val root = state.activeFile?.root ?: return emptyList()
+    val out = ArrayList<Command>()
+
+    fun walk(
+        node: com.github.demandss.dayz_workbench_tool.layout_editor.EditorWidgetNode,
+        path: String,
+    ) {
+        val title =
+            node.node.name.ifEmpty {
+                node.node.type.className
+                    .removeSuffix("WidgetClass")
+            }
+        out +=
+            Command(
+                title,
+                AppIcon.LAYOUT,
+                node.node.type.className
+                    .removeSuffix("WidgetClass") + if (path.isEmpty()) "" else "  ·  $path",
+            ) {
+                state.selectedIds.clear()
+                state.selectedIds.add(node.id)
+                state.zoomToSelection()
+            }
+        node.children.forEach { walk(it, if (path.isEmpty()) title else "$path/$title") }
+    }
+    walk(root, "")
+    return out
+}
+
+/** Ctrl+Shift+P, Ctrl+P and Ctrl+F: type a few letters, pick with the arrows, Enter runs it, Esc closes. */
 @Composable
 fun CommandPalette(
     state: LayoutEditorState,
     openFileDialog: () -> Unit,
 ) {
     if (!state.commandPaletteOpen) return
+    val mode = state.paletteMode
     val commands =
-        remember(state.commandPaletteOpen, state.selectedIds.size, state.activeFileIndex) { buildCommands(state, openFileDialog) }
+        remember(state.commandPaletteOpen, state.selectedIds.size, state.activeFileIndex, mode, state.workFiles.size) {
+            when (mode) {
+                PaletteMode.COMMANDS -> buildCommands(state, openFileDialog)
+                PaletteMode.FILES -> buildFileCommands(state)
+                PaletteMode.WIDGETS -> buildWidgetCommands(state)
+            }
+        }
     var query by remember { mutableStateOf("") }
     var index by remember { mutableStateOf(0) }
-    val matches = commands.filter { query.isBlank() || it.title.contains(query.trim(), ignoreCase = true) }
+    val matches = commands.filter { query.isBlank() || it.title.contains(query.trim(), ignoreCase = true) }.take(300)
     val focus = remember { FocusRequester() }
     val list = rememberLazyListState()
 
@@ -202,7 +251,17 @@ fun CommandPalette(
                 AppIconView(AppIcon.UI_CMD, size = 16.dp, tint = GhostlyText)
                 Spacer(Modifier.width(8.dp))
                 Box(Modifier.weight(1f)) {
-                    if (query.isEmpty()) Text("Команда или файл…", color = GhostlyText, fontSize = 13.sp)
+                    if (query.isEmpty()) {
+                        Text(
+                            when (mode) {
+                                PaletteMode.COMMANDS -> "Команда…"
+                                PaletteMode.FILES -> "Файл по имени…"
+                                PaletteMode.WIDGETS -> "Виджет по имени…"
+                            },
+                            color = GhostlyText,
+                            fontSize = 13.sp,
+                        )
+                    }
                     BasicTextField(
                         value = query,
                         onValueChange = {

@@ -42,6 +42,7 @@ import com.github.demandss.dayz_workbench_tool.layout_editor.state.DragSession
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.DragSource
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.LayoutDocument
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.LayoutEditorState
+import com.github.demandss.dayz_workbench_tool.layout_editor.state.PaletteMode
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.PendingAdd
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.LayoutCanvas
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.TextureViewer
@@ -65,6 +66,7 @@ import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.Reference
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.ResolutionCompare
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.Rulers
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.SelectionBar
+import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.ShortcutsDialog
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.StatusBar
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.ToastHost
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.ViewportChips
@@ -130,6 +132,11 @@ fun LayoutEditorWindow(
                             state.debugOverlay = !state.debugOverlay
                             return@onPreviewKeyEvent true
                         }
+                        if (event.key == Key.F1) {
+                            state.shortcutsOpen = !state.shortcutsOpen
+                            return@onPreviewKeyEvent true
+                        }
+                        if (handleGlobalKey(state, event)) return@onPreviewKeyEvent true
                         val imageSet = state.activeImageSet
                         if (imageSet != null && !state.commandPaletteOpen) {
                             return@onPreviewKeyEvent when {
@@ -153,11 +160,6 @@ fun LayoutEditorWindow(
                                     true
                                 }
 
-                                event.isCtrlPressed && event.key == Key.P -> {
-                                    state.commandPaletteOpen = true
-                                    true
-                                }
-
                                 else -> {
                                     false
                                 }
@@ -172,11 +174,6 @@ fun LayoutEditorWindow(
                             return@onPreviewKeyEvent false
                         }
                         when {
-                            event.isCtrlPressed && event.key == Key.P -> {
-                                state.commandPaletteOpen = !state.commandPaletteOpen
-                                true
-                            }
-
                             state.commandPaletteOpen -> {
                                 false
                             }
@@ -251,9 +248,11 @@ fun LayoutEditorWindow(
                 Column(Modifier.fillMaxSize()) {
                     Row(Modifier.weight(1f).fillMaxWidth()) {
                         var treeWidth by remember { mutableStateOf(220.dp) }
-                        FileTreePanel(state, width = treeWidth)
+                        if (state.showFileTree) {
+                            FileTreePanel(state, width = treeWidth)
 
-                        ResizeDivider { delta -> treeWidth = (treeWidth + delta).coerceIn(160.dp, 600.dp) }
+                            ResizeDivider { delta -> treeWidth = (treeWidth + delta).coerceIn(160.dp, 600.dp) }
+                        }
 
                         Column(Modifier.weight(1f).fillMaxHeight()) {
                             FileTabBar(state)
@@ -371,6 +370,7 @@ fun LayoutEditorWindow(
 
                 BulkEditDialog(state)
                 ConfirmDialog(state)
+                ShortcutsDialog(state)
                 if (state.debugOverlay) FpsOverlay(Modifier.align(Alignment.TopEnd).padding(top = 34.dp, end = 12.dp))
                 ToastHost(state, Modifier.align(Alignment.BottomEnd).padding(bottom = 22.dp))
                 CommandPalette(state) {
@@ -722,5 +722,58 @@ private fun ResizeDivider(onDrag: (androidx.compose.ui.unit.Dp) -> Unit) {
         contentAlignment = Alignment.Center,
     ) {
         Box(Modifier.width(1.dp).fillMaxHeight().background(DarkenedBorder))
+    }
+}
+
+/** Shortcuts that work in every editor, whatever has the keyboard. Returns true when the key was used. */
+private fun handleGlobalKey(
+    state: LayoutEditorState,
+    event: androidx.compose.ui.input.key.KeyEvent,
+): Boolean {
+    if (!event.isCtrlPressed || event.isAltPressed) return false
+    val shift = event.isShiftPressed
+    val digit = listOf(Key.One, Key.Two, Key.Three, Key.Four, Key.Five, Key.Six, Key.Seven, Key.Eight, Key.Nine).indexOf(event.key) + 1
+    return when {
+        event.key == Key.P && shift -> {
+            state.openPalette(PaletteMode.COMMANDS)
+            true
+        }
+
+        event.key == Key.P -> {
+            state.openPalette(PaletteMode.FILES)
+            true
+        }
+
+        event.key == Key.B -> {
+            state.showFileTree = !state.showFileTree
+            true
+        }
+
+        event.key == Key.Tab -> {
+            state.cycleTab(if (shift) -1 else 1)
+            true
+        }
+
+        digit > 0 && !shift -> {
+            state.selectTabNumber(digit)
+            true
+        }
+
+        event.key == Key.F && !shift -> {
+            when {
+                state.activeImageSet != null -> state.imageSetSearchTick++
+                state.activeFile != null && state.activeTexture == null -> state.openPalette(PaletteMode.WIDGETS)
+            }
+            true
+        }
+
+        event.key == Key.Z && shift -> {
+            state.activeImageSet?.redo() ?: state.redo(state.activeFileIndex)
+            true
+        }
+
+        else -> {
+            false
+        }
     }
 }

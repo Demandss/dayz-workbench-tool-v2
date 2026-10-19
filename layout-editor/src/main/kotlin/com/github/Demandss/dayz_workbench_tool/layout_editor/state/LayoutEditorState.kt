@@ -93,6 +93,8 @@ data class PendingAdd(
 
 private const val MAX_RECENT = 8
 
+enum class PaletteMode { COMMANDS, FILES, WIDGETS }
+
 class LayoutEditorState(
     val workDrivePath: String,
     private val scope: CoroutineScope,
@@ -274,6 +276,94 @@ class LayoutEditorState(
     }
 
     var commandPaletteOpen by mutableStateOf(false)
+
+    /** What the palette lists: commands (Ctrl+Shift+P), files (Ctrl+P) or the widgets of the open layout (Ctrl+F). */
+    var paletteMode by mutableStateOf(PaletteMode.COMMANDS)
+
+    fun openPalette(mode: PaletteMode) {
+        if (mode == PaletteMode.FILES) scanWorkFiles()
+        paletteMode = mode
+        commandPaletteOpen = true
+    }
+
+    /** F1: the list of shortcuts. */
+    var shortcutsOpen by mutableStateOf(false)
+
+    /** Ctrl+B hides the file browser to give the editor the whole window. */
+    var showFileTree by mutableStateOf(true)
+
+    /** Ctrl+F in the imageset editor puts the cursor into the search above the list of images. */
+    var imageSetSearchTick by mutableStateOf(0)
+
+    /** Files of the work drive that the editor can open, found once in the background. */
+    var workFiles by mutableStateOf<List<File>>(emptyList())
+        private set
+    private var scanning = false
+
+    private fun scanWorkFiles() {
+        if (scanning || workFiles.isNotEmpty() || workDrivePath.isBlank()) return
+        scanning = true
+        scope.launch(Dispatchers.IO) {
+            val found = ArrayList<File>()
+            val wanted = setOf("layout", "imageset", "edds", "png")
+            runCatching {
+                File(workDrivePath)
+                    .walkTopDown()
+                    .onEnter { it.name != ".git" && it.name != "node_modules" }
+                    .take(200_000)
+                    .filter { it.isFile && it.extension.lowercase() in wanted }
+                    .take(30_000)
+                    .forEach { found += it }
+            }
+            withContext(Dispatchers.Main) {
+                workFiles = found
+                scanning = false
+            }
+        }
+    }
+
+    /** Ctrl+Tab: the next tab to the right (or the previous one for a negative [step]), over layouts, textures and imagesets. */
+    fun cycleTab(step: Int) {
+        val tabs = openFiles.indices.map { 0 to it } + openTextures.indices.map { 1 to it } + openImageSets.indices.map { 2 to it }
+        if (tabs.size < 2) return
+        val current =
+            when {
+                activeImageSetIndex >= 0 -> 2 to activeImageSetIndex
+                activeTextureIndex >= 0 -> 1 to activeTextureIndex
+                else -> 0 to activeFileIndex
+            }
+        val next = tabs[((tabs.indexOf(current).coerceAtLeast(0) + step) % tabs.size + tabs.size) % tabs.size]
+        selectTab(next.first, next.second)
+    }
+
+    /** Ctrl+1…9: the tab with this number, counted from the left. */
+    fun selectTabNumber(number: Int) {
+        val tabs = openFiles.indices.map { 0 to it } + openTextures.indices.map { 1 to it } + openImageSets.indices.map { 2 to it }
+        val tab = tabs.getOrNull(if (number == 9) tabs.lastIndex else number - 1) ?: return
+        selectTab(tab.first, tab.second)
+    }
+
+    private fun selectTab(
+        kind: Int,
+        index: Int,
+    ) {
+        when (kind) {
+            0 -> selectLayout(index)
+            1 -> selectTexture(index)
+            else -> selectImageSet(index)
+        }
+    }
+
+    /** Ctrl+= and Ctrl+-: the layout canvas zooms about its centre. */
+    fun zoomLayoutBy(factor: Float) {
+        val cs = lastCanvasSize
+        if (cs == Size.Zero) return
+        val newZoom = (zoom * factor).coerceIn(0.1f, 8f)
+        val centre = Offset(cs.width / 2f, cs.height / 2f)
+        val world = (centre - panOffset) / zoom
+        zoom = newZoom
+        panOffset = centre - world * newZoom
+    }
 
     // A question with a confirm button, shown over the whole window
     var confirmation by mutableStateOf<Confirmation?>(null)

@@ -370,6 +370,21 @@ private fun handleImageSetKey(
             true
         }
 
+        ctrl && (ev.key == Key.Equals || ev.key == Key.Plus || ev.key == Key.NumPadAdd) -> {
+            view.zoomAbout(1.25f)
+            true
+        }
+
+        ctrl && (ev.key == Key.Minus || ev.key == Key.NumPadSubtract) -> {
+            view.zoomAbout(0.8f)
+            true
+        }
+
+        ctrl && (ev.key == Key.Zero || ev.key == Key.NumPad0) -> {
+            view.fit(doc.model.refWidth, doc.model.refHeight)
+            true
+        }
+
         ev.key == Key.F2 -> {
             doc.focusNameTick++
             true

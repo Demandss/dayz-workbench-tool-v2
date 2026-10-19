@@ -235,7 +235,7 @@ private fun ImageSetPanel(
     ) {
         SetSection(state, doc, bitmap?.width, bitmap?.height, file)
         SelectionSection(doc, view)
-        ImageList(doc, view, bitmap, file)
+        ImageList(doc, view, bitmap, file, state.imageSetSearchTick)
         ProblemsSection(doc, problems)
     }
 }
@@ -600,8 +600,21 @@ private fun ImageList(
     view: ImageSetView,
     bitmap: androidx.compose.ui.graphics.ImageBitmap?,
     file: File?,
+    searchTick: Int,
 ) {
     var open by remember { mutableStateOf(true) }
+    val searchFocus =
+        remember {
+            androidx.compose.ui.focus
+                .FocusRequester()
+        }
+    LaunchedEffect(searchTick) {
+        if (searchTick > 0) {
+            open = true
+            kotlinx.coroutines.yield()
+            runCatching { searchFocus.requestFocus() }
+        }
+    }
     var query by remember { mutableStateOf("") }
     val model = doc.model
     PanelHeader("Картинки (${model.entries.size})", open, { open = !open })
@@ -613,6 +626,7 @@ private fun ImageList(
             singleLine = true,
             textStyle = TextStyle(color = TextForeground, fontSize = 11.sp),
             cursorBrush = SolidColor(TextForeground),
+            modifier = Modifier.focusRequester(searchFocus),
             decorationBox = { inner ->
                 Box(
                     Modifier

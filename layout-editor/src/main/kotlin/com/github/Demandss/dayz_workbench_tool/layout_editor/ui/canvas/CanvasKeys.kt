@@ -46,6 +46,22 @@ internal fun handleCanvasKey(
             true
         }
 
+        ctrl && (ev.key == Key.Equals || ev.key == Key.Plus || ev.key == Key.NumPadAdd) -> {
+            state.zoomLayoutBy(1.25f)
+            true
+        }
+
+        ctrl && (ev.key == Key.Minus || ev.key == Key.NumPadSubtract) -> {
+            state.zoomLayoutBy(0.8f)
+            true
+        }
+
+        ctrl && (ev.key == Key.Zero || ev.key == Key.NumPad0) -> {
+            state.zoom = 1f
+            state.centerView()
+            true
+        }
+
         ev.key == Key.F2 -> {
             state.requestRename()
             true
