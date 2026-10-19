@@ -71,6 +71,56 @@ data class ImageSetModel(
         return model to created
     }
 
+    /**
+     * What Workbench makes with "Add 3x3": a group named [base] with nine 30 x 30 images named after it and a slot
+     * (`LeftTop`, `Left`, `LeftBottom`, `Top`, `Center`, `Bottom`, `RightTop`, `Right`, `RightBottom`), five pixels apart,
+     * going down each column. Measured in Workbench 1.30. The block starts at 100, 100 as long as it fits.
+     */
+    fun withNineQuads(base: String): Pair<ImageSetModel, List<Int>> {
+        val startX = if (refWidth >= 200) 100 else 0
+        val startY = if (refHeight >= 200) 100 else (refHeight - 100).coerceAtLeast(0)
+        var model = this
+        val ids = mutableListOf<Int>()
+        NINE_SLOTS.forEachIndexed { index, slot ->
+            val column = index / 3
+            val row = index % 3
+            val (next, id) = model.withAdded(ImageDef(base + slot, startX + column * 35, startY + row * 35, 30, 30), base)
+            model = next
+            ids += id
+        }
+        return model to ids
+    }
+
+    /**
+     * Cuts the image [id] into nine for a 9-slice with corners of [corner] pixels: four corners, four edges and the centre,
+     * in a group named after the image. The image itself is replaced. Returns null when the image is too small.
+     */
+    fun withNineSlice(
+        id: Int,
+        corner: Int,
+    ): Pair<ImageSetModel, List<Int>>? {
+        val entry = entry(id) ?: return null
+        val d = entry.def
+        if (corner < 1 || d.width < corner * 2 + 1 || d.height < corner * 2 + 1) return null
+        val midW = d.width - corner * 2
+        val midH = d.height - corner * 2
+        val xs = listOf(d.x, d.x + corner, d.x + corner + midW)
+        val ws = listOf(corner, midW, corner)
+        val ys = listOf(d.y, d.y + corner, d.y + corner + midH)
+        val hs = listOf(corner, midH, corner)
+        var model = withRemoved(setOf(id))
+        val ids = mutableListOf<Int>()
+        // column, row of each slot in the order of NINE_SLOTS
+        val cells = listOf(0 to 0, 0 to 1, 0 to 2, 1 to 0, 1 to 1, 1 to 2, 2 to 0, 2 to 1, 2 to 2)
+        NINE_SLOTS.forEachIndexed { index, slot ->
+            val (c, r) = cells[index]
+            val (next, newId) = model.withAdded(ImageDef(d.name + slot, xs[c], ys[r], ws[c], hs[r], d.flagsText), d.name)
+            model = next
+            ids += newId
+        }
+        return model to ids
+    }
+
     /** Moves the images into [group], or out of every group when it is null. */
     fun withGroup(
         ids: Set<Int>,
@@ -78,6 +128,14 @@ data class ImageSetModel(
     ): ImageSetModel {
         val groupList = if (group != null && group !in groups) groups + group else groups
         return copy(entries = entries.map { if (it.id in ids) it.copy(group = group) else it }, groups = groupList)
+    }
+
+    /** [name] if no group has it, otherwise `name_2`, `name_3`... */
+    fun uniqueGroupName(name: String): String {
+        if (name !in groups) return name
+        var n = 2
+        while ("${name}_$n" in groups) n++
+        return "${name}_$n"
     }
 
     /** [name] if no image has it, otherwise `name_2`, `name_3`... */
@@ -89,6 +147,9 @@ data class ImageSetModel(
         return "${name}_$n"
     }
 }
+
+/** The slots of a 9-slice in the order Workbench makes them, a column after a column. */
+val NINE_SLOTS = listOf("LeftTop", "Left", "LeftBottom", "Top", "Center", "Bottom", "RightTop", "Right", "RightBottom")
 
 fun ImageSet.toModel(): ImageSetModel {
     var id = 0

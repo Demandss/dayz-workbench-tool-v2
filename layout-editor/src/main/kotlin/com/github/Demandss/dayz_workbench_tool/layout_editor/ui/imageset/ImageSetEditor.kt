@@ -162,6 +162,45 @@ private fun ImageSetToolbar(
                 .height(20.dp)
                 .background(DarkenedBorder),
         )
+        DarkToolButton(
+            "3×3",
+            {
+                val name = doc.model.uniqueGroupName("Frame")
+                var created: List<Int> = emptyList()
+                doc.edit { m ->
+                    val (next, ids) = m.withNineQuads(name)
+                    created = ids
+                    next
+                }
+                doc.selected.clear()
+                doc.selected.addAll(created)
+            },
+            tooltip = "Добавить группу из девяти областей 30 × 30, как «Add 3x3» в Workbench",
+        )
+        DarkToolButton(
+            "Разрезать",
+            {
+                val id = doc.selected.singleOrNull()
+                val d = id?.let { doc.model.entry(it)?.def }
+                if (id != null && d != null) {
+                    val corner = maxOf(1, minOf(d.width, d.height) / 3)
+                    var cut: List<Int>? = null
+                    doc.edit { m ->
+                        val result = m.withNineSlice(id, corner)
+                        cut = result?.second
+                        result?.first ?: m
+                    }
+                    val ids = cut
+                    if (ids != null) {
+                        doc.selected.clear()
+                        doc.selected.addAll(ids)
+                    } else {
+                        state.notify("Область слишком мала, чтобы разрезать на девять")
+                    }
+                }
+            },
+            tooltip = "Разрезать выбранную область на девять частей для 9-slice. Угол — треть меньшей стороны, дальше правится руками",
+        )
         DarkIconButton(AppIcon.UI_GRID, "Сетка пикселей при большом увеличении", onClick = {
             view.showGrid = !view.showGrid
         }, active = view.showGrid)

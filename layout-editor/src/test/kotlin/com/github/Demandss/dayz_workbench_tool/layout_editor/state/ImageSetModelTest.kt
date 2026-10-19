@@ -98,4 +98,38 @@ class ImageSetModelTest {
         assertTrue(checkImageSet(model(), 200, 100).any { it.kind == ImageProblemKind.REF_SIZE })
         assertTrue(checkImageSet(model(), 200, 200).none { it.kind == ImageProblemKind.REF_SIZE })
     }
+
+    @Test
+    fun `nine quads are made like Workbench makes them`() {
+        val big = ImageSet("set", 512, 512, emptyList(), emptyList(), emptyList()).toModel()
+        val (model, ids) = big.withNineQuads("Frame")
+        assertEquals(9, ids.size)
+        assertEquals(listOf("Frame"), model.groups)
+        assertEquals(listOf(100, 100, 30, 30), model.entry(ids[0])!!.def.let { listOf(it.x, it.y, it.width, it.height) })
+        assertEquals("FrameLeft", model.entry(ids[1])!!.def.name)
+        assertEquals(135, model.entry(ids[1])!!.def.y)
+        assertEquals("FrameTop", model.entry(ids[3])!!.def.name)
+        assertEquals(135, model.entry(ids[3])!!.def.x)
+        assertEquals("FrameRightBottom", model.entry(ids[8])!!.def.name)
+        assertEquals(170, model.entry(ids[8])!!.def.x)
+        assertEquals(170, model.entry(ids[8])!!.def.y)
+    }
+
+    @Test
+    fun `an image is cut into nine without gaps or overlaps`() {
+        val m = ImageSet("set", 100, 100, emptyList(), listOf(def("Btn", 10, 20, 40, 30)), emptyList()).toModel()
+        val (cut, ids) = m.withNineSlice(0, 8)!!
+        assertEquals(9, ids.size)
+        assertEquals(40 * 30, ids.sumOf { cut.entry(it)!!.def.let { d -> d.width * d.height } })
+        assertTrue(checkImageSet(cut).none { it.kind == ImageProblemKind.OVERLAP })
+        val center = cut.entries.first { it.def.name == "BtnCenter" }.def
+        assertEquals(listOf(18, 28, 24, 14), listOf(center.x, center.y, center.width, center.height))
+        assertEquals("Btn", cut.entries[0].group)
+    }
+
+    @Test
+    fun `an image that is too small is not cut`() {
+        val m = ImageSet("set", 100, 100, emptyList(), listOf(def("Btn", 0, 0, 10, 10)), emptyList()).toModel()
+        assertEquals(null, m.withNineSlice(0, 5))
+    }
 }
