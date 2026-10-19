@@ -113,6 +113,9 @@ fun Toolbar(
             active = state.showReference,
         )
 
+        DarkIconButton(AppIcon.UI_RULER, "Линейки", onClick = { state.showRulers = !state.showRulers }, active = state.showRulers)
+        DarkIconButton(AppIcon.UI_FIT, "Миникарта", onClick = { state.showMinimap = !state.showMinimap }, active = state.showMinimap)
+
         Spacer(Modifier.weight(1f))
         DarkIconButton(
             AppIcon.UI_PLAY,

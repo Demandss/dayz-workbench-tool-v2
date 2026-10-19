@@ -50,10 +50,12 @@ import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.EmptyStat
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.FileTreePanel
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.HierarchyPanel
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.HistoryPanel
+import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.Minimap
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.PaletteContent
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.ProblemsPanel
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.PropertiesContent
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.ReferencePanel
+import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.Rulers
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.SelectionBar
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.StatusBar
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.ToastHost
@@ -255,7 +257,20 @@ fun LayoutEditorWindow(
                                                 },
                                         )
                                         ReferencePanel(state, Modifier.align(Alignment.TopEnd).padding(12.dp))
-                                        ViewportChips(state, Modifier.align(Alignment.BottomStart).padding(10.dp))
+                                        if (state.showRulers && !state.livePreview) Rulers(state)
+                                        if (state.showMinimap &&
+                                            !state.livePreview
+                                        ) {
+                                            Minimap(state, Modifier.align(Alignment.BottomEnd).padding(10.dp))
+                                        }
+                                        ViewportChips(
+                                            state,
+                                            Modifier
+                                                .align(
+                                                    Alignment.BottomStart,
+                                                ).padding(10.dp)
+                                                .let { if (state.showRulers) it.padding(start = 18.dp) else it },
+                                        )
                                         SelectionBar(state, Modifier.align(Alignment.TopCenter).padding(top = 10.dp))
                                     }
 

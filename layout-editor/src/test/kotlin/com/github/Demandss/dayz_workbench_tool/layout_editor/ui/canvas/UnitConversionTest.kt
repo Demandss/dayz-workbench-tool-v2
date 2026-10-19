@@ -27,3 +27,12 @@ class UnitConversionTest {
         assertEquals("1234.5", formatNumber(1234.5f))
     }
 }
+
+class RulerStepTest {
+    @Test
+    fun `the step grows as the view zooms out`() {
+        assertEquals(1, rulerStep(80f))
+        assertEquals(100, rulerStep(1f))
+        assertEquals(200, rulerStep(0.37f))
+    }
+}
