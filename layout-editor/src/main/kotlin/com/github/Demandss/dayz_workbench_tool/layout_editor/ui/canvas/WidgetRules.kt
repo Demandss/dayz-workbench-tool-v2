@@ -1,6 +1,7 @@
 package com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas
 
 import androidx.compose.ui.graphics.Color
+import com.github.demandss.dayz_workbench_tool.layout.WidgetType
 import com.github.demandss.dayz_workbench_tool.layout_editor.EditorWidgetNode
 import kotlin.math.pow
 
@@ -65,6 +66,8 @@ private val EMPTY_STYLES = setOf("default", "blank", "empty")
  * flat fill of `color`, which is only an approximation of its images.
  */
 internal fun EditorWidgetNode.fillColor(): Color? {
+    // A ScrollWidget only clips and scrolls: Workbench draws no fill for it, whatever style and colour it has
+    if (node.type == WidgetType.SCROLL) return null
     val style = node.properties["style"]?.trim()?.lowercase() ?: return null
     if (style in EMPTY_STYLES) return null
     val color = node.properties["color"]?.let(::parseWidgetColor)

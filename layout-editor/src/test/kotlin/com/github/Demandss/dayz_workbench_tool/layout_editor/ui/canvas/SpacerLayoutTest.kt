@@ -293,4 +293,87 @@ class SpacerLayoutTest {
 
         assertEquals(Rect(100f, 0f, 130f, 30f), layout.of(child))
     }
+
+    // Measured in Workbench 1.30 (nested_probe): a 260 x 300 wrap with Margin 4 and Padding 8
+
+    @Test
+    fun `a spacer inside a wrap that sizes to its content is as high as its content and as wide as the parent allows`() {
+        val inner =
+            widget(
+                "inner",
+                WidgetType.WRAP_SPACER,
+                "size" to "120 20",
+                "hexactsize" to "1",
+                "vexactsize" to "1",
+                "Padding" to "6",
+                "Margin" to "6",
+                "Size To Content V" to "1",
+                children = listOf(square("a"), square("b")),
+            )
+        val after = square("after", 50)
+        val layout = layoutOf(wrap(260, 300, listOf(inner, after), "Padding" to "8", "Margin" to "4"))
+        // Left 4 inside the margin, cut off at the parent's right edge, 6 + 40 + 6 + a gap of 6
+        assertEquals(Rect(4f, 4f, 260f, 62f), layout.of(inner))
+        // The next row starts a gap under it
+        assertEquals(70f, layout.of(after).top)
+    }
+
+    @Test
+    fun `a spacer inside a wrap ignores its size and runs to the edge of the parent`() {
+        val grid =
+            widget(
+                "grid",
+                WidgetType.GRID_SPACER,
+                "size" to "0.5 80",
+                "hexactsize" to "0",
+                "vexactsize" to "1",
+                "Padding" to "4",
+                "Margin" to "4",
+                "Columns" to "2",
+                "Rows" to "2",
+            )
+        val first = square("first", 40)
+        val layout = layoutOf(wrap(260, 300, listOf(first, grid), "Padding" to "8", "Margin" to "4"))
+        // It goes to a row of its own under the first child and is cut off at the parent's right and bottom edge
+        assertEquals(Rect(4f, 52f, 260f, 300f), layout.of(grid))
+    }
+
+    @Test
+    fun `the row after a spacer in a wrap starts a parent height further down`() {
+        val grid = widget("grid", WidgetType.GRID_SPACER, "Columns" to "2", "Rows" to "2")
+        val after = square("after", 30)
+        val layout = layoutOf(wrap(260, 300, listOf(grid, after), "Padding" to "8", "Margin" to "4"))
+        assertEquals(4f + 300f + 8f, layout.of(after).top)
+    }
+
+    @Test
+    fun `size to content horizontally changes nothing`() {
+        val container = wrap(300, 100, listOf(square("a", 50), square("b", 50)), "Size To Content H" to "1")
+        assertEquals(300f, layoutOf(container).of(container).width)
+    }
+
+    @Test
+    fun `a grid child with a relative size fills its cell even when the fraction is smaller`() {
+        val cell = widget("cell", WidgetType.PANEL, "size" to "0.5 0.5", "hexactsize" to "0", "vexactsize" to "0")
+        val grid =
+            widget(
+                "grid",
+                WidgetType.GRID_SPACER,
+                "position" to "0 0",
+                "size" to "256 296",
+                "hexactpos" to "1",
+                "vexactpos" to "1",
+                "hexactsize" to "1",
+                "vexactsize" to "1",
+                "Padding" to "4",
+                "Margin" to "4",
+                "Columns" to "2",
+                "Rows" to "2",
+                children = listOf(cell),
+            )
+        val rect = layoutOf(grid).of(cell)
+        // (256 - 2 * 4 - 4) / 2 by (296 - 2 * 4 - 4) / 2, as measured in Workbench
+        assertEquals(122f, rect.width)
+        assertEquals(142f, rect.height)
+    }
 }

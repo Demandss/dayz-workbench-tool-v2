@@ -5,6 +5,8 @@ import androidx.compose.ui.geometry.Size
 import com.github.demandss.dayz_workbench_tool.layout.WidgetType
 import com.github.demandss.dayz_workbench_tool.layout_editor.EditorWidgetNode
 import java.util.UUID
+import kotlin.math.max
+import kotlin.math.min
 
 /*
  * Layout of the containers that place their children themselves, as measured in Workbench (see the container
@@ -13,6 +15,9 @@ import java.util.UUID
  * - `Padding` is the gap between children, `Margin` is the frame around all of them (both default to 2).
  * - WrapSpacer fills rows left to right in the file order and wraps at the width left inside the margin.
  * - GridSpacer splits the inside into equal cells, `Columns` by `Rows`, and fills them row by row.
+ * - A spacer inside a WrapSpacer ignores its own size. For the rows it is as big as the whole parent (or as high as its
+ *   content with "Size To Content V"), but what it lays out and draws is cut off at the parent's right and bottom edge.
+ *   "Size To Content H" changes nothing in Workbench.
  */
 
 /** The rectangle a spacer ends up with (it may grow to fit its content) and the rectangles of its children. */
@@ -61,6 +66,23 @@ private fun childSize(
     )
 }
 
+private fun EditorWidgetNode.isSpacer(): Boolean = node.type == WidgetType.WRAP_SPACER || node.type == WidgetType.GRID_SPACER
+
+/** The size a spacer inside a WrapSpacer takes in the rows: the whole parent, or only as high as its own content. */
+private fun spacerChildSize(
+    child: EditorWidgetNode,
+    parent: Rect,
+    margin: Float,
+): Size {
+    val height =
+        if (child.node.type == WidgetType.WRAP_SPACER && child.boolProp("Size To Content V", false)) {
+            layoutSpacer(child, Rect(0f, 0f, parent.width - margin, parent.height))?.rect?.height ?: parent.height
+        } else {
+            parent.height
+        }
+    return Size(parent.width, height)
+}
+
 /** The children that take part: hidden ones leave their slot unless "Ignore invisible" is off. */
 private fun EditorWidgetNode.spacerChildren(): List<EditorWidgetNode> {
     val skipHidden = boolProp("Ignore invisible", true)
@@ -74,7 +96,7 @@ private fun layoutWrap(
     val gap = node.intProp("Padding", DEFAULT_GAP).coerceAtLeast(0).toFloat()
     val margin = node.intProp("Margin", DEFAULT_GAP).coerceAtLeast(0).toFloat()
     val kids = node.spacerChildren()
-    val sizes = kids.map { childSize(it, rect.width, rect.height) }
+    val sizes = kids.map { if (it.isSpacer()) spacerChildSize(it, rect, margin) else childSize(it, rect.width, rect.height) }
     val availW = (rect.width - 2 * margin).coerceAtLeast(0f)
 
     // Rows of child indexes: a child goes to the next row when it no longer fits in the width that is left
@@ -129,7 +151,14 @@ private fun layoutWrap(
         for (i in row) {
             val size = sizes[i]
             val left = if (halign == "right") x - size.width else x
-            placed[kids[i].id] = Rect(left, y, left + size.width, y + size.height)
+            placed[kids[i].id] =
+                if (kids[i].isSpacer()) {
+                    // Cut off at the parent. A spacer that sizes to its content keeps its height
+                    val bottom = if (kids[i].boolProp("Size To Content V", false)) y + size.height else min(y + size.height, own.bottom)
+                    Rect(left, y, min(left + size.width, own.right), max(y, bottom))
+                } else {
+                    Rect(left, y, left + size.width, y + size.height)
+                }
             x = if (halign == "right") left - gap else x + size.width + gap
         }
         y += rowHeights[r] + gap
@@ -152,8 +181,14 @@ private fun layoutGrid(
     node.spacerChildren().take(columns * rowCount).forEachIndexed { i, child ->
         val left = rect.left + margin + (i % columns) * (cellW + gap)
         val top = rect.top + margin + (i / columns) * (cellH + gap)
-        // A child with a relative size fills its cell, a child with a pixel size keeps it in the cell's corner
-        val size = childSize(child, cellW, cellH)
+        // A child with a relative size fills its cell whatever the fraction is (0.5 was measured to fill it as well),
+        // a child with a pixel size keeps it in the cell's corner
+        val asked = childSize(child, cellW, cellH)
+        val size =
+            Size(
+                if (child.prop("hexactsize") == "1") asked.width else cellW,
+                if (child.prop("vexactsize") == "1") asked.height else cellH,
+            )
         placed[child.id] = Rect(left, top, left + size.width, top + size.height)
     }
     return SpacerLayout(rect, placed)
