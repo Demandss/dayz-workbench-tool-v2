@@ -183,6 +183,8 @@ class LayoutEditorState(
             noteRecent(normalized)
             selectLayout(openFiles.lastIndex)
             File(normalized).parentFile?.toPath()?.let { watchDirectory(it) }
+        }.onFailure {
+            notify("Не удалось открыть ${File(path).name}: ${it.message ?: it.javaClass.simpleName}", ToastKind.ERROR)
         }
     }
 
@@ -203,6 +205,10 @@ class LayoutEditorState(
         runCatching {
             File(doc.path).writeText(LayoutSerializer.serialize(doc.root.toWidgetNode()))
             openFiles[idx] = doc.copy(isModified = false)
+        }.onSuccess {
+            notify("Сохранено: ${doc.fileName}", ToastKind.SUCCESS)
+        }.onFailure {
+            notify("Не удалось сохранить ${doc.fileName}: ${it.message ?: it.javaClass.simpleName}", ToastKind.ERROR)
         }
     }
 
@@ -220,14 +226,43 @@ class LayoutEditorState(
         filesChangedOnDisk.remove(path)
     }
 
+    // Messages in the corner. They remove themselves after a few seconds
+    val toasts = mutableStateListOf<Toast>()
+    private var toastCounter = 0L
+
+    fun notify(
+        text: String,
+        kind: ToastKind = ToastKind.INFO,
+    ) {
+        scope.launch(Dispatchers.Main) {
+            val toast = Toast(++toastCounter, text, kind)
+            toasts.add(toast)
+            while (toasts.size > 4) toasts.removeAt(0)
+            delay(if (kind == ToastKind.ERROR) 8000 else 3500)
+            toasts.remove(toast)
+        }
+    }
+
+    /** Goes back [steps] actions, or forward when [steps] is negative. */
+    fun jumpHistory(steps: Int) {
+        val idx = activeFileIndex
+        repeat(kotlin.math.abs(steps)) { if (steps > 0) undo(idx) else redo(idx) }
+    }
+
     fun pushUndo(
         index: Int,
         snapshot: EditorWidgetNode,
+        label: String = "Изменение",
     ) {
         val doc = openFiles.getOrNull(index) ?: return
         doc.undoStack.addLast(snapshot)
-        while (doc.undoStack.size > undoLimit) doc.undoStack.removeFirst()
+        doc.undoLabels.addLast(label)
+        while (doc.undoStack.size > undoLimit) {
+            doc.undoStack.removeFirst()
+            doc.undoLabels.removeFirst()
+        }
         doc.redoStack.clear()
+        doc.redoLabels.clear()
         openFiles[index] = doc.copy(isModified = true)
     }
 
@@ -235,6 +270,7 @@ class LayoutEditorState(
         val doc = openFiles.getOrNull(index) ?: return
         if (doc.undoStack.isEmpty()) return
         doc.redoStack.addLast(doc.root)
+        doc.redoLabels.addLast(doc.undoLabels.removeLast())
         val prev = doc.undoStack.removeLast()
         openFiles[index] = doc.copy(root = prev, isModified = true)
     }
@@ -243,6 +279,7 @@ class LayoutEditorState(
         val doc = openFiles.getOrNull(index) ?: return
         if (doc.redoStack.isEmpty()) return
         doc.undoStack.addLast(doc.root)
+        doc.undoLabels.addLast(doc.redoLabels.removeLast())
         val next = doc.redoStack.removeLast()
         openFiles[index] = doc.copy(root = next, isModified = true)
     }
@@ -307,7 +344,7 @@ class LayoutEditorState(
                             ),
                     ),
             )
-        pushUndo(idx, doc.root)
+        pushUndo(idx, doc.root, "Добавление $name")
         val newRoot =
             doc.root.updateNode(targetId) { n ->
                 n.copy(children = (n.children + newNode).toMutableList())
@@ -327,7 +364,7 @@ class LayoutEditorState(
         if (doc.root.id == nodeId) return
         val movingNode = doc.root.findNode(nodeId) ?: return
         if (movingNode.containsId(newParentId)) return
-        pushUndo(idx, doc.root)
+        pushUndo(idx, doc.root, "Перенос ${movingNode.node.name.ifEmpty { "виджета" }}")
         val stripped = doc.root.removeNode(nodeId)
         val newRoot =
             stripped.updateNode(newParentId) { n ->
@@ -535,6 +572,7 @@ class LayoutEditorState(
             withContext(Dispatchers.Main) {
                 val idx = openTextures.indexOfFirst { it.path == path }
                 if (idx >= 0) openTextures[idx] = loaded
+                loaded.error?.let { notify("Не удалось прочитать ${file.name}: $it", ToastKind.ERROR) }
             }
         }
     }

@@ -123,7 +123,7 @@ private fun commitName(
 ) {
     val idx = state.activeFileIndex
     val doc = state.openFiles.getOrNull(idx) ?: return
-    state.pushUndo(idx, doc.root)
+    state.pushUndo(idx, doc.root, "Переименование в $name")
     state.updateActiveRoot(doc.root.updateNode(id) { it.copy(node = it.node.copy(name = name)) })
 }
 
@@ -134,7 +134,7 @@ private fun commitType(
 ) {
     val idx = state.activeFileIndex
     val doc = state.openFiles.getOrNull(idx) ?: return
-    state.pushUndo(idx, doc.root)
+    state.pushUndo(idx, doc.root, "Тип ${type.className.removeSuffix("WidgetClass")}")
     state.updateActiveRoot(doc.root.updateNode(id) { it.copy(node = it.node.copy(type = type, originalClassName = type.className)) })
 }
 
@@ -142,10 +142,11 @@ private fun commitProps(
     state: LayoutEditorState,
     id: UUID,
     values: Map<String, String>,
+    label: String = values.keys.joinToString(", "),
 ) {
     val idx = state.activeFileIndex
     val doc = state.openFiles.getOrNull(idx) ?: return
-    state.pushUndo(idx, doc.root)
+    state.pushUndo(idx, doc.root, label)
     state.updateActiveRoot(
         doc.root.updateNode(id) { n ->
             n.copy(node = n.node.copy(properties = LinkedHashMap(n.node.properties).also { it.putAll(values) }))
@@ -170,7 +171,12 @@ private fun switchUnit(
     while (parts.size < 2) parts.add("0")
     val value = parts[axis].toFloatOrNull() ?: 0f
     parts[axis] = formatNumber(convertUnit(value, if (axis == 0) parent.width else parent.height, toPixels))
-    commitProps(state, id, mapOf(key to "${parts[0]} ${parts[1]}", flag to if (toPixels) "1" else "0"))
+    commitProps(
+        state,
+        id,
+        mapOf(key to "${parts[0]} ${parts[1]}", flag to if (toPixels) "1" else "0"),
+        "$key: ${if (toPixels) "px" else "%"}",
+    )
 }
 
 private fun commitProp(
@@ -181,7 +187,7 @@ private fun commitProp(
 ) {
     val idx = state.activeFileIndex
     val doc = state.openFiles.getOrNull(idx) ?: return
-    state.pushUndo(idx, doc.root)
+    state.pushUndo(idx, doc.root, "$key = $value")
     state.updateActiveRoot(
         doc.root.updateNode(id) { n ->
             n.copy(node = n.node.copy(properties = LinkedHashMap(n.node.properties).also { it[key] = value }))

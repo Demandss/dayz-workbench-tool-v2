@@ -467,7 +467,19 @@ fun LayoutCanvas(
                                         isDragging && dragInfos.isNotEmpty() -> {
                                             // A plain click only selects. The first real step of a drag is what counts as an edit
                                             if (!undoPushed && (pos - dragStartScreen).getDistance() >= DRAG_THRESHOLD) {
-                                                dragStartRoot?.let { state.pushUndo(state.activeFileIndex, it) }
+                                                dragStartRoot?.let {
+                                                    state.pushUndo(
+                                                        state.activeFileIndex,
+                                                        it,
+                                                        if (dragInfos.size >
+                                                            1
+                                                        ) {
+                                                            "Перемещение ${dragInfos.size} виджетов"
+                                                        } else {
+                                                            "Перемещение"
+                                                        },
+                                                    )
+                                                }
                                                 undoPushed = true
                                             }
                                             val worldDelta = (pos - dragStartScreen) / zoom

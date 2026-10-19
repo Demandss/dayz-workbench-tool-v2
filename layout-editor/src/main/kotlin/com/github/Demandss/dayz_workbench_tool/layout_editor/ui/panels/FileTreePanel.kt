@@ -33,6 +33,7 @@ import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
 import com.github.demandss.dayz_workbench_tool.layout.NewFileKind
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.LayoutEditorState
+import com.github.demandss.dayz_workbench_tool.layout_editor.state.ToastKind
 import com.github.demandss.dayz_workbench_tool.texture.EddsCodec
 import com.github.demandss.dayz_workbench_tool.ui.components.DarkIconButton
 import com.github.demandss.dayz_workbench_tool.ui.icons.AppIcon
@@ -266,7 +267,14 @@ fun FileTreePanel(
                                 creating = null
                                 if (name.isNotBlank()) {
                                     scope.launch(Dispatchers.IO) {
-                                        val created = runCatching { kind.create(parentDir, name) }.getOrNull()
+                                        val result = runCatching { kind.create(parentDir, name) }
+                                        result.exceptionOrNull()?.let {
+                                            state.notify(
+                                                "Не создано: ${it.message ?: it.javaClass.simpleName}",
+                                                ToastKind.ERROR,
+                                            )
+                                        }
+                                        val created = result.getOrNull()
                                         withContext(Dispatchers.Main) {
                                             if (created != null) {
                                                 var dir: Path? = parentDir
@@ -303,6 +311,11 @@ fun FileTreePanel(
                                     scope.launch(Dispatchers.IO) {
                                         runCatching {
                                             Files.move(entry.path, entry.path.parent.resolve(newName))
+                                        }.onFailure {
+                                            state.notify(
+                                                "Не удалось переименовать ${entry.name}: ${it.message ?: it.javaClass.simpleName}",
+                                                ToastKind.ERROR,
+                                            )
                                         }
                                         withContext(Dispatchers.Main) { refreshTick++ }
                                     }
@@ -396,6 +409,16 @@ fun FileTreePanel(
                                                     } else {
                                                         EddsCodec.png2edds(entry.path.toFile())
                                                     }
+                                                }.onSuccess {
+                                                    state.notify(
+                                                        "Сконвертировано: ${entry.name} → ${if (isEdds) "PNG" else "EDDS"}",
+                                                        ToastKind.SUCCESS,
+                                                    )
+                                                }.onFailure {
+                                                    state.notify(
+                                                        "Не удалось сконвертировать ${entry.name}: ${it.message ?: it.javaClass.simpleName}",
+                                                        ToastKind.ERROR,
+                                                    )
                                                 }
                                                 withContext(Dispatchers.Main) {
                                                     state.reloadTextures()

@@ -43,14 +43,18 @@ import com.github.demandss.dayz_workbench_tool.layout_editor.state.LayoutEditorS
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.PendingAdd
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.LayoutCanvas
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.TextureViewer
+import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.findProblems
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.Breadcrumbs
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.EmptyState
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.FileTreePanel
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.HierarchyPanel
+import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.HistoryPanel
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.PaletteContent
+import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.ProblemsPanel
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.PropertiesContent
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.ReferencePanel
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.StatusBar
+import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.ToastHost
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.ViewportChips
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.toolbar.Toolbar
 import com.github.demandss.dayz_workbench_tool.ui.components.DarkButton
@@ -279,6 +283,8 @@ fun LayoutEditorWindow(
                         Text(label, color = TextForeground, fontSize = 11.sp)
                     }
                 }
+
+                ToastHost(state, Modifier.align(Alignment.BottomEnd).padding(bottom = 22.dp))
 
                 // ── Name dialog ───────────────────────────────────────────
                 state.pendingAdd?.let { pending ->
@@ -546,14 +552,17 @@ private fun RightPanel(state: LayoutEditorState) {
     Column(Modifier.width(260.dp).fillMaxHeight()) {
         HierarchyPanel(state, Modifier.weight(1f).fillMaxWidth())
         Box(Modifier.fillMaxWidth().height(1.dp).background(DarkenedBorder))
+        val problemCount = state.activeFile?.let { remember(it.root) { findProblems(it.root).size } } ?: 0
         DarkTabRow(
-            tabs = listOf("Properties", "Palette"),
+            tabs = listOf("Properties", "Palette", if (problemCount > 0) "Problems $problemCount" else "Problems", "History"),
             selectedIndex = rightTab,
             onTabSelected = { rightTab = it },
         )
         when (rightTab) {
             0 -> PropertiesContent(state, Modifier.weight(1.7f).fillMaxWidth())
             1 -> PaletteContent(state, Modifier.weight(1.7f).fillMaxWidth())
+            2 -> ProblemsPanel(state, Modifier.weight(1.7f).fillMaxWidth())
+            3 -> HistoryPanel(state, Modifier.weight(1.7f).fillMaxWidth())
         }
     }
 }
