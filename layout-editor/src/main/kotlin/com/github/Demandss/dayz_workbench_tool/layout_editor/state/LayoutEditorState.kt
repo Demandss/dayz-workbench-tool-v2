@@ -366,7 +366,7 @@ class LayoutEditorState(
         updateActiveRoot(result)
     }
 
-    /** Changes the anchor of a widget so that it stays where it is. */
+    /** Changes the anchor of a widget. The offset on the axis that changed goes back to zero. */
     fun reanchor(
         id: UUID,
         halign: String,
@@ -374,7 +374,7 @@ class LayoutEditorState(
     ) {
         val idx = activeFileIndex
         val doc = openFiles.getOrNull(idx) ?: return
-        val result = reanchored(doc.root, id, layoutTree(doc.root, screenRect(this)), halign, valign)
+        val result = reanchored(doc.root, id, halign, valign)
         pushUndo(idx, doc.root, "Якорь $halign, $valign")
         updateActiveRoot(result)
     }

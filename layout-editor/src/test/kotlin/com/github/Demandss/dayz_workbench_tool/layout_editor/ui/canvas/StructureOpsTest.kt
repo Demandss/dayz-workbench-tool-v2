@@ -107,13 +107,22 @@ class StructureOpsTest {
     }
 
     @Test
-    fun `changing the anchor does not move the widget`() {
+    fun `changing the anchor resets the offset of the axis that changed`() {
         val a = box("a", 100, 40, 200, 100)
         val root = frame(a)
-        val layout = layoutTree(root, screen)
-        val moved = reanchored(root, a.id, layout, "right_ref", "bottom_ref")
-        assertEquals(layout.rects.getValue(a.id), layoutTree(moved, screen).rects.getValue(a.id))
-        assertEquals("700 360", moved.findNode(a.id)!!.node.properties["position"])
+        val moved = reanchored(root, a.id, "right_ref", "top")
+        val props = moved.findNode(a.id)!!.node.properties
+        // The horizontal anchor changed, so x starts again from zero, the vertical one is the same and keeps its 40
+        assertEquals("0 40", props["position"])
+        assertEquals("right_ref", props["halign"])
+        assertEquals(Rect(800f, 40f, 1000f, 140f), layoutTree(moved, screen).rects.getValue(a.id))
+    }
+
+    @Test
+    fun `changing both anchors resets both offsets`() {
+        val a = box("a", 100, 40, 200, 100)
+        val moved = reanchored(frame(a), a.id, "center_ref", "bottom_ref")
+        assertEquals("0 0", moved.findNode(a.id)!!.node.properties["position"])
     }
 
     @Test

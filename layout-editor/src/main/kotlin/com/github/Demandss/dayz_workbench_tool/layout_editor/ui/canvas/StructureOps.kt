@@ -133,56 +133,27 @@ internal fun distributed(
 }
 
 /**
- * Changes the anchor of a widget without moving it: the position is worked out again from the same rectangle, so
- * the widget stays where it is on the screen.
+ * Changes the anchor of a widget and sets the offset to zero on the axis whose anchor changed, so that the widget sits
+ * right at its new anchor: the edge it names or the centre of the parent. An axis that kept its anchor keeps its offset.
  */
 internal fun reanchored(
     root: EditorWidgetNode,
-    id: UUID,
-    layout: TreeLayout,
+    id: java.util.UUID,
     halign: String,
     valign: String,
-): EditorWidgetNode {
-    val rect = layout.rects[id] ?: return root
-    val parent = layout.parentRects[id] ?: return root
-    return root.updateNode(id) { n ->
+): EditorWidgetNode =
+    root.updateNode(id) { n ->
         val props = LinkedHashMap(n.node.properties)
-        val exactX = props["hexactpos"] == "1"
-        val exactY = props["vexactpos"] == "1"
-        val px =
-            when (halign) {
-                "right_ref", "right" -> parent.right - rect.right
-                "center_ref" -> rect.center.x - parent.center.x
-                else -> rect.left - parent.left
-            }
-        val py =
-            when (valign) {
-                "bottom_ref", "bottom" -> parent.bottom - rect.bottom
-                "center_ref" -> rect.center.y - parent.center.y
-                else -> rect.top - parent.top
-            }
-        val x =
-            if (exactX) {
-                px
-            } else if (parent.width == 0f) {
-                0f
-            } else {
-                px / parent.width
-            }
-        val y =
-            if (exactY) {
-                py
-            } else if (parent.height == 0f) {
-                0f
-            } else {
-                py / parent.height
-            }
-        props["position"] = "${fmt(x)} ${fmt(y)}"
+        val parts = (props["position"] ?: "0 0").trim().split(Regex("\\s+"))
+        var x = parts.getOrNull(0) ?: "0"
+        var y = parts.getOrNull(1) ?: "0"
+        if (halign != (props["halign"] ?: "left")) x = "0"
+        if (valign != (props["valign"] ?: "top")) y = "0"
+        props["position"] = "$x $y"
         props["halign"] = halign
         props["valign"] = valign
         n.copy(node = n.node.copy(properties = props))
     }
-}
 
 /** What a widget looks like, apart from where it is: the keys that Copy properties carries. */
 internal val APPEARANCE_KEYS =
