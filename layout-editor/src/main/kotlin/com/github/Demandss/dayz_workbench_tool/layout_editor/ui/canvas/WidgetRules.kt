@@ -56,8 +56,6 @@ internal fun parseWidgetColor(value: String?): Color {
     return Color(channel(0), channel(1), channel(2), (p.getOrNull(3)?.toFloatOrNull() ?: 1f).coerceIn(0f, 1f))
 }
 
-private fun linearToSrgb(c: Float): Float = if (c <= 0.0031308f) 12.92f * c else 1.055f * c.pow(1f / 2.4f) - 0.055f
-
 // Styles that paint nothing. Without a `style` a panel draws nothing either (seen in Workbench)
 private val EMPTY_STYLES = setOf("default", "blank", "empty")
 

@@ -27,6 +27,7 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.key.*
 import androidx.compose.ui.input.pointer.*
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -40,7 +41,9 @@ import com.github.demandss.dayz_workbench_tool.layout_editor.state.LayoutEditorS
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.convertUnit
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.formatNumber
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.layoutTree
+import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.parseWidgetColor
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.screenRect
+import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.toFileColor
 import com.github.demandss.dayz_workbench_tool.layout_editor.updateNode
 import com.github.demandss.dayz_workbench_tool.ui.icons.AppIcon
 import com.github.demandss.dayz_workbench_tool.ui.icons.AppIconView
@@ -536,10 +539,7 @@ private fun ColorRows(
 
     fun save() = commit("color", "$r $g $b $a")
 
-    val preview =
-        remember(r, g, b, a) {
-            Color(r.toFloatOrNull() ?: 0f, g.toFloatOrNull() ?: 0f, b.toFloatOrNull() ?: 0f, a.toFloatOrNull() ?: 1f)
-        }
+    val shown = remember(r, g, b, a) { parseWidgetColor("$r $g $b $a") }
 
     Row(
         Modifier.fillMaxWidth().height(ROW_H).padding(horizontal = 4.dp),
@@ -547,7 +547,26 @@ private fun ColorRows(
         horizontalArrangement = Arrangement.spacedBy(2.dp),
     ) {
         PropLabel("color", "color" in props, "Цвета в файле линейные; Workbench показывает их в sRGB", Modifier.width(LABEL_W))
-        Box(Modifier.size(14.dp).background(preview).border(1.dp, DarkenedBorder))
+        var picking by remember { mutableStateOf(false) }
+        val anchorHeight = with(LocalDensity.current) { 22.dp.roundToPx() }
+        Box {
+            Box(
+                Modifier
+                    .size(22.dp)
+                    .background(Color(0xFF2B2B30))
+                    .background(shown)
+                    .border(1.dp, Color(0xFF3A3C40))
+                    .clickable(remember { MutableInteractionSource() }, null) { picking = true },
+            )
+            if (picking) {
+                ColorPickerPopup(
+                    initial = shown,
+                    anchorHeightPx = anchorHeight,
+                    onDismiss = { picking = false },
+                    onCommit = { commit("color", it.toFileColor()) },
+                )
+            }
+        }
         FloatInput("R", r, Modifier.weight(1f)) { v ->
             r = v
             save()
@@ -912,31 +931,14 @@ private fun TypeDropdown(
     current: WidgetType,
     onSelect: (WidgetType) -> Unit,
 ) {
-    var expanded by remember { mutableStateOf(false) }
-    Box {
-        Box(
-            Modifier
-                .background(FrameBackground)
-                .border(1.dp, DarkenedBorder)
-                .clickable(remember { MutableInteractionSource() }, null) { expanded = true }
-                .padding(horizontal = 5.dp, vertical = 2.dp)
-                .widthIn(min = 60.dp),
-        ) {
-            Text(current.className.removeSuffix("WidgetClass"), color = TextForeground, fontSize = 10.sp, maxLines = 1)
-        }
-        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }, modifier = Modifier.background(ElementsBackground)) {
-            WidgetType.entries.filter { it != WidgetType.UNKNOWN }.forEach { wt ->
-                DropdownMenuItem(
-                    text = { Text(wt.className.removeSuffix("WidgetClass"), color = TextForeground, fontSize = 11.sp) },
-                    onClick = {
-                        onSelect(wt)
-                        expanded = false
-                    },
-                    modifier = Modifier.background(if (wt == current) SelectColor else Color.Transparent),
-                )
-            }
-        }
-    }
+    DropdownField(
+        current,
+        WidgetType.entries.filter {
+            it != WidgetType.UNKNOWN
+        },
+        { it.className.removeSuffix("WidgetClass") },
+        onSelect = onSelect,
+    )
 }
 
 @Composable
@@ -945,31 +947,7 @@ private fun CompactDropdown(
     options: List<String>,
     onCommit: (String) -> Unit,
 ) {
-    var expanded by remember { mutableStateOf(false) }
-    Box {
-        Box(
-            Modifier
-                .background(FrameBackground)
-                .border(1.dp, DarkenedBorder)
-                .clickable(remember { MutableInteractionSource() }, null) { expanded = true }
-                .padding(horizontal = 5.dp, vertical = 2.dp)
-                .widthIn(min = 60.dp),
-        ) {
-            Text(value.ifEmpty { "—" }, color = TextForeground, fontSize = 10.sp)
-        }
-        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }, modifier = Modifier.background(ElementsBackground)) {
-            options.forEach { opt ->
-                DropdownMenuItem(
-                    text = { Text(opt.ifEmpty { "—" }, color = TextForeground, fontSize = 11.sp) },
-                    onClick = {
-                        onCommit(opt)
-                        expanded = false
-                    },
-                    modifier = Modifier.background(if (opt == value) SelectColor else Color.Transparent),
-                )
-            }
-        }
-    }
+    DropdownField(value, options, { it.ifEmpty { "—" } }, onSelect = onCommit)
 }
 
 @Composable
