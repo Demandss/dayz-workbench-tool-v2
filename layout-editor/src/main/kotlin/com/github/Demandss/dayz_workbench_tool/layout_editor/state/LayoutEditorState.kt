@@ -19,6 +19,7 @@ import com.github.demandss.dayz_workbench_tool.layout_editor.removeNode
 import com.github.demandss.dayz_workbench_tool.layout_editor.toEditorNode
 import com.github.demandss.dayz_workbench_tool.layout_editor.toWidgetNode
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.AlignMode
+import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.GuideLine
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.alignedRoot
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.allNames
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.clipboardText
@@ -242,6 +243,11 @@ class LayoutEditorState(
     }
 
     var commandPaletteOpen by mutableStateOf(false)
+
+    // Shown while dragging (snap guides) and while Alt is held over another widget (distances between the two)
+    var snapGuides by mutableStateOf<List<GuideLine>>(emptyList())
+    var hoverWorld by mutableStateOf<Offset?>(null)
+    var altHeld by mutableStateOf(false)
 
     // The tab of the right panel, and signals other parts of the window send: put the cursor in the name field,
     // give the canvas the keyboard back

@@ -361,6 +361,8 @@ fun LayoutCanvas(
                         var dragStartScreen = Offset.Zero
                         var dragInfos: List<WidgetDragInfo> = emptyList()
                         var dragStartRoot: EditorWidgetNode? = null
+                        var dragUnion: Rect? = null
+                        var dragCandidates: List<Rect> = emptyList()
                         var undoPushed = false
 
                         var isBoxSelecting = false
@@ -453,6 +455,32 @@ fun LayoutCanvas(
                                                             parentRect = pr,
                                                         )
                                                     }
+                                                // What the dragged widgets can snap to: everything that is not part of the selection
+                                                val moving =
+                                                    state.selectedIds
+                                                        .flatMap { id ->
+                                                            dragDoc.root
+                                                                .findNode(id)
+                                                                ?.allIds()
+                                                                .orEmpty()
+                                                        }.toSet()
+                                                val selectedRects = state.selectedIds.mapNotNull { dragLayout?.rects?.get(it) }
+                                                dragUnion =
+                                                    selectedRects.takeIf { it.isNotEmpty() }?.let { rs ->
+                                                        Rect(
+                                                            rs.minOf { it.left },
+                                                            rs.minOf { it.top },
+                                                            rs.maxOf { it.right },
+                                                            rs.maxOf { it.bottom },
+                                                        )
+                                                    }
+                                                dragCandidates =
+                                                    dragLayout
+                                                        ?.rects
+                                                        ?.filter { (id, _) -> id !in moving && id !in state.hiddenIds }
+                                                        ?.values
+                                                        ?.toList()
+                                                        .orEmpty()
                                                 isDragging = true
                                                 dragStartScreen = pos
                                                 dragStartRoot = dragDoc.root
@@ -494,7 +522,16 @@ fun LayoutCanvas(
                                                 }
                                                 undoPushed = true
                                             }
-                                            val worldDelta = (pos - dragStartScreen) / zoom
+                                            var worldDelta = (pos - dragStartScreen) / zoom
+                                            // Snap to the neighbours. Ctrl switches it off
+                                            val union = dragUnion
+                                            if (union != null && undoPushed && !event.keyboardModifiers.isCtrlPressed) {
+                                                val snap = snapMove(union, worldDelta, dragCandidates, 6f / zoom)
+                                                worldDelta += Offset(snap.dx, snap.dy)
+                                                state.snapGuides = snap.guides
+                                            } else {
+                                                state.snapGuides = emptyList()
+                                            }
                                             val doc = state.activeFile
                                             if (doc != null && undoPushed) {
                                                 var newRoot = doc.root
@@ -542,6 +579,12 @@ fun LayoutCanvas(
                                             currentBox = box
                                             selectionBox = box
                                         }
+
+                                        else -> {
+                                            // No button is down: remember where the pointer is for the Alt measurement
+                                            state.hoverWorld = screenToWorld(pos, zoom, pan)
+                                            state.altHeld = event.keyboardModifiers.isAltPressed
+                                        }
                                     }
                                 }
 
@@ -569,6 +612,7 @@ fun LayoutCanvas(
                                     }
                                     isPanning = false
                                     isDragging = false
+                                    state.snapGuides = emptyList()
                                     isBoxSelecting = false
                                     dragInfos = emptyList()
                                 }
@@ -658,6 +702,28 @@ fun LayoutCanvas(
                     zoom,
                     pan,
                 )
+            }
+        }
+
+        // Snap guides while dragging
+        for (g in state.snapGuides) {
+            val a = if (g.vertical) worldToScreen(Offset(g.at, g.from), zoom, pan) else worldToScreen(Offset(g.from, g.at), zoom, pan)
+            val b = if (g.vertical) worldToScreen(Offset(g.at, g.to), zoom, pan) else worldToScreen(Offset(g.to, g.at), zoom, pan)
+            drawLine(Color(0xFFFF4FA3), a, b, 1f)
+        }
+
+        // Alt over another widget: the distances between it and the selected one
+        val hover = state.hoverWorld
+        if (doc != null && layout != null && state.altHeld && hover != null && selectedSet.size == 1 && !state.livePreview) {
+            val selectedId = selectedSet.first()
+            val selectedRect = layout.rects[selectedId]
+            val target = hitTest(doc.root, hover, layout, state.hiddenIds.toSet() + selectedId, emptySet())
+            val targetRect = target?.let { layout.rects[it.id] }
+            if (selectedRect != null && targetRect != null) {
+                val tl = worldToScreen(Offset(targetRect.left, targetRect.top), zoom, pan)
+                val br = worldToScreen(Offset(targetRect.right, targetRect.bottom), zoom, pan)
+                drawRect(MeasureColor, tl, Size(br.x - tl.x, br.y - tl.y), style = Stroke(1f))
+                drawEdgeDistances(distancesBetween(selectedRect, targetRect), textMeasurer, zoom, pan)
             }
         }
 

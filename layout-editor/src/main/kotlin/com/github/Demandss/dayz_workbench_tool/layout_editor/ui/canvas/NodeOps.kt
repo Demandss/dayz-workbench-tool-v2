@@ -117,3 +117,6 @@ internal fun EditorWidgetNode.parentOf(id: UUID): EditorWidgetNode? {
 
 /** The names of all widgets in the tree. */
 internal fun EditorWidgetNode.allNames(): Set<String> = (listOf(node.name) + children.flatMap { it.allNames() }).toSet()
+
+/** The id of this widget and of everything under it. */
+internal fun EditorWidgetNode.allIds(): List<UUID> = listOf(id) + children.flatMap { it.allIds() }
