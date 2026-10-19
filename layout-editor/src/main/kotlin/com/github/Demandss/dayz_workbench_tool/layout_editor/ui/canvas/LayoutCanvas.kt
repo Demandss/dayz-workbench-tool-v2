@@ -171,7 +171,7 @@ private fun DrawScope.drawEdgeDistances(
                 drawLine(MeasureColor, Offset(end.x - tick, end.y), Offset(end.x + tick, end.y), 1f)
             }
         }
-        val label = textMeasurer.measure(formatNumber(d.value), TextStyle(color = Color(0xFF1E1F22), fontSize = 10.sp))
+        val label = textMeasurer.measure(formatNumber(round(d.value * 10f) / 10f), TextStyle(color = Color(0xFF1E1F22), fontSize = 10.sp))
         val chip = Size(label.size.width + pad * 2, label.size.height + pad * 2)
         val topLeft = Offset((a.x + b.x) / 2f - chip.width / 2f, (a.y + b.y) / 2f - chip.height / 2f)
         drawRect(MeasureColor, topLeft, chip)
