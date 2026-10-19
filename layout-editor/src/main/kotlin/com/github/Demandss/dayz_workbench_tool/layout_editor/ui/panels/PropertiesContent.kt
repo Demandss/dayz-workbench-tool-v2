@@ -100,6 +100,7 @@ private val WIDGET_KEYS =
         "userID",
         "draggable",
         "scriptclass",
+        "style",
     )
 
 private val IMAGE_KEYS =
@@ -143,6 +144,7 @@ private val PROPERTY_HINTS =
         "userID" to "Числовой идентификатор виджета, который скрипт читает через GetUserID()",
         "draggable" to "Вкл: виджет можно перетаскивать мышью.\nВыкл: виджет не перетаскивается.",
         "scriptclass" to "Класс скрипта, привязанный к виджету",
+        "style" to "Стиль из .styles: рисует фон, рамку и состояния виджета. Список — стили игры для этого типа виджета",
         "image0" to "Картинка: путь к текстуре или запись вида set:имя image:имя из imageset",
         "imageTexture" to "Файл текстуры, который рисует виджет. Кнопка «..» выбирает файл",
         "mode" to "Как картинка смешивается с тем, что под ней: blend, add, multiply, color, alpha, overlay",
@@ -286,7 +288,14 @@ fun PropertiesContent(
 
         Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState())) {
             PropertiesHeader(state, node.id, node.node.name, node.node.type, props, commit)
-            WidgetSection(props, commit, remember(doc?.root) { doc?.root?.let { documentColors(it) }.orEmpty() })
+            WidgetSection(
+                props,
+                commit,
+                remember(doc?.root) {
+                    doc?.root?.let { documentColors(it) }.orEmpty()
+                },
+                StyleChoice(state, node.node.type, doc?.path),
+            )
             if (node.node.type in IMAGE_TYPES) ImageWidgetSection(props, commit, state.workDrivePath)
             val extra = props.filter { it.key !in WIDGET_KEYS && it.key !in IMAGE_KEYS }
             if (extra.isNotEmpty()) RawSection(extra, commit)
@@ -448,6 +457,7 @@ private fun WidgetSection(
     props: Map<String, String>,
     commit: (String, String) -> Unit,
     documentColors: List<Color>,
+    styles: StyleChoice,
 ) {
     var expanded by remember { mutableStateOf(true) }
     SectionHeader("Widget", expanded) { expanded = !expanded }
@@ -480,6 +490,31 @@ private fun WidgetSection(
     CheckRow("draggable", props["draggable"], commit)
     PropRow("scriptclass", "scriptclass" in props) {
         StringField(props["scriptclass"] ?: "", Modifier.weight(1f)) { commit("scriptclass", it) }
+    }
+    PropRow("style", "style" in props) {
+        val names = styles.names
+        val current = props["style"]?.trim('"').orEmpty()
+        if (names.isEmpty()) {
+            StringField(current, Modifier.weight(1f)) { commit("style", it) }
+        } else {
+            // The list holds the styles of the game for this widget; a style from elsewhere stays in the list as it is
+            val options = (listOf("") + names + listOfNotNull(current.takeIf { it.isNotEmpty() && it !in names })).distinct()
+            DropdownField(
+                current,
+                options,
+                {
+                    if (it.isEmpty()) {
+                        "— (нет)"
+                    } else if (it !in names) {
+                        "$it (свой)"
+                    } else {
+                        it
+                    }
+                },
+                Modifier.weight(1f),
+                tooltip = "Стиль виджета",
+            ) { commit("style", it) }
+        }
     }
 }
 
@@ -1121,4 +1156,13 @@ private fun FloatInput(
 private fun fmtF(f: Float): String {
     val l = f.toLong()
     return if (f == l.toFloat()) "$l" else "%.4g".format(f)
+}
+
+/** The styles that can be chosen for the selected widget: the vanilla ones of its type. */
+private class StyleChoice(
+    state: LayoutEditorState,
+    type: WidgetType,
+    layoutPath: String?,
+) {
+    val names: List<String> = state.vanillaStylesFor(type.className, layoutPath).map { it.name }.distinct()
 }

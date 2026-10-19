@@ -27,7 +27,7 @@ fun main(args: Array<String>) =
                         s.restoreSession()
                     } else {
                         files.forEach { path ->
-                            if (path.endsWith(".layout", ignoreCase = true)) s.openFile(path) else s.openTexture(path)
+                            s.openAny(path)
                         }
                     }
                 }

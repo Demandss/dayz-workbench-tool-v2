@@ -8,6 +8,7 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.toComposeImageBitmap
 import com.github.demandss.dayz_workbench_tool.config.ConfigManager
 import com.github.demandss.dayz_workbench_tool.config.EditorSession
+import com.github.demandss.dayz_workbench_tool.imageset.ImageSetFormat
 import com.github.demandss.dayz_workbench_tool.layout.LayoutParser
 import com.github.demandss.dayz_workbench_tool.layout.LayoutSerializer
 import com.github.demandss.dayz_workbench_tool.layout.WidgetNode
@@ -45,6 +46,9 @@ import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.withAppea
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.withCopyOf
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.wrapped
 import com.github.demandss.dayz_workbench_tool.layout_editor.updateNode
+import com.github.demandss.dayz_workbench_tool.styles.StyleDef
+import com.github.demandss.dayz_workbench_tool.styles.StyleSheet
+import com.github.demandss.dayz_workbench_tool.styles.StylesFormat
 import com.github.demandss.dayz_workbench_tool.texture.EddsCodec
 import kotlinx.coroutines.*
 import java.awt.Toolkit
@@ -123,6 +127,15 @@ class LayoutEditorState(
     val openTextures = mutableStateListOf<TextureDocument>()
     var activeTextureIndex by mutableStateOf(-1)
     val activeTexture get() = openTextures.getOrNull(activeTextureIndex)
+
+    // Imageset tabs. When activeImageSetIndex >= 0 the window shows the atlas editor for that file
+    val openImageSets = mutableStateListOf<ImageSetDocument>()
+    var activeImageSetIndex by mutableStateOf(-1)
+    val activeImageSet get() = openImageSets.getOrNull(activeImageSetIndex)
+
+    // Decoded textures of imagesets by file, null while loading or when the file cannot be read
+    private val imageSetBitmaps = mutableStateMapOf<String, ImageBitmap?>()
+    private val imageSetBitmapsLoading = mutableSetOf<String>()
 
     var zoom by mutableStateOf(1f)
     var panOffset by mutableStateOf(Offset.Zero)
@@ -749,18 +762,24 @@ class LayoutEditorState(
 
     /** Opens a layout in the editor and anything else as a texture. */
     fun openAny(path: String) {
-        if (path.endsWith(".layout", ignoreCase = true)) openFile(path) else openTexture(path)
+        when {
+            path.endsWith(".layout", ignoreCase = true) -> openFile(path)
+            path.endsWith(".imageset", ignoreCase = true) -> openImageSet(path)
+            else -> openTexture(path)
+        }
     }
 
     fun selectLayout(index: Int) {
         activeFileIndex = index
         activeTextureIndex = -1
+        activeImageSetIndex = -1
         saveSession()
     }
 
     fun selectTexture(index: Int) {
         if (index !in openTextures.indices) return
         activeTextureIndex = index
+        activeImageSetIndex = -1
         saveSession()
     }
 
@@ -787,6 +806,185 @@ class LayoutEditorState(
         loadTextureDocument(path)
     }
 
+    /** Opens an `.imageset` in the atlas editor, or switches to its tab when it is open already. */
+    fun openImageSet(path: String) {
+        val normalized = runCatching { File(path).canonicalPath }.getOrDefault(path)
+        val existing = openImageSets.indexOfFirst { it.path == normalized }
+        if (existing >= 0) {
+            noteRecent(normalized)
+            selectImageSet(existing)
+            return
+        }
+        val parsed = runCatching { ImageSetFormat.parse(File(normalized).readText()) }
+        val set = parsed.getOrNull()
+        if (set == null) {
+            notify("Не удалось открыть ${File(path).name}: " + (parsed.exceptionOrNull()?.message ?: "это не imageset"), ToastKind.ERROR)
+            return
+        }
+        openImageSets += ImageSetDocument(normalized, set.toModel())
+        noteRecent(normalized)
+        selectImageSet(openImageSets.lastIndex)
+    }
+
+    fun selectImageSet(index: Int) {
+        if (index !in openImageSets.indices) return
+        activeImageSetIndex = index
+        saveSession()
+    }
+
+    fun closeImageSet(index: Int) {
+        val doc = openImageSets.getOrNull(index) ?: return
+        if (doc.isModified) {
+            confirmation =
+                Confirmation(
+                    title = "Закрыть ${doc.fileName}?",
+                    message = "Есть несохранённые изменения, они пропадут.",
+                    confirmLabel = "Закрыть",
+                    danger = true,
+                ) { dropImageSet(index) }
+        } else {
+            dropImageSet(index)
+        }
+    }
+
+    private fun dropImageSet(index: Int) {
+        if (index !in openImageSets.indices) return
+        openImageSets.removeAt(index)
+        activeImageSetIndex =
+            when {
+                openImageSets.isEmpty() -> -1
+                index < activeImageSetIndex -> activeImageSetIndex - 1
+                index == activeImageSetIndex -> (index - 1).coerceAtLeast(0)
+                else -> activeImageSetIndex
+            }
+        saveSession()
+    }
+
+    fun saveActiveImageSet() {
+        val doc = activeImageSet ?: return
+        runCatching {
+            File(doc.path).writeText(ImageSetFormat.serialize(doc.model.toImageSet()))
+        }.onSuccess {
+            doc.markSaved()
+            notify("Сохранено: ${doc.fileName}", ToastKind.SUCCESS)
+        }.onFailure {
+            notify("Не удалось сохранить ${doc.fileName}: ${it.message ?: it.javaClass.simpleName}", ToastKind.ERROR)
+        }
+    }
+
+    /**
+     * The file that holds the texture of an imageset: the path from the file, tried against the work drive, against the
+     * folders above the imageset and next to it. Null when none of them exists.
+     */
+    fun resolveImageSetTexture(
+        imageSetPath: String,
+        texturePath: String,
+    ): File? {
+        val clean =
+            texturePath
+                .trim()
+                .trim('"')
+                .replace(Regex("^\\{[0-9A-Fa-f]+}"), "")
+                .replace('\\', '/')
+        if (clean.isEmpty()) return null
+        val candidates = mutableListOf<File>()
+        if (workDrivePath.isNotBlank()) candidates += File(workDrivePath, clean)
+        var dir = File(imageSetPath).parentFile
+        while (dir != null) {
+            candidates += File(dir, clean)
+            dir = dir.parentFile
+        }
+        candidates += File(File(imageSetPath).parentFile, clean.substringAfterLast('/'))
+        return candidates.firstOrNull { it.isFile }
+    }
+
+    /** The decoded texture file, or null while it loads or when it cannot be read. Reading it from a draw scope redraws once loaded. */
+    fun imageSetBitmap(file: File?): ImageBitmap? {
+        if (file == null) return null
+        val key = file.absolutePath
+        if (imageSetBitmaps.containsKey(key)) return imageSetBitmaps[key]
+        if (imageSetBitmapsLoading.add(key)) {
+            scope.launch(Dispatchers.IO) {
+                val bitmap =
+                    runCatching {
+                        val image =
+                            if (file.extension.equals(
+                                    "edds",
+                                    ignoreCase = true,
+                                )
+                            ) {
+                                EddsCodec.decode(file).toBufferedImage()
+                            } else {
+                                ImageIO.read(file)
+                            }
+                        image?.toComposeImageBitmap()
+                    }.getOrNull()
+                withContext(Dispatchers.Main) { imageSetBitmaps[key] = bitmap }
+            }
+        }
+        return null
+    }
+
+    /**
+     * How an imageset names a file: the path from the work drive with forward slashes, and the `{GUID}` of its
+     * `.meta` file in front when there is one. A file outside the work drive keeps its full path.
+     */
+    fun resourceReference(file: File): String {
+        val root = workDrivePath.takeIf { it.isNotBlank() }?.let { File(it).canonicalFile }
+        val canonical = runCatching { file.canonicalFile }.getOrDefault(file)
+        val relative =
+            if (root != null && canonical.path.startsWith(root.path, ignoreCase = true)) {
+                canonical.path
+                    .substring(root.path.length)
+                    .trimStart(File.separatorChar)
+                    .replace(File.separatorChar, '/')
+            } else {
+                canonical.path.replace(File.separatorChar, '/')
+            }
+        val guid =
+            runCatching {
+                Regex("Name\\s+\"(\\{[0-9A-Fa-f]+})").find(File(canonical.path + ".meta").readText())?.groupValues?.get(1)
+            }.getOrNull().orEmpty()
+        return guid + relative
+    }
+
+    // The styles of the game, read from gui/looknfeel/dayzwidgets.styles the first time they are asked for
+    private var vanillaSheet: StyleSheet? = null
+    private var vanillaSheetFrom: String? = null
+
+    /**
+     * The vanilla styles for [widgetClass], or an empty list when the file is not found or the widget type has none.
+     * The file is looked for in the work drive and in the folders above [nearPath].
+     */
+    fun vanillaStylesFor(
+        widgetClass: String,
+        nearPath: String?,
+    ): List<StyleDef> {
+        val key = workDrivePath + "|" + nearPath
+        if (vanillaSheetFrom != key) {
+            vanillaSheetFrom = key
+            vanillaSheet = findVanillaStyles(nearPath)?.let { runCatching { StylesFormat.parse(it.readText()) }.getOrNull() }
+        }
+        return vanillaSheet?.stylesFor(widgetClass).orEmpty()
+    }
+
+    private fun findVanillaStyles(nearPath: String?): File? {
+        val relative = "gui/looknfeel/dayzwidgets.styles"
+        val roots = mutableListOf<File>()
+        if (workDrivePath.isNotBlank()) roots += File(workDrivePath)
+        var dir = nearPath?.let { File(it).parentFile }
+        while (dir != null) {
+            roots += dir
+            dir = dir.parentFile
+        }
+        return roots.map { File(it, relative) }.firstOrNull { it.isFile }
+    }
+
+    fun reloadImageSetTextures() {
+        imageSetBitmaps.clear()
+        imageSetBitmapsLoading.clear()
+    }
+
     fun closeTexture(index: Int) {
         if (index !in openTextures.indices) return
         openTextures.removeAt(index)
@@ -807,7 +1005,10 @@ class LayoutEditorState(
         try {
             session.layouts.filter { File(it).isFile }.forEach { openFile(it) }
             session.textures.filter { File(it).isFile }.forEach { openTexture(it) }
-            if (session.activeIsTexture) {
+            session.imageSets.filter { File(it).isFile }.forEach { openImageSet(it) }
+            if (session.activeIsImageSet) {
+                openImageSets.indexOfFirst { it.path == session.active }.takeIf { it >= 0 }?.let { selectImageSet(it) }
+            } else if (session.activeIsTexture) {
                 openTextures.indexOfFirst { it.path == session.active }.takeIf { it >= 0 }?.let { selectTexture(it) }
             } else {
                 openFiles.indexOfFirst { it.path == session.active }.takeIf { it >= 0 }?.let { selectLayout(it) }
@@ -869,8 +1070,10 @@ class LayoutEditorState(
                 EditorSession(
                     layouts = openFiles.map { it.path },
                     textures = openTextures.map { it.path },
-                    active = texture?.path ?: activeFile?.path.orEmpty(),
-                    activeIsTexture = texture != null,
+                    imageSets = openImageSets.map { it.path },
+                    active = activeImageSet?.path ?: texture?.path ?: activeFile?.path.orEmpty(),
+                    activeIsTexture = texture != null && activeImageSet == null,
+                    activeIsImageSet = activeImageSet != null,
                     expandedDirs = treeExpanded,
                     selectedPath = treeSelected,
                     referencePath = referencePath,

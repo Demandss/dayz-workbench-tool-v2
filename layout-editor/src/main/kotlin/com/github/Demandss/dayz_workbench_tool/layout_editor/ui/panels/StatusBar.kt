@@ -53,6 +53,23 @@ fun StatusBar(state: LayoutEditorState) {
 }
 
 private fun leftText(state: LayoutEditorState): String {
+    state.activeImageSet?.let { doc ->
+        val picked = doc.selected.mapNotNull { doc.model.entry(it) }
+        return when (picked.size) {
+            0 -> {
+                "${doc.model.entries.size} картинок · RefSize ${doc.model.refWidth} × ${doc.model.refHeight}"
+            }
+
+            1 -> {
+                val d = picked[0].def
+                "Выбрано: ${d.name} · ${d.x}, ${d.y} · ${d.width} × ${d.height}"
+            }
+
+            else -> {
+                "Выбрано: ${picked.size}"
+            }
+        }
+    }
     state.activeTexture?.let { texture ->
         val image = texture.source ?: return texture.fileName
         return "${image.width} × ${image.height} · ${texture.format.ifEmpty { "—" }}"

@@ -45,6 +45,7 @@ import com.github.demandss.dayz_workbench_tool.layout_editor.state.PendingAdd
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.LayoutCanvas
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.TextureViewer
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.findProblems
+import com.github.demandss.dayz_workbench_tool.layout_editor.ui.imageset.ImageSetEditor
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.Breadcrumbs
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.BulkEditDialog
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.CommandPalette
@@ -102,7 +103,7 @@ fun LayoutEditorWindow(
     val windowTitle =
         buildString {
             append("DayZ Layout Editor")
-            val shownName = state.activeTexture?.fileName ?: state.activeFile?.fileName
+            val shownName = state.activeImageSet?.fileName ?: state.activeTexture?.fileName ?: state.activeFile?.fileName
             shownName?.let { append(" — $it") }
         }
 
@@ -123,6 +124,39 @@ fun LayoutEditorWindow(
                     .background(FrameBackground)
                     .onPreviewKeyEvent { event ->
                         if (event.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
+                        val imageSet = state.activeImageSet
+                        if (imageSet != null && !state.commandPaletteOpen) {
+                            return@onPreviewKeyEvent when {
+                                event.isCtrlPressed && event.key == Key.S -> {
+                                    state.saveActiveImageSet()
+                                    true
+                                }
+
+                                event.isCtrlPressed && event.key == Key.Z -> {
+                                    imageSet.undo()
+                                    true
+                                }
+
+                                event.isCtrlPressed && event.key == Key.Y -> {
+                                    imageSet.redo()
+                                    true
+                                }
+
+                                event.isCtrlPressed && event.key == Key.W -> {
+                                    state.closeImageSet(state.activeImageSetIndex)
+                                    true
+                                }
+
+                                event.isCtrlPressed && event.key == Key.P -> {
+                                    state.commandPaletteOpen = true
+                                    true
+                                }
+
+                                else -> {
+                                    false
+                                }
+                            }
+                        }
                         if (state.activeTexture != null) {
                             // The viewport shows a texture: only closing the tab applies
                             if (event.isCtrlPressed && event.key == Key.W) {
@@ -218,12 +252,15 @@ fun LayoutEditorWindow(
                             FileTabBar(state)
 
                             val texture = state.activeTexture
-                            if (state.openFiles.isEmpty() && state.openTextures.isEmpty()) {
+                            val imageSet = state.activeImageSet
+                            if (state.openFiles.isEmpty() && state.openTextures.isEmpty() && state.openImageSets.isEmpty()) {
                                 EmptyState(state, Modifier.weight(1f).fillMaxWidth()) {
                                     scope.launch {
                                         pickFile("Открыть файл", "*", state.workDrivePath.ifBlank { null })?.let { state.openAny(it) }
                                     }
                                 }
+                            } else if (imageSet != null) {
+                                ImageSetEditor(state, imageSet, Modifier.weight(1f).fillMaxWidth())
                             } else if (texture != null) {
                                 TextureViewer(state, texture, Modifier.weight(1f).fillMaxWidth())
                             } else {
@@ -460,7 +497,7 @@ private fun NameDialog(
 
 @Composable
 private fun FileTabBar(state: LayoutEditorState) {
-    if (state.openFiles.isEmpty() && state.openTextures.isEmpty()) return
+    if (state.openFiles.isEmpty() && state.openTextures.isEmpty() && state.openImageSets.isEmpty()) return
     val scroll = rememberScrollState()
     val scope = rememberCoroutineScope()
     Row(
@@ -492,7 +529,7 @@ private fun FileTabBar(state: LayoutEditorState) {
                 label = doc.fileName,
                 modified = doc.isModified,
                 hint = doc.path,
-                isActive = state.activeTextureIndex < 0 && index == state.activeFileIndex,
+                isActive = state.activeTextureIndex < 0 && state.activeImageSetIndex < 0 && index == state.activeFileIndex,
                 onClick = { state.selectLayout(index) },
                 onClose = { state.closeFile(index) },
             )
@@ -501,9 +538,20 @@ private fun FileTabBar(state: LayoutEditorState) {
             FileTab(
                 icon = fileIcon(doc.fileName),
                 label = doc.fileName,
-                isActive = index == state.activeTextureIndex,
+                isActive = index == state.activeTextureIndex && state.activeImageSetIndex < 0,
                 onClick = { state.selectTexture(index) },
                 onClose = { state.closeTexture(index) },
+            )
+        }
+        state.openImageSets.forEachIndexed { index, doc ->
+            FileTab(
+                icon = fileIcon(doc.fileName),
+                label = doc.fileName,
+                modified = doc.isModified,
+                hint = doc.path,
+                isActive = index == state.activeImageSetIndex,
+                onClick = { state.selectImageSet(index) },
+                onClose = { state.closeImageSet(index) },
             )
         }
     }

@@ -14,6 +14,8 @@ data class LayoutEditorConfig(
 data class EditorSession(
     val layouts: List<String> = emptyList(),
     val textures: List<String> = emptyList(),
+    val imageSets: List<String> = emptyList(),
+    val activeIsImageSet: Boolean = false,
     val active: String = "",
     val activeIsTexture: Boolean = false,
     val expandedDirs: List<String> = emptyList(),

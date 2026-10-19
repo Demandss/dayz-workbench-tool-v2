@@ -333,12 +333,13 @@ fun FileTreePanel(
                                 ) { runCatching { entry.path.toFile().canonicalPath }.getOrDefault(entry.path.toString()) }
                             val layoutDoc = state.openFiles.firstOrNull { it.path == realPath }
                             val textureDoc = state.openTextures.firstOrNull { it.path == realPath }
+                            val imageSetDoc = state.openImageSets.firstOrNull { it.path == realPath }
                             TreeRow(
                                 entry = entry,
                                 isSelected = selectedPath == entry.path,
                                 isExpanded = expandedDirs.contains(entry.path),
-                                isOpen = layoutDoc != null || textureDoc != null,
-                                isModified = layoutDoc?.isModified == true,
+                                isOpen = layoutDoc != null || textureDoc != null || imageSetDoc != null,
+                                isModified = layoutDoc?.isModified == true || imageSetDoc?.isModified == true,
                                 hasError = textureDoc?.error != null,
                                 onSelect = { selectedPath = entry.path },
                                 onToggle = {
@@ -366,6 +367,8 @@ fun FileTreePanel(
                                         }
                                     } else if (entry.name.endsWith(".layout")) {
                                         state.openFile(entry.path.toString())
+                                    } else if (entry.name.endsWith(".imageset", ignoreCase = true)) {
+                                        state.openImageSet(entry.path.toString())
                                     } else if (TEXTURE_EXTENSIONS.any { entry.name.endsWith(it, ignoreCase = true) }) {
                                         state.openTexture(entry.path.toString())
                                     }
@@ -380,6 +383,7 @@ fun FileTreePanel(
                                     if (!entry.isDir &&
                                         (
                                             entry.name.endsWith(".layout", ignoreCase = true) ||
+                                                entry.name.endsWith(".imageset", ignoreCase = true) ||
                                                 TEXTURE_EXTENSIONS.any { entry.name.endsWith(it, ignoreCase = true) }
                                         )
                                     ) {

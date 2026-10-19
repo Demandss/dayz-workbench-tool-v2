@@ -879,7 +879,7 @@ private fun resizeTargetFor(state: LayoutEditorState): ResizeTarget? {
 }
 
 /** The mouse cursor for a handle: arrows along the edge or the diagonal. */
-private fun resizeCursor(handle: ResizeHandle?): PointerIcon =
+internal fun resizeCursor(handle: ResizeHandle?): PointerIcon =
     when (handle) {
         null -> PointerIcon.Default
         ResizeHandle.E -> PointerIcon(Cursor(Cursor.E_RESIZE_CURSOR))
