@@ -682,7 +682,10 @@ class LayoutEditorState(
                                 "vexactpos" to if (usePixel) "1" else "0",
                                 "hexactsize" to if (usePixel) "1" else "0",
                                 "vexactsize" to if (usePixel) "1" else "0",
-                            ),
+                            ).also { props ->
+                                // A new widget starts with the empty vanilla style, when its type has one
+                                if (vanillaStylesFor(type.className, doc.path).any { it.name == "blank" }) props["style"] = "blank"
+                            },
                     ),
             )
         pushUndo(idx, doc.root, "Добавление $cleanName")
@@ -1022,7 +1025,7 @@ class LayoutEditorState(
                 )
             native[slot] = Size(d.width.toFloat(), d.height.toFloat())
         }
-        return WidgetSkin(atlas, source, native, plan.styleColor)
+        return WidgetSkin(atlas, source, native, plan.styleColor, plan.images.mapValues { it.value.flags })
     }
 
     private fun buildSkinPlan(

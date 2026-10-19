@@ -936,13 +936,27 @@ private fun DrawScope.drawSkin(
     for ((slot, r) in rects) {
         val src = skin.source[slot] ?: continue
         if (r.width < 0.5f || r.height < 0.5f) continue
-        drawImage(
-            image = skin.atlas,
-            srcOffset = IntOffset(src.left, src.top),
-            srcSize = IntSize(src.width, src.height),
-            dstOffset = IntOffset(r.left.toInt(), r.top.toInt()),
-            dstSize = IntSize(r.width.toInt().coerceAtLeast(1), r.height.toInt().coerceAtLeast(1)),
-            colorFilter = ColorFilter.tint(tint, BlendMode.Modulate),
-        )
+        val bits = skin.flags[slot] ?: 0
+        val nat = skin.native[slot] ?: continue
+        val stepX = if (bits and 1 != 0) (nat.width * zoom).coerceAtLeast(1f) else r.width
+        val stepY = if (bits and 2 != 0) (nat.height * zoom).coerceAtLeast(1f) else r.height
+        clipRect(r.left, r.top, r.right, r.bottom) {
+            var y = r.top
+            while (y < r.bottom) {
+                var x = r.left
+                while (x < r.right) {
+                    drawImage(
+                        image = skin.atlas,
+                        srcOffset = IntOffset(src.left, src.top),
+                        srcSize = IntSize(src.width, src.height),
+                        dstOffset = IntOffset(x.toInt(), y.toInt()),
+                        dstSize = IntSize(stepX.toInt().coerceAtLeast(1), stepY.toInt().coerceAtLeast(1)),
+                        colorFilter = ColorFilter.tint(tint, BlendMode.Modulate),
+                    )
+                    x += stepX
+                }
+                y += stepY
+            }
+        }
     }
 }

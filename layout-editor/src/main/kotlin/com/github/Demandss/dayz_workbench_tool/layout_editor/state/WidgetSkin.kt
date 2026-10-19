@@ -14,6 +14,8 @@ class WidgetSkin(
     val source: Map<String, IntRect>,
     val native: Map<String, Size>,
     val styleColor: Color,
+    // ImageFlags bits per slot: a tiled image repeats at its own size instead of stretching
+    val flags: Map<String, Int> = emptyMap(),
 )
 
 /** Resolved parts of a skin that do not depend on the bitmap being loaded yet. */
