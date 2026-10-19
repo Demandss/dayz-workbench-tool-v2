@@ -44,6 +44,7 @@ import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.screenRec
 import com.github.demandss.dayz_workbench_tool.layout_editor.updateNode
 import com.github.demandss.dayz_workbench_tool.ui.icons.AppIcon
 import com.github.demandss.dayz_workbench_tool.ui.icons.AppIconView
+import com.github.demandss.dayz_workbench_tool.ui.icons.widgetIcon
 import com.github.demandss.dayz_workbench_tool.ui.pickFile
 import com.github.demandss.dayz_workbench_tool.ui.theme.*
 import kotlinx.coroutines.launch
@@ -222,37 +223,18 @@ fun PropertiesContent(
         val props = node.node.properties
         val commit: (String, String) -> Unit = { key, value -> commitProp(state, node.id, key, value) }
 
-        PropertiesHeader(state, node.id, node.node.name, node.node.type, props, commit)
-        HLine()
-
-        var tab by remember { mutableStateOf(0) }
-        Row(Modifier.fillMaxWidth().height(26.dp).background(ElementsBackground), verticalAlignment = Alignment.CenterVertically) {
-            PropsTabBtn("Properties", tab == 0) { tab = 0 }
-            PropsTabBtn("Classes", tab == 1) { tab = 1 }
-        }
-        HLine()
-
         Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState())) {
-            when (tab) {
-                0 -> {
-                    WidgetSection(props, commit)
-                    if (node.node.type in IMAGE_TYPES) ImageWidgetSection(props, commit, state.workDrivePath)
-                    val extra = props.filter { it.key !in WIDGET_KEYS && it.key !in IMAGE_KEYS }
-                    if (extra.isNotEmpty()) RawSection(extra, commit)
-                }
-
-                1 -> {
-                    Box(Modifier.fillMaxWidth().padding(8.dp)) {
-                        Text("Классы — в разработке", color = GhostlyText, fontSize = 11.sp)
-                    }
-                }
-            }
+            PropertiesHeader(state, node.id, node.node.name, node.node.type, props, commit)
+            WidgetSection(props, commit)
+            if (node.node.type in IMAGE_TYPES) ImageWidgetSection(props, commit, state.workDrivePath)
+            val extra = props.filter { it.key !in WIDGET_KEYS && it.key !in IMAGE_KEYS }
+            if (extra.isNotEmpty()) RawSection(extra, commit)
         }
     }
 }
 
 // ---------------------------------------------------------------------------
-// Fixed header
+// Name, type and Transform
 // ---------------------------------------------------------------------------
 
 @Composable
@@ -265,15 +247,18 @@ private fun PropertiesHeader(
     commit: (String, String) -> Unit,
 ) {
     Row(
-        Modifier.fillMaxWidth().height(ROW_H).padding(horizontal = 4.dp),
+        Modifier.fillMaxWidth().padding(8.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Text("Name", color = GhostlyText, fontSize = 10.sp, modifier = Modifier.width(40.dp))
+        AppIconView(widgetIcon(type), size = 18.dp)
         StringField(name, Modifier.weight(1f)) { commitName(state, id, it) }
         TypeDropdown(type) { commitType(state, id, it) }
     }
-    HLine()
+
+    var open by remember { mutableStateOf(true) }
+    SectionHeader("Transform", open) { open = !open }
+    if (!open) return
 
     val hexactpos = props["hexactpos"] == "1"
     val vexactpos = props["vexactpos"] == "1"
@@ -287,62 +272,75 @@ private fun PropertiesHeader(
     var sw by remember(props["size"]) { mutableStateOf(szParts.getOrNull(0) ?: "0") }
     var sh by remember(props["size"]) { mutableStateOf(szParts.getOrNull(1) ?: "0") }
 
-    Row(
-        Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 2.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
-    ) {
-        NumberField("X", px, hexactpos, Modifier.weight(1f), { switchUnit(state, id, props, "position", 0, "hexactpos", it) }) { v ->
-            px = v
-            commit("position", "$v $py")
+    Column(Modifier.fillMaxWidth().padding(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            NumberField("X", px, hexactpos, Modifier.weight(1f), { switchUnit(state, id, props, "position", 0, "hexactpos", it) }) { v ->
+                px = v
+                commit("position", "$v $py")
+            }
+            NumberField("Y", py, vexactpos, Modifier.weight(1f), { switchUnit(state, id, props, "position", 1, "vexactpos", it) }) { v ->
+                py = v
+                commit("position", "$px $v")
+            }
         }
-        NumberField("Y", py, vexactpos, Modifier.weight(1f), { switchUnit(state, id, props, "position", 1, "vexactpos", it) }) { v ->
-            py = v
-            commit("position", "$px $v")
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            NumberField("W", sw, hexactsize, Modifier.weight(1f), { switchUnit(state, id, props, "size", 0, "hexactsize", it) }) { v ->
+                sw = v
+                commit("size", "$v $sh")
+            }
+            NumberField("H", sh, vexactsize, Modifier.weight(1f), { switchUnit(state, id, props, "size", 1, "vexactsize", it) }) { v ->
+                sh = v
+                commit("size", "$sw $v")
+            }
         }
-    }
-    Row(
-        Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 2.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
-    ) {
-        NumberField("W", sw, hexactsize, Modifier.weight(1f), { switchUnit(state, id, props, "size", 0, "hexactsize", it) }) { v ->
-            sw = v
-            commit("size", "$v $sh")
-        }
-        NumberField("H", sh, vexactsize, Modifier.weight(1f), { switchUnit(state, id, props, "size", 1, "vexactsize", it) }) { v ->
-            sh = v
-            commit("size", "$sw $v")
-        }
-    }
-    HLine()
 
-    if (props["halign"] == "center" || props["valign"] == "center") {
-        Row(
-            Modifier.fillMaxWidth().background(Color(0x33FFB020)).padding(horizontal = 6.dp, vertical = 3.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            AppIconView(AppIcon.UI_WARN, size = 14.dp)
-            Spacer(Modifier.width(6.dp))
-            Text("«center» без _ref не центрирует: нужно center_ref", color = TextForeground, fontSize = 10.sp)
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            AlignmentGrid(props["halign"].orEmpty(), props["valign"].orEmpty()) { h, v ->
+                commit("halign", h)
+                commit("valign", v)
+            }
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                AlignText("halign", props["halign"])
+                AlignText("valign", props["valign"])
+            }
+        }
+
+        if (props["halign"] == "center" || props["valign"] == "center") {
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .background(Color(0xFF3A3220))
+                    .border(1.dp, Color(0xFF6B5A2B))
+                    .padding(8.dp),
+                verticalAlignment = Alignment.Top,
+            ) {
+                AppIconView(AppIcon.UI_WARN, size = 16.dp)
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    "В файле стоит голый center. Такой виджет остаётся у начального края. Нужен center_ref.",
+                    color = Color(0xFFF0D9A0),
+                    fontSize = 11.sp,
+                    lineHeight = 15.sp,
+                )
+            }
         }
     }
+}
 
-    Row(
-        Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 4.dp),
-        verticalAlignment = Alignment.Top,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        AlignmentGrid(props["halign"] ?: "", props["valign"] ?: "") { h, v ->
-            commit("halign", h)
-            commit("valign", v)
+@Composable
+private fun AlignText(
+    key: String,
+    value: String?,
+) {
+    val shown =
+        when (value) {
+            null, "", "left", "top" -> "— (${value?.ifEmpty { null } ?: if (key == "halign") "left" else "top"})"
+            "center" -> "center (голый)"
+            else -> value
         }
-        Text(
-            "px: значение в пикселях\n%: доля родителя",
-            color = GhostlyText,
-            fontSize = 10.sp,
-            modifier = Modifier.padding(start = 6.dp, top = 4.dp),
-        )
+    Row {
+        Text("$key ", color = GhostlyText, fontSize = 11.sp)
+        Text(shown, color = TextForeground, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
     }
 }
 
@@ -356,72 +354,26 @@ private fun AlignmentGrid(
     valign: String,
     onSet: (String, String) -> Unit,
 ) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text("Align", color = GhostlyText, fontSize = 8.sp)
-        Spacer(Modifier.height(2.dp))
-        Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
-            for ((ri, v) in VALIGN_GRID.withIndex()) {
-                Row(horizontalArrangement = Arrangement.spacedBy(1.dp)) {
-                    for ((ci, h) in HALIGN_GRID.withIndex()) {
-                        AlignCell(ci, ri, halign == h && valign == v) { onSet(h, v) }
+    val h0 = halign.ifEmpty { "left" }
+    val v0 = valign.ifEmpty { "top" }
+    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        for (v in VALIGN_GRID) {
+            Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                for (h in HALIGN_GRID) {
+                    val on = h0 == h && v0 == v
+                    Box(
+                        Modifier
+                            .size(18.dp)
+                            .background(if (on) SubSelectColor else DarkenedBorder)
+                            .border(1.dp, if (on) SubSelectColor else Color(0xFF3A3C40))
+                            .clickable(remember { MutableInteractionSource() }, null) { onSet(h, v) },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Box(Modifier.size(4.dp).background(if (on) Color.White else Color(0xFF8A8F96)))
                     }
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun AlignCell(
-    col: Int,
-    row: Int,
-    active: Boolean,
-    onClick: () -> Unit,
-) {
-    Box(
-        Modifier
-            .size(20.dp)
-            .background(if (active) SelectColor else Color(0xFF2A2C30))
-            .border(1.dp, DarkenedBorder)
-            .clickable(remember { MutableInteractionSource() }, null, onClick = onClick),
-    ) {
-        Canvas(Modifier.fillMaxSize()) {
-            val p = 3.5f
-            drawRect(Color(0x55FFFFFF), Offset(p, p), Size(size.width - p * 2, size.height - p * 2), style = Stroke(0.75f))
-            val dotX =
-                when (col) {
-                    0 -> p
-                    1 -> size.width / 2f
-                    else -> size.width - p
-                }
-            val dotY =
-                when (row) {
-                    0 -> p
-                    1 -> size.height / 2f
-                    else -> size.height - p
-                }
-            drawCircle(if (active) Color.White else Color(0xAAFFFFFF), 2.5f, Offset(dotX, dotY))
-        }
-    }
-}
-
-// ---------------------------------------------------------------------------
-// Tab button
-// ---------------------------------------------------------------------------
-
-@Composable
-private fun PropsTabBtn(
-    label: String,
-    active: Boolean,
-    onClick: () -> Unit,
-) {
-    Box(
-        Modifier
-            .background(if (active) FrameBackground else Color.Transparent)
-            .clickable(remember { MutableInteractionSource() }, null, onClick = onClick)
-            .padding(horizontal = 8.dp, vertical = 4.dp),
-    ) {
-        Text(label, color = if (active) TextForeground else GhostlyText, fontSize = 11.sp)
     }
 }
 
@@ -438,9 +390,9 @@ private fun WidgetSection(
     SectionHeader("Widget", expanded) { expanded = !expanded }
     if (!expanded) return
 
-    CheckRow("visible", props["visible"], commit)
+    CheckRow("visible", props["visible"], commit, default = true)
     CheckRow("disabled", props["disabled"], commit)
-    CheckRow("clipchildren", props["clipchildren"], commit)
+    CheckRow("clipchildren", props["clipchildren"], commit, default = true)
     CheckRow("inheritalpha", props["inheritalpha"], commit)
     CheckRow("ignorepointer", props["ignorepointer"], commit)
     CheckRow("ignoregloballv", props["ignoregloballv"], commit)
@@ -701,13 +653,15 @@ private fun SectionHeader(
     Row(
         Modifier
             .fillMaxWidth()
-            .height(18.dp)
-            .background(Color(0xFF2A2C30))
+            .height(24.dp)
+            .background(ElementsBackground)
             .clickable(remember { MutableInteractionSource() }, null, onClick = onToggle)
-            .padding(horizontal = 6.dp),
+            .padding(horizontal = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(if (expanded) "▾ $title" else "▸ $title", color = GhostlyText, fontSize = 9.sp)
+        AppIconView(if (expanded) AppIcon.UI_DOWN else AppIcon.UI_RIGHT, size = 12.dp, tint = GhostlyText)
+        Spacer(Modifier.width(6.dp))
+        Text(title, color = TextForeground, fontSize = 11.sp)
     }
 }
 
@@ -801,28 +755,29 @@ private fun CheckRow(
     value: String?,
     commit: (String, String) -> Unit,
     hint: String? = null,
+    default: Boolean = false,
 ) {
-    val checked = value?.trim() == "1"
+    val checked = value?.let { it.trim() == "1" } ?: default
     Row(
         Modifier
             .fillMaxWidth()
-            .height(ROW_H)
+            .height(24.dp)
             .clickable(remember { MutableInteractionSource() }, null) { commit(key, if (checked) "0" else "1") }
-            .padding(horizontal = 4.dp),
+            .padding(horizontal = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        PropLabel(key, value != null, hint, Modifier.weight(1f))
         Box(
             Modifier
                 .size(14.dp)
-                .background(if (checked) SelectColor.copy(alpha = 0.25f) else Color.Transparent)
-                .border(1.dp, if (checked) SelectColor else DarkenedBorder),
+                .background(if (checked) SubSelectColor else DarkenedBorder)
+                .border(1.dp, if (checked) SubSelectColor else Color(0xFF3A3C40)),
             contentAlignment = Alignment.Center,
         ) {
-            if (checked) Text("✓", color = SelectColor, fontSize = 9.sp, lineHeight = 9.sp)
+            if (checked) Text("✓", color = Color.White, fontSize = 10.sp, lineHeight = 10.sp)
         }
+        Spacer(Modifier.width(8.dp))
+        PropLabel(key, value != null, hint, Modifier)
     }
-    HLine()
 }
 
 @Composable
@@ -855,7 +810,7 @@ private fun NumberField(
     }
 
     Row(modifier, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(3.dp)) {
-        Text(label, color = GhostlyText, fontSize = 10.sp, modifier = Modifier.width(10.dp))
+        Text(label, color = GhostlyText, fontSize = 11.sp, modifier = Modifier.width(14.dp))
         BasicTextField(
             value = text,
             onValueChange = { text = it },
@@ -865,6 +820,7 @@ private fun NumberField(
                     color = TextForeground,
                     fontSize = 11.sp,
                     fontFamily = FontFamily.Monospace,
+                    fontWeight = if (text.toFloatOrNull()?.let { it != 0f } == true) FontWeight.Bold else null,
                     textAlign = TextAlign.End,
                 ),
             cursorBrush = SolidColor(TextForeground),
@@ -872,9 +828,9 @@ private fun NumberField(
                 Box(
                     Modifier
                         .fillMaxWidth()
-                        .height(22.dp)
-                        .background(FrameBackground)
-                        .border(1.dp, if (focused) SubSelectColor else DarkenedBorder)
+                        .height(24.dp)
+                        .background(DarkenedBorder)
+                        .border(1.dp, if (focused) SubSelectColor else Color(0xFF3A3C40))
                         .padding(horizontal = 4.dp),
                     contentAlignment = Alignment.CenterEnd,
                 ) { inner() }
@@ -933,20 +889,17 @@ private fun UnitSwitch(
     isPx: Boolean,
     onChange: (Boolean) -> Unit,
 ) {
-    Row(Modifier.height(22.dp).border(1.dp, DarkenedBorder)) {
-        for ((label, px) in listOf("px" to true, "%" to false)) {
-            val active = isPx == px
-            Box(
-                Modifier
-                    .width(22.dp)
-                    .fillMaxHeight()
-                    .background(if (active) SubSelectColor else Color(0xFF2A2C30))
-                    .clickable(remember { MutableInteractionSource() }, null) { if (!active) onChange(px) },
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(label, color = if (active) Color.White else GhostlyText, fontSize = 9.sp)
-            }
-        }
+    Box(
+        Modifier
+            .height(24.dp)
+            .widthIn(min = 24.dp)
+            .background(ElementsBackground)
+            .border(1.dp, Color(0xFF3A3C40))
+            .clickable(remember { MutableInteractionSource() }, null) { onChange(!isPx) }
+            .padding(horizontal = 3.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(if (isPx) "px" else "%", color = GhostlyText, fontSize = 10.sp)
     }
 }
 
