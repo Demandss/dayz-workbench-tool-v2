@@ -22,6 +22,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.withTransform
+import androidx.compose.ui.graphics.toComposeImageBitmap
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.isAltPressed
@@ -174,21 +176,9 @@ private fun DrawScope.drawAtlas(
     val area = Size(refW * zoom, refH * zoom)
 
     // A chequered backdrop shows the transparency of the texture
-    val cell = 8f
-    var yy = 0f
-    var row = 0
-    while (yy < area.height) {
-        var xx = 0f
-        var col = row % 2
-        while (xx < area.width) {
-            val w = min(cell, area.width - xx)
-            val h = min(cell, area.height - yy)
-            drawRect(if (col % 2 == 0) Color(0xFF3A3A3F) else Color(0xFF2B2B30), Offset(origin.x + xx, origin.y + yy), Size(w, h))
-            xx += cell
-            col++
-        }
-        yy += cell
-        row++
+    // One draw with a repeating 2 x 2 pattern; a loop over every cell is thousands of draws on a big atlas
+    withTransform({ translate(origin.x, origin.y) }) {
+        drawRect(CHEQUER_BRUSH, Offset.Zero, area)
     }
     if (bitmap != null) {
         drawImage(
@@ -222,6 +212,12 @@ private fun DrawScope.drawAtlas(
 
     for (entry in model.entries) {
         val r = entry.def.rect()
+        // Regions outside the view cost nothing
+        if (origin.x + r.right * zoom < 0f || origin.y + r.bottom * zoom < 0f || origin.x + r.left * zoom > size.width ||
+            origin.y + r.top * zoom > size.height
+        ) {
+            continue
+        }
         val tl = Offset(origin.x + r.left * zoom, origin.y + r.top * zoom)
         val sz = Size(r.width * zoom, r.height * zoom)
         val selected = entry.id in doc.selected
@@ -238,7 +234,12 @@ private fun DrawScope.drawAtlas(
             style = Stroke(if (selected) 2f else 1f),
         )
         if (view.showNames && sz.width > 36f && sz.height > 12f) {
-            val label = measurer.measure(entry.def.name, TextStyle(color = Color.White, fontSize = 10.sp), maxLines = 1)
+            val label =
+                (if (LABEL_CACHE.size > 3000) LABEL_CACHE.clear() else Unit).let {
+                    LABEL_CACHE.getOrPut(
+                        entry.def.name,
+                    ) { measurer.measure(entry.def.name, TextStyle(color = Color.White, fontSize = 10.sp), maxLines = 1) }
+                }
             if (label.size.width < sz.width) {
                 drawRect(Color(0xAA000000), tl, Size(label.size.width + 6f, label.size.height + 2f))
                 drawText(label, topLeft = Offset(tl.x + 3f, tl.y + 1f))
@@ -682,3 +683,23 @@ private suspend fun androidx.compose.ui.input.pointer.PointerInputScope.imageSet
         }
     }
 }
+
+private val CHEQUER_BRUSH: androidx.compose.ui.graphics.ShaderBrush by lazy {
+    val cell = 8
+    val image = java.awt.image.BufferedImage(cell * 2, cell * 2, java.awt.image.BufferedImage.TYPE_INT_ARGB)
+    for (y in 0 until cell * 2) {
+        for (x in 0 until cell * 2) {
+            image.setRGB(x, y, if ((x / cell + y / cell) % 2 == 0) 0xFF3A3A3F.toInt() else 0xFF2B2B30.toInt())
+        }
+    }
+    androidx.compose.ui.graphics.ShaderBrush(
+        androidx.compose.ui.graphics.ImageShader(
+            image.toComposeImageBitmap(),
+            androidx.compose.ui.graphics.TileMode.Repeated,
+            androidx.compose.ui.graphics.TileMode.Repeated,
+        ),
+    )
+}
+
+// Measuring a label is slow and the text of a region rarely changes, so the layouts are kept
+private val LABEL_CACHE = HashMap<String, androidx.compose.ui.text.TextLayoutResult>()

@@ -630,6 +630,10 @@ private fun ImageList(
     }
     val shown = model.entries.filter { query.isBlank() || it.def.name.contains(query.trim(), ignoreCase = true) }
     val groups = (listOf<String?>(null) + model.groups).filter { g -> shown.any { it.group == g } }
+    // Hundreds of rows with thumbnails make the whole panel slow, so the list grows on request
+    var limit by remember(query) { mutableStateOf(IMAGE_ROWS_STEP) }
+    val selectedShown = shown.filter { it.id in doc.selected }
+    val visible = (shown.take(limit) + selectedShown).distinctBy { it.id }.map { it.id }.toSet()
     Column(Modifier.fillMaxWidth()) {
         for (group in groups) {
             if (group !=
@@ -642,11 +646,21 @@ private fun ImageList(
                     modifier = Modifier.padding(start = 8.dp, top = 6.dp, bottom = 2.dp),
                 )
             }
-            for (entry in shown.filter { it.group == group }) ImageRow(doc, view, entry, bitmap)
+            for (entry in shown.filter { it.group == group && it.id in visible }) ImageRow(doc, view, entry, bitmap)
+        }
+        if (shown.size > limit) {
+            Text(
+                "Показано $limit из ${shown.size}. Показать ещё",
+                color = GhostlyText,
+                fontSize = 11.sp,
+                modifier = Modifier.fillMaxWidth().clickable { limit += IMAGE_ROWS_STEP }.padding(8.dp),
+            )
         }
     }
     if (file == null && bitmap == null) Spacer(Modifier.height(1.dp))
 }
+
+private const val IMAGE_ROWS_STEP = 60
 
 @Composable
 private fun ImageRow(
@@ -720,7 +734,7 @@ private fun ProblemsSection(
         Text("Замечаний нет", color = GhostlyText, fontSize = 11.sp, modifier = Modifier.padding(8.dp))
         return
     }
-    for (p in problems) {
+    for (p in problems.take(50)) {
         Row(
             Modifier
                 .fillMaxWidth()
@@ -737,4 +751,5 @@ private fun ProblemsSection(
             Text(p.message, color = TextForeground, fontSize = 11.sp)
         }
     }
+    if (problems.size > 50) Text("И ещё ${problems.size - 50}", color = GhostlyText, fontSize = 11.sp, modifier = Modifier.padding(8.dp))
 }

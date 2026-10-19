@@ -196,13 +196,16 @@ fun checkImageSet(
     all.groupBy { it.def.name }.filterValues { it.size > 1 }.forEach { (name, same) ->
         out += ImageProblem(ImageProblemKind.DUPLICATE_NAME, "Имя «$name» встречается ${same.size} раза", same.map { it.id })
     }
-    for (i in all.indices) {
-        for (j in i + 1 until all.size) {
-            val a = all[i].def
-            val b = all[j].def
-            val overlaps = a.x < b.right && b.x < a.right && a.y < b.bottom && b.y < a.bottom
-            if (overlaps && a.width > 0 && a.height > 0 && b.width > 0 && b.height > 0) {
-                out += ImageProblem(ImageProblemKind.OVERLAP, "«${a.name}» и «${b.name}» пересекаются", listOf(all[i].id, all[j].id))
+    // Sweep along x: a region is only compared with the ones that start before it ends
+    val byX = all.sortedBy { it.def.x }
+    for (i in byX.indices) {
+        val a = byX[i].def
+        if (a.width <= 0 || a.height <= 0) continue
+        for (j in i + 1 until byX.size) {
+            val b = byX[j].def
+            if (b.x >= a.right) break
+            if (b.width > 0 && b.height > 0 && a.y < b.bottom && b.y < a.bottom) {
+                out += ImageProblem(ImageProblemKind.OVERLAP, "«${a.name}» и «${b.name}» пересекаются", listOf(byX[i].id, byX[j].id))
             }
         }
     }
