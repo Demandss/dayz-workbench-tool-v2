@@ -32,6 +32,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
 import com.github.demandss.dayz_workbench_tool.layout.NewFileKind
+import com.github.demandss.dayz_workbench_tool.layout_editor.state.Confirmation
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.LayoutEditorState
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.ToastKind
 import com.github.demandss.dayz_workbench_tool.texture.EddsCodec
@@ -463,32 +464,32 @@ fun FileTreePanel(
         RecentFiles(state)
     }
 
-    // Delete confirmation dialog
+    // Delete confirmation, asked over the whole window
     deletingEntry?.let { target ->
-        AlertDialog(
-            onDismissRequest = { deletingEntry = null },
-            confirmButton = {
-                TextButton(onClick = {
-                    deletingEntry = null
-                    scope.launch(Dispatchers.IO) {
-                        runCatching {
-                            if (target.isDir) {
-                                Files.walk(target.path).sorted(Comparator.reverseOrder()).forEach(Files::delete)
-                            } else {
-                                Files.deleteIfExists(target.path)
-                            }
+        deletingEntry = null
+        state.confirmation =
+            Confirmation(
+                title = "Удалить «${target.name}»?",
+                message = "Это действие необратимо.",
+                confirmLabel = "Удалить",
+                danger = true,
+            ) {
+                scope.launch(Dispatchers.IO) {
+                    runCatching {
+                        if (target.isDir) {
+                            Files.walk(target.path).sorted(Comparator.reverseOrder()).forEach(Files::delete)
+                        } else {
+                            Files.deleteIfExists(target.path)
                         }
-                        withContext(Dispatchers.Main) { refreshTick++ }
+                    }.onFailure {
+                        state.notify(
+                            "Не удалось удалить ${target.name}: ${it.message ?: it.javaClass.simpleName}",
+                            ToastKind.ERROR,
+                        )
                     }
-                }) { Text("Удалить", color = Color(0xFFFF5555)) }
-            },
-            dismissButton = {
-                TextButton(onClick = { deletingEntry = null }) { Text("Отмена", color = GhostlyText) }
-            },
-            title = { Text("Удалить «${target.name}»?", color = TextForeground) },
-            text = { Text("Это действие необратимо.", color = GhostlyText, fontSize = 12.sp) },
-            containerColor = ElementsBackground,
-        )
+                    withContext(Dispatchers.Main) { refreshTick++ }
+                }
+            }
     }
 }
 

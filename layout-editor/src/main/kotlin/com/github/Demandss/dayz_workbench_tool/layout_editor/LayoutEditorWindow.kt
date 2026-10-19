@@ -17,6 +17,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.*
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
@@ -47,8 +48,10 @@ import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.findProbl
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.Breadcrumbs
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.BulkEditDialog
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.CommandPalette
+import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.ConfirmDialog
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.EmptyState
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.FileTreePanel
+import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.FlatDialog
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.HierarchyPanel
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.HistoryPanel
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.Minimap
@@ -323,6 +326,7 @@ fun LayoutEditorWindow(
                 }
 
                 BulkEditDialog(state)
+                ConfirmDialog(state)
                 ToastHost(state, Modifier.align(Alignment.BottomEnd).padding(bottom = 22.dp))
                 CommandPalette(state) {
                     scope.launch {
@@ -401,56 +405,52 @@ private fun NameDialog(
     var name by remember { mutableStateOf("") }
     val focusRequester = remember { FocusRequester() }
 
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Новый $typeName", color = TextForeground) },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text("Имя виджета:", color = GhostlyText, fontSize = 12.sp)
-                BasicTextField(
-                    value = name,
-                    onValueChange = { name = it },
-                    singleLine = true,
-                    textStyle = TextStyle(color = TextForeground, fontSize = 13.sp),
-                    cursorBrush = SolidColor(TextForeground),
-                    decorationBox = { inner ->
-                        Box(
-                            Modifier
-                                .fillMaxWidth()
-                                .background(FrameBackground)
-                                .border(1.dp, DarkenedBorder)
-                                .padding(horizontal = 8.dp, vertical = 6.dp),
-                        ) { inner() }
+    FlatDialog(
+        title = "Новый $typeName",
+        onDismiss = onDismiss,
+        width = 320.dp,
+        buttons = {
+            DarkButton("Отмена", onClick = onDismiss, muted = true, modifier = Modifier.width(80.dp))
+            DarkButton("Добавить", onClick = { onConfirm(name) }, modifier = Modifier.width(90.dp))
+        },
+    ) {
+        Text("Имя виджета", color = GhostlyText, fontSize = 11.sp)
+        BasicTextField(
+            value = name,
+            onValueChange = { name = it },
+            singleLine = true,
+            textStyle = TextStyle(color = TextForeground, fontSize = 12.sp),
+            cursorBrush = SolidColor(TextForeground),
+            decorationBox = { inner ->
+                Box(
+                    Modifier
+                        .fillMaxWidth()
+                        .height(26.dp)
+                        .background(FrameBackground)
+                        .border(1.dp, DarkenedBorder)
+                        .padding(horizontal = 8.dp),
+                    contentAlignment = Alignment.CenterStart,
+                ) { inner() }
+            },
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .focusRequester(focusRequester)
+                    .onKeyEvent { ev ->
+                        if (ev.key == Key.Enter && ev.type == KeyEventType.KeyDown) {
+                            onConfirm(name)
+                            true
+                        } else {
+                            false
+                        }
                     },
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .focusRequester(focusRequester)
-                            .onKeyEvent { ev ->
-                                if (ev.key == Key.Enter && ev.type == KeyEventType.KeyDown) {
-                                    onConfirm(name)
-                                    true
-                                } else {
-                                    false
-                                }
-                            },
-                )
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = { onConfirm(name) }) {
-                Text("Добавить", color = SelectColor)
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Отмена", color = GhostlyText)
-            }
-        },
-        containerColor = ElementsBackground,
-    )
+        )
+    }
 
-    LaunchedEffect(Unit) { focusRequester.requestFocus() }
+    LaunchedEffect(Unit) {
+        withFrameNanos { }
+        runCatching { focusRequester.requestFocus() }
+    }
 }
 
 // ---------------------------------------------------------------------------

@@ -255,6 +255,9 @@ class LayoutEditorState(
 
     var commandPaletteOpen by mutableStateOf(false)
 
+    // A question with a confirm button, shown over the whole window
+    var confirmation by mutableStateOf<Confirmation?>(null)
+
     // Find and replace dialog, and the strip that shows the layout at several resolutions at once
     var bulkDialog by mutableStateOf<BulkMode?>(null)
     var compareResolutions by mutableStateOf(false)
