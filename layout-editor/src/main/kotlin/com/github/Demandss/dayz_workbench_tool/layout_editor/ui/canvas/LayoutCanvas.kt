@@ -340,6 +340,9 @@ fun LayoutCanvas(
                     if (ev.key == Key.Spacebar) {
                         spacePressed = ev.type == KeyEventType.KeyDown
                         true
+                    } else if (ev.key == Key.Delete && ev.type == KeyEventType.KeyDown) {
+                        state.deleteSelected()
+                        true
                     } else {
                         false
                     }

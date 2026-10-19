@@ -18,6 +18,12 @@ import com.github.demandss.dayz_workbench_tool.layout_editor.findNode
 import com.github.demandss.dayz_workbench_tool.layout_editor.removeNode
 import com.github.demandss.dayz_workbench_tool.layout_editor.toEditorNode
 import com.github.demandss.dayz_workbench_tool.layout_editor.toWidgetNode
+import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.AlignMode
+import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.alignedRoot
+import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.layoutTree
+import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.movedBy
+import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.screenRect
+import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.withCopyOf
 import com.github.demandss.dayz_workbench_tool.layout_editor.updateNode
 import com.github.demandss.dayz_workbench_tool.texture.EddsCodec
 import kotlinx.coroutines.*
@@ -199,9 +205,13 @@ class LayoutEditorState(
         saveSession()
     }
 
+    // When the editor wrote a file itself, so that the watcher does not report it as a change from outside
+    private val ownWrites = java.util.concurrent.ConcurrentHashMap<String, Long>()
+
     fun saveActiveFile() {
         val idx = activeFileIndex
         val doc = openFiles.getOrNull(idx) ?: return
+        ownWrites[doc.path] = System.currentTimeMillis()
         runCatching {
             File(doc.path).writeText(LayoutSerializer.serialize(doc.root.toWidgetNode()))
             openFiles[idx] = doc.copy(isModified = false)
@@ -224,6 +234,55 @@ class LayoutEditorState(
 
     fun dismissChangedNotification(path: String) {
         filesChangedOnDisk.remove(path)
+    }
+
+    var commandPaletteOpen by mutableStateOf(false)
+    var showRulers by mutableStateOf(false)
+    var showMinimap by mutableStateOf(false)
+
+    fun deleteSelected() {
+        val idx = activeFileIndex
+        val doc = openFiles.getOrNull(idx) ?: return
+        val ids = selectedIds.filter { it != doc.root.id }
+        if (ids.isEmpty()) return
+        val label =
+            if (ids.size == 1) "Удаление ${doc.root.findNode(ids[0])?.node?.name.orEmpty()}".trim() else "Удаление ${ids.size} виджетов"
+        pushUndo(idx, doc.root, label)
+        updateActiveRoot(ids.fold(doc.root) { acc, id -> acc.removeNode(id) })
+        selectedIds.clear()
+    }
+
+    fun duplicateSelected() {
+        val idx = activeFileIndex
+        val doc = openFiles.getOrNull(idx) ?: return
+        val ids = selectedIds.filter { it != doc.root.id }
+        if (ids.isEmpty()) return
+        val screen = screenRect(this)
+        var root = doc.root
+        val copies = mutableListOf<UUID>()
+        for (id in ids) {
+            val (withCopy, copyId) = root.withCopyOf(id) ?: continue
+            val parent = layoutTree(withCopy, screen).parentRects[copyId] ?: screen
+            // The copy is shifted a little, so that it does not hide the original
+            root = withCopy.movedBy(copyId, 10f, 10f, parent)
+            copies += copyId
+        }
+        if (copies.isEmpty()) return
+        pushUndo(idx, doc.root, if (copies.size == 1) "Дубликат" else "Дубликаты (${copies.size})")
+        updateActiveRoot(root)
+        selectedIds.clear()
+        selectedIds.addAll(copies)
+    }
+
+    fun alignSelected(mode: AlignMode) {
+        val idx = activeFileIndex
+        val doc = openFiles.getOrNull(idx) ?: return
+        val ids = selectedIds.filter { it != doc.root.id }
+        if (ids.size < 2) return
+        val layout = layoutTree(doc.root, screenRect(this))
+        val aligned = alignedRoot(doc.root, ids, layout, mode)
+        pushUndo(idx, doc.root, "Выравнивание")
+        updateActiveRoot(aligned)
     }
 
     // Messages in the corner. They remove themselves after a few seconds
@@ -605,6 +664,8 @@ class LayoutEditorState(
                         runCatching {
                             dir.resolve(ev.context()).toFile().canonicalPath
                         }.getOrNull() ?: continue
+                    val own = ownWrites[fullPath]?.let { System.currentTimeMillis() - it < 2000 } == true
+                    if (own) continue
                     withContext(Dispatchers.Main) {
                         if (openFiles.any { it.path == fullPath } &&
                             !filesChangedOnDisk.contains(fullPath)

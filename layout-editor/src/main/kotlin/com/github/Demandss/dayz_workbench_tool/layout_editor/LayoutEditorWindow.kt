@@ -45,6 +45,7 @@ import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.LayoutCan
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.TextureViewer
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.findProblems
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.Breadcrumbs
+import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.CommandPalette
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.EmptyState
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.FileTreePanel
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.HierarchyPanel
@@ -53,6 +54,7 @@ import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.PaletteCo
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.ProblemsPanel
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.PropertiesContent
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.ReferencePanel
+import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.SelectionBar
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.StatusBar
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.ToastHost
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.ViewportChips
@@ -122,6 +124,20 @@ fun LayoutEditorWindow(
                             return@onPreviewKeyEvent false
                         }
                         when {
+                            event.isCtrlPressed && event.key == Key.P -> {
+                                state.commandPaletteOpen = !state.commandPaletteOpen
+                                true
+                            }
+
+                            state.commandPaletteOpen -> {
+                                false
+                            }
+
+                            event.isCtrlPressed && event.key == Key.D -> {
+                                state.duplicateSelected()
+                                true
+                            }
+
                             event.isCtrlPressed && !event.isShiftPressed && event.key == Key.S -> {
                                 state.saveActiveFile()
                                 true
@@ -240,6 +256,7 @@ fun LayoutEditorWindow(
                                         )
                                         ReferencePanel(state, Modifier.align(Alignment.TopEnd).padding(12.dp))
                                         ViewportChips(state, Modifier.align(Alignment.BottomStart).padding(10.dp))
+                                        SelectionBar(state, Modifier.align(Alignment.TopCenter).padding(top = 10.dp))
                                     }
 
                                     Box(Modifier.width(1.dp).fillMaxHeight().background(DarkenedBorder))
@@ -285,6 +302,11 @@ fun LayoutEditorWindow(
                 }
 
                 ToastHost(state, Modifier.align(Alignment.BottomEnd).padding(bottom = 22.dp))
+                CommandPalette(state) {
+                    scope.launch {
+                        pickFile("Открыть файл", "*", state.workDrivePath.ifBlank { null })?.let { state.openAny(it) }
+                    }
+                }
 
                 // ── Name dialog ───────────────────────────────────────────
                 state.pendingAdd?.let { pending ->
