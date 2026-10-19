@@ -2,8 +2,6 @@ package com.github.demandss.dayz_workbench_tool.layout_editor.ui.toolbar
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -11,10 +9,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.LayoutEditorState
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.Resolution
+import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.DropdownPopup
 import com.github.demandss.dayz_workbench_tool.ui.components.DarkButton
 import com.github.demandss.dayz_workbench_tool.ui.components.DarkIconButton
 import com.github.demandss.dayz_workbench_tool.ui.components.DarkToolButton
@@ -160,21 +160,15 @@ private fun ResolutionPicker(
     var expanded by remember { mutableStateOf(false) }
     Box {
         DarkButton(selected.label, onClick = { expanded = true })
-        DropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false },
-            modifier = Modifier.background(ElementsBackground),
-        ) {
-            Resolution.entries.forEach { res ->
-                DropdownMenuItem(
-                    text = { Text(res.label, color = TextForeground, fontSize = 12.sp) },
-                    onClick = {
-                        onSelect(res)
-                        expanded = false
-                    },
-                    modifier = Modifier.background(if (res == selected) SelectColor else Color.Transparent),
-                )
-            }
+        if (expanded) {
+            DropdownPopup(
+                selected,
+                Resolution.entries,
+                { it.label },
+                with(LocalDensity.current) { 24.dp.roundToPx() },
+                { expanded = false },
+                onSelect,
+            )
         }
     }
 }

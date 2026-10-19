@@ -64,45 +64,58 @@ fun <T> DropdownField(
             Text(label(selected), color = TextForeground, fontSize = 11.sp, maxLines = 1)
         }
         if (expanded) {
-            Popup(
-                alignment = Alignment.TopStart,
-                offset = IntOffset(0, fieldHeight),
-                onDismissRequest = { expanded = false },
-                properties = PopupProperties(focusable = true),
-            ) {
-                Column(
+            DropdownPopup(selected, options, label, fieldHeight, { expanded = false }, onSelect)
+        }
+    }
+}
+
+/** The flat list of a dropdown, [offsetY] pixels under the box it belongs to. */
+@Composable
+fun <T> DropdownPopup(
+    selected: T,
+    options: List<T>,
+    label: (T) -> String,
+    offsetY: Int,
+    onDismiss: () -> Unit,
+    onSelect: (T) -> Unit,
+) {
+    Popup(
+        alignment = Alignment.TopStart,
+        offset = IntOffset(0, offsetY),
+        onDismissRequest = onDismiss,
+        properties = PopupProperties(focusable = true),
+    ) {
+        Column(
+            Modifier
+                .width(IntrinsicSize.Max)
+                .widthIn(min = 96.dp)
+                .heightIn(max = 320.dp)
+                .background(ElementsBackground)
+                .border(1.dp, DarkenedBorder)
+                .padding(vertical = 2.dp)
+                .verticalScroll(rememberScrollState()),
+        ) {
+            options.forEach { option ->
+                val interaction = remember { MutableInteractionSource() }
+                val hovered by interaction.collectIsHoveredAsState()
+                Box(
                     Modifier
-                        .width(IntrinsicSize.Max)
-                        .widthIn(min = 96.dp)
-                        .heightIn(max = 320.dp)
-                        .background(ElementsBackground)
-                        .border(1.dp, DarkenedBorder)
-                        .padding(vertical = 2.dp)
-                        .verticalScroll(rememberScrollState()),
+                        .fillMaxWidth()
+                        .height(22.dp)
+                        .background(
+                            when {
+                                hovered -> SubSelectColor
+                                option == selected -> SelectColor
+                                else -> Color.Transparent
+                            },
+                        ).hoverable(interaction)
+                        .clickable(interaction, null) {
+                            onDismiss()
+                            onSelect(option)
+                        }.padding(horizontal = 10.dp),
+                    contentAlignment = Alignment.CenterStart,
                 ) {
-                    options.forEach { option ->
-                        val interaction = remember { MutableInteractionSource() }
-                        val hovered by interaction.collectIsHoveredAsState()
-                        Box(
-                            Modifier
-                                .fillMaxWidth()
-                                .height(22.dp)
-                                .background(
-                                    when {
-                                        hovered -> SubSelectColor
-                                        option == selected -> SelectColor
-                                        else -> Color.Transparent
-                                    },
-                                ).hoverable(interaction)
-                                .clickable(interaction, null) {
-                                    expanded = false
-                                    onSelect(option)
-                                }.padding(horizontal = 10.dp),
-                            contentAlignment = Alignment.CenterStart,
-                        ) {
-                            Text(label(option), color = TextForeground, fontSize = 11.sp, maxLines = 1)
-                        }
-                    }
+                    Text(label(option), color = TextForeground, fontSize = 11.sp, maxLines = 1)
                 }
             }
         }
