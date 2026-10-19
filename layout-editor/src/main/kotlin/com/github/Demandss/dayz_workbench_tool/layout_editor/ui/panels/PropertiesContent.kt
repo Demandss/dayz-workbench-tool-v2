@@ -126,7 +126,7 @@ private val IMAGE_TYPES = setOf(WidgetType.IMAGE, WidgetType.VIDEO)
 /** What each property does, shown when the pointer rests on its name. */
 private val PROPERTY_HINTS =
     mapOf(
-        "visible" to "Показан ли виджет. Скрытый не рисуется и не получает мышь",
+        "visible" to "Вкл: показывает виджет.\nВыкл: скрывает виджет.",
         "disabled" to "Виджет виден, но не отвечает на ввод",
         "clipchildren" to "Обрезать детей по границам виджета. Выключено: они торчат наружу",
         "inheritalpha" to "Прозрачность родителя действует и на этот виджет",
