@@ -32,7 +32,7 @@ internal fun bulkReplace(
                 BulkMode.NAME -> {
                     if (!isRoot && find.isNotEmpty() && node.node.name.contains(find)) {
                         changed++
-                        result = result.copy(node = result.node.copy(name = node.node.name.replace(find, replace)))
+                        result = result.copy(node = result.node.copy(name = sanitizeWidgetName(node.node.name.replace(find, replace))))
                     }
                 }
 

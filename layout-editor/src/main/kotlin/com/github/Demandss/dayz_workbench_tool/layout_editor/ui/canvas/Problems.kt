@@ -24,6 +24,9 @@ fun findProblems(root: EditorWidgetNode): List<Problem> {
     ) {
         val name = node.node.name.ifEmpty { if (isRoot) "(root)" else "—" }
 
+        if (!isRoot && node.node.name.isNotEmpty() && hasInvalidNameChars(node.node.name)) {
+            out += Problem(node.id, name, Severity.WARNING, "В имени кириллица или лишние символы: скрипт ищет виджет по имени")
+        }
         if (node.hasBareCenter()) {
             out += Problem(node.id, name, Severity.WARNING, "«center» без _ref не центрирует, нужно center_ref")
         }

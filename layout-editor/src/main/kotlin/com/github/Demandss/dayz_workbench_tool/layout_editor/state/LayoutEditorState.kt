@@ -34,6 +34,7 @@ import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.parentOf
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.parseClipboard
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.reanchored
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.reordered
+import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.sanitizeWidgetName
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.screenRect
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.scriptSnippet
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.ungrouped
@@ -299,7 +300,7 @@ class LayoutEditorState(
     /** Wraps the selected widgets (they must share a parent) in a new container of [type]. */
     fun groupSelected(
         type: WidgetType = WidgetType.FRAME,
-        label: String = "Группа",
+        label: String = "Group",
     ) {
         val idx = activeFileIndex
         val doc = openFiles.getOrNull(idx) ?: return
@@ -644,13 +645,15 @@ class LayoutEditorState(
         val doc = openFiles.getOrNull(idx) ?: return
         val targetId = parentId ?: selectedIds.firstOrNull() ?: doc.root.id
         val usePixel = worldPos != null
+        val cleanName = sanitizeWidgetName(name)
+        if (cleanName != name.trim()) notify("Имя виджета записано латиницей: $cleanName", ToastKind.INFO)
         val newNode =
             EditorWidgetNode(
                 node =
                     WidgetNode(
                         type = type,
                         originalClassName = type.className,
-                        name = name,
+                        name = cleanName,
                         properties =
                             linkedMapOf(
                                 "position" to if (usePixel) "${fmt(worldPos!!.x)} ${fmt(worldPos.y)}" else "0 0",
@@ -662,7 +665,7 @@ class LayoutEditorState(
                             ),
                     ),
             )
-        pushUndo(idx, doc.root, "Добавление $name")
+        pushUndo(idx, doc.root, "Добавление $cleanName")
         val newRoot =
             doc.root.updateNode(targetId) { n ->
                 n.copy(children = (n.children + newNode).toMutableList())

@@ -47,6 +47,7 @@ import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.documentC
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.formatNumber
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.layoutTree
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.parseWidgetColor
+import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.sanitizeWidgetName
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.screenRect
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.toFileColor
 import com.github.demandss.dayz_workbench_tool.layout_editor.updateNode
@@ -133,8 +134,11 @@ private fun commitName(
 ) {
     val idx = state.activeFileIndex
     val doc = state.openFiles.getOrNull(idx) ?: return
-    state.pushUndo(idx, doc.root, "Переименование в $name")
-    state.updateActiveRoot(doc.root.updateNode(id) { it.copy(node = it.node.copy(name = name)) })
+    // Script finds a widget by its name, so the name is kept to Latin letters, digits and underscores
+    val clean = sanitizeWidgetName(name)
+    if (clean != name.trim()) state.notify("Имя виджета записано латиницей: $clean")
+    state.pushUndo(idx, doc.root, "Переименование в $clean")
+    state.updateActiveRoot(doc.root.updateNode(id) { it.copy(node = it.node.copy(name = clean)) })
 }
 
 private fun commitType(
