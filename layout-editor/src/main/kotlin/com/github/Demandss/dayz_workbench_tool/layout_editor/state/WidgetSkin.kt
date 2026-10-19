@@ -16,6 +16,8 @@ class WidgetSkin(
     val styleColor: Color,
     // ImageFlags bits per slot: a tiled image repeats at its own size instead of stretching
     val flags: Map<String, Int> = emptyMap(),
+    // The pieces of tiled slots cut out of the atlas, drawn with a repeating shader
+    val tiles: Map<String, ImageBitmap> = emptyMap(),
 )
 
 /** Resolved parts of a skin that do not depend on the bitmap being loaded yet. */

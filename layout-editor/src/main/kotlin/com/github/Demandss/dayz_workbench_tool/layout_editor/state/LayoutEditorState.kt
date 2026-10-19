@@ -5,6 +5,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.toAwtImage
 import androidx.compose.ui.graphics.toComposeImageBitmap
 import com.github.demandss.dayz_workbench_tool.config.ConfigManager
 import com.github.demandss.dayz_workbench_tool.config.EditorSession
@@ -987,6 +988,7 @@ class LayoutEditorState(
     private var imageSetIndex: Map<String, File> = emptyMap()
     private var imageSetIndexFor: String? = null
     private val skinPlans = HashMap<String, SkinPlan?>()
+    private val tileCache = HashMap<String, ImageBitmap?>()
     private val parsedImageSets = HashMap<String, com.github.demandss.dayz_workbench_tool.imageset.ImageSet?>()
 
     /**
@@ -1025,7 +1027,23 @@ class LayoutEditorState(
                 )
             native[slot] = Size(d.width.toFloat(), d.height.toFloat())
         }
-        return WidgetSkin(atlas, source, native, plan.styleColor, plan.images.mapValues { it.value.flags })
+        val flags = plan.images.mapValues { it.value.flags }
+        val tiles =
+            source.filterKeys { (flags[it] ?: 0) != 0 }.mapValues { (slot, r) ->
+                tileCache.getOrPut("$key|$slot|${atlas.width}") {
+                    runCatching {
+                        atlas
+                            .toAwtImage()
+                            .getSubimage(
+                                r.left,
+                                r.top,
+                                r.width.coerceAtLeast(1),
+                                r.height.coerceAtLeast(1),
+                            ).toComposeImageBitmap()
+                    }.getOrNull()
+                } ?: atlas
+            }
+        return WidgetSkin(atlas, source, native, plan.styleColor, flags, tiles)
     }
 
     private fun buildSkinPlan(

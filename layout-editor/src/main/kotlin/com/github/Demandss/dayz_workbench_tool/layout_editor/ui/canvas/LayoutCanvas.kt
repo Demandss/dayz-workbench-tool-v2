@@ -15,9 +15,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.ImageShader
+import androidx.compose.ui.graphics.ShaderBrush
+import androidx.compose.ui.graphics.TileMode
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipRect
+import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.input.key.*
 import androidx.compose.ui.input.pointer.*
 import androidx.compose.ui.input.pointer.PointerIcon
@@ -938,25 +942,34 @@ private fun DrawScope.drawSkin(
         if (r.width < 0.5f || r.height < 0.5f) continue
         val bits = skin.flags[slot] ?: 0
         val nat = skin.native[slot] ?: continue
-        val stepX = if (bits and 1 != 0) (nat.width * zoom).coerceAtLeast(1f) else r.width
-        val stepY = if (bits and 2 != 0) (nat.height * zoom).coerceAtLeast(1f) else r.height
-        clipRect(r.left, r.top, r.right, r.bottom) {
-            var y = r.top
-            while (y < r.bottom) {
-                var x = r.left
-                while (x < r.right) {
-                    drawImage(
-                        image = skin.atlas,
-                        srcOffset = IntOffset(src.left, src.top),
-                        srcSize = IntSize(src.width, src.height),
-                        dstOffset = IntOffset(x.toInt(), y.toInt()),
-                        dstSize = IntSize(stepX.toInt().coerceAtLeast(1), stepY.toInt().coerceAtLeast(1)),
+        val tile = skin.tiles[slot]
+        if (bits != 0 && tile != null) {
+            // One draw with a repeating shader; a loop of drawImage calls is far too slow for a 2 px dash
+            val sx = if (bits and 1 != 0) nat.width * zoom / tile.width else r.width / tile.width
+            val sy = if (bits and 2 != 0) nat.height * zoom / tile.height else r.height / tile.height
+            if (sx > 0f && sy > 0f) {
+                val brush = ShaderBrush(ImageShader(tile, TileMode.Repeated, TileMode.Repeated))
+                withTransform({
+                    translate(r.left, r.top)
+                    scale(sx, sy, Offset.Zero)
+                }) {
+                    drawRect(
+                        brush,
+                        Offset.Zero,
+                        Size(r.width / sx, r.height / sy),
                         colorFilter = ColorFilter.tint(tint, BlendMode.Modulate),
                     )
-                    x += stepX
                 }
-                y += stepY
             }
+        } else {
+            drawImage(
+                image = skin.atlas,
+                srcOffset = IntOffset(src.left, src.top),
+                srcSize = IntSize(src.width, src.height),
+                dstOffset = IntOffset(r.left.toInt(), r.top.toInt()),
+                dstSize = IntSize(r.width.toInt().coerceAtLeast(1), r.height.toInt().coerceAtLeast(1)),
+                colorFilter = ColorFilter.tint(tint, BlendMode.Modulate),
+            )
         }
     }
 }
