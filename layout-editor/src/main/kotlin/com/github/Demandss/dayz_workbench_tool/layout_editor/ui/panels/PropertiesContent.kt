@@ -1,6 +1,8 @@
 package com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.TooltipArea
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -27,6 +29,7 @@ import androidx.compose.ui.input.key.*
 import androidx.compose.ui.input.pointer.*
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -39,6 +42,8 @@ import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.formatNum
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.layoutTree
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.screenRect
 import com.github.demandss.dayz_workbench_tool.layout_editor.updateNode
+import com.github.demandss.dayz_workbench_tool.ui.icons.AppIcon
+import com.github.demandss.dayz_workbench_tool.ui.icons.AppIconView
 import com.github.demandss.dayz_workbench_tool.ui.pickFile
 import com.github.demandss.dayz_workbench_tool.ui.theme.*
 import kotlinx.coroutines.launch
@@ -306,6 +311,17 @@ private fun PropertiesHeader(
     }
     HLine()
 
+    if (props["halign"] == "center" || props["valign"] == "center") {
+        Row(
+            Modifier.fillMaxWidth().background(Color(0x33FFB020)).padding(horizontal = 6.dp, vertical = 3.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            AppIconView(AppIcon.UI_WARN, size = 14.dp)
+            Spacer(Modifier.width(6.dp))
+            Text("«center» без _ref не центрирует: нужно center_ref", color = TextForeground, fontSize = 10.sp)
+        }
+    }
+
     Row(
         Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 4.dp),
         verticalAlignment = Alignment.Top,
@@ -426,18 +442,22 @@ private fun WidgetSection(
 
     ColorRows(props, commit)
 
-    CheckRow("scaled", props["scaled"], commit)
-    PropRow("fixaspect") {
+    CheckRow("scaled", props["scaled"], commit, "Пересчитывает размеры под относительное разрешение (в редакторе не учитывается)")
+    PropRow(
+        "fixaspect",
+        "fixaspect" in props,
+        "Держит пропорции виджета с относительным размером: fixwidth берёт ширину из высоты, fixheight наоборот",
+    ) {
         CompactDropdown(props["fixaspect"] ?: "", FIXASPECT_OPTS) { commit("fixaspect", it) }
     }
-    PropRow("priority") {
+    PropRow("priority", "priority" in props, "Порядок отрисовки среди соседей: больше значит выше") {
         StringField(props["priority"] ?: "", Modifier.weight(1f)) { commit("priority", it) }
     }
-    PropRow("userID") {
+    PropRow("userID", "userID" in props) {
         StringField(props["userID"] ?: "", Modifier.weight(1f)) { commit("userID", it) }
     }
     CheckRow("draggable", props["draggable"], commit)
-    PropRow("scriptclass") {
+    PropRow("scriptclass", "scriptclass" in props) {
         StringField(props["scriptclass"] ?: "", Modifier.weight(1f)) { commit("scriptclass", it) }
     }
 }
@@ -480,16 +500,18 @@ private fun ImageWidgetSection(
     }
     HLine()
 
-    PropRow("mode") { CompactDropdown(props["mode"] ?: "", MODE_OPTS) { commit("mode", it) } }
+    PropRow("mode", "mode" in props) { CompactDropdown(props["mode"] ?: "", MODE_OPTS) { commit("mode", it) } }
     CheckRow("src alpha", props["src alpha"], commit)
-    PropRow("clamp mode") { CompactDropdown(props["clamp mode"] ?: "", CLAMP_OPTS) { commit("clamp mode", it) } }
-    PropRow("stretch mode") { CompactDropdown(props["stretch mode"] ?: "", STRETCH_OPTS) { commit("stretch mode", it) } }
+    PropRow("clamp mode", "clamp mode" in props) { CompactDropdown(props["clamp mode"] ?: "", CLAMP_OPTS) { commit("clamp mode", it) } }
+    PropRow("stretch mode", "stretch mode" in props) {
+        CompactDropdown(props["stretch mode"] ?: "", STRETCH_OPTS) { commit("stretch mode", it) }
+    }
     CheckRow("flip u", props["flip u"], commit)
     CheckRow("flip v", props["flip v"], commit)
     CheckRow("filter", props["filter"], commit)
     CheckRow("nocache", props["nocache"], commit)
 
-    PropRow("rotation") { StringField(props["rotation"] ?: "", Modifier.weight(1f)) { commit("rotation", it) } }
+    PropRow("rotation", "rotation" in props) { StringField(props["rotation"] ?: "", Modifier.weight(1f)) { commit("rotation", it) } }
 
     val pivotParts = (props["pivot"] ?: "0 0").trim().split(Regex("\\s+"))
     var pivotX by remember(props["pivot"]) { mutableStateOf(pivotParts.getOrNull(0) ?: "0") }
@@ -534,7 +556,7 @@ private fun RawSection(
     SectionHeader("Extra", expanded) { expanded = !expanded }
     if (!expanded) return
     for ((key, value) in props) {
-        PropRow(key) { StringField(value, Modifier.weight(1f)) { commit(key, it) } }
+        PropRow(key, set = true) { StringField(value, Modifier.weight(1f)) { commit(key, it) } }
     }
 }
 
@@ -566,7 +588,7 @@ private fun ColorRows(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(2.dp),
     ) {
-        Text("color", color = GhostlyText, fontSize = 10.sp, modifier = Modifier.width(LABEL_W), maxLines = 1)
+        PropLabel("color", "color" in props, "Цвета в файле линейные; Workbench показывает их в sRGB", Modifier.width(LABEL_W))
         Box(Modifier.size(14.dp).background(preview).border(1.dp, DarkenedBorder))
         FloatInput("R", r, Modifier.weight(1f)) { v ->
             r = v
@@ -586,30 +608,6 @@ private fun ColorRows(
         }
     }
     HLine()
-    SubRow("  r") {
-        FloatInput("", r, Modifier.weight(1f)) { v ->
-            r = v
-            save()
-        }
-    }
-    SubRow("  g") {
-        FloatInput("", g, Modifier.weight(1f)) { v ->
-            g = v
-            save()
-        }
-    }
-    SubRow("  b") {
-        FloatInput("", b, Modifier.weight(1f)) { v ->
-            b = v
-            save()
-        }
-    }
-    SubRow("  a") {
-        FloatInput("", a, Modifier.weight(1f)) { v ->
-            a = v
-            save()
-        }
-    }
 }
 
 // ---------------------------------------------------------------------------
@@ -710,6 +708,8 @@ private fun SectionHeader(
 @Composable
 private fun PropRow(
     label: String,
+    set: Boolean = false,
+    hint: String? = null,
     content: @Composable RowScope.() -> Unit,
 ) {
     Row(
@@ -717,17 +717,53 @@ private fun PropRow(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        Text(
-            label,
-            color = GhostlyText,
-            fontSize = 10.sp,
-            modifier = Modifier.width(LABEL_W),
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
+        PropLabel(label, set, hint, Modifier.width(LABEL_W))
         content()
     }
     HLine()
+}
+
+/** A property name. Bold with a lighter colour when the file sets it; a hint shows in a tooltip. */
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun PropLabel(
+    label: String,
+    set: Boolean,
+    hint: String?,
+    modifier: Modifier = Modifier,
+) {
+    val text: @Composable () -> Unit = {
+        Text(
+            label,
+            color = if (set) TextForeground else GhostlyText,
+            fontWeight = if (set) FontWeight.SemiBold else null,
+            fontSize = 10.sp,
+            modifier = modifier,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
+    if (hint == null) {
+        text()
+    } else {
+        TooltipArea(
+            tooltip = {
+                Text(
+                    hint,
+                    color = TextForeground,
+                    fontSize = 11.sp,
+                    modifier =
+                        Modifier
+                            .widthIn(
+                                max = 240.dp,
+                            ).background(ElementsBackground)
+                            .border(1.dp, DarkenedBorder)
+                            .padding(8.dp, 4.dp),
+                )
+            },
+            delayMillis = 400,
+        ) { text() }
+    }
 }
 
 @Composable
@@ -758,6 +794,7 @@ private fun CheckRow(
     key: String,
     value: String?,
     commit: (String, String) -> Unit,
+    hint: String? = null,
 ) {
     val checked = value?.trim() == "1"
     Row(
@@ -768,7 +805,7 @@ private fun CheckRow(
             .padding(horizontal = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(key, color = GhostlyText, fontSize = 10.sp, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
+        PropLabel(key, value != null, hint, Modifier.weight(1f))
         Box(
             Modifier
                 .size(14.dp)

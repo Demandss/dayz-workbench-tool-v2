@@ -552,8 +552,8 @@ private fun RightPanel(state: LayoutEditorState) {
             onTabSelected = { rightTab = it },
         )
         when (rightTab) {
-            0 -> PropertiesContent(state, Modifier.weight(1f).fillMaxWidth())
-            1 -> PaletteContent(state, Modifier.weight(1f).fillMaxWidth())
+            0 -> PropertiesContent(state, Modifier.weight(1.7f).fillMaxWidth())
+            1 -> PaletteContent(state, Modifier.weight(1.7f).fillMaxWidth())
         }
     }
 }

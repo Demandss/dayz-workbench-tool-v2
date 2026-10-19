@@ -23,6 +23,7 @@ import com.github.demandss.dayz_workbench_tool.layout_editor.EditorWidgetNode
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.DragSession
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.DragSource
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.LayoutEditorState
+import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.hasBareCenter
 import com.github.demandss.dayz_workbench_tool.ui.icons.AppIcon
 import com.github.demandss.dayz_workbench_tool.ui.icons.AppIconView
 import com.github.demandss.dayz_workbench_tool.ui.icons.widgetIcon
@@ -265,6 +266,7 @@ private fun HierarchyRow(
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.padding(start = 2.dp).weight(1f),
         )
+        if (node.hasBareCenter()) AppIconView(AppIcon.UI_WARN, size = 13.dp, modifier = Modifier.padding(end = 2.dp))
         RowToggle(if (isHidden) AppIcon.UI_EYEOFF else AppIcon.UI_EYE, "Скрыть на холсте (только в редакторе)", isHidden, onToggleHidden)
         RowToggle(
             if (isLocked) AppIcon.UI_LOCK else AppIcon.UI_UNLOCK,

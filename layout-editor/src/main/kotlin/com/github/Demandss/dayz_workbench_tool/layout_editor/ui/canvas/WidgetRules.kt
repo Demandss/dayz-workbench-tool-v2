@@ -72,3 +72,6 @@ internal fun EditorWidgetNode.fillColor(): Color? {
     val color = node.properties["color"]?.let(::parseWidgetColor)
     return if (style == "colorable") color else color ?: Color.White
 }
+
+/** A bare `center` is not an alignment the layout knows: the widget stays at the start edge. `center_ref` is what centres it. */
+internal fun EditorWidgetNode.hasBareCenter(): Boolean = prop("halign") == "center" || prop("valign") == "center"
