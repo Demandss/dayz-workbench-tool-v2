@@ -63,6 +63,7 @@ import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.ViewportC
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.toolbar.Toolbar
 import com.github.demandss.dayz_workbench_tool.ui.components.DarkButton
 import com.github.demandss.dayz_workbench_tool.ui.components.DarkTabRow
+import com.github.demandss.dayz_workbench_tool.ui.components.Tip
 import com.github.demandss.dayz_workbench_tool.ui.icons.AppIcon
 import com.github.demandss.dayz_workbench_tool.ui.icons.AppIconView
 import com.github.demandss.dayz_workbench_tool.ui.icons.fileIcon
@@ -483,6 +484,7 @@ private fun FileTabBar(state: LayoutEditorState) {
                 icon = AppIcon.LAYOUT,
                 label = doc.fileName,
                 modified = doc.isModified,
+                hint = doc.path,
                 isActive = state.activeTextureIndex < 0 && index == state.activeFileIndex,
                 onClick = { state.selectLayout(index) },
                 onClose = { state.closeFile(index) },
@@ -509,43 +511,48 @@ private fun FileTab(
     isActive: Boolean,
     onClick: () -> Unit,
     onClose: () -> Unit,
+    hint: String? = null,
 ) {
     val bg = if (isActive) FrameBackground else ElementsBackground
     val requester = remember { BringIntoViewRequester() }
     LaunchedEffect(isActive) { if (isActive) requester.bringIntoView() }
-    Row(
-        modifier =
-            Modifier
-                .bringIntoViewRequester(requester)
-                .background(bg)
-                .clickable(
-                    interactionSource = remember { MutableInteractionSource() },
-                    indication = null,
-                    onClick = onClick,
-                ).padding(horizontal = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        AppIconView(icon)
-        Spacer(Modifier.width(6.dp))
-        Text(label, color = TextForeground, fontSize = 12.sp, maxLines = 1)
-        if (modified) {
-            Spacer(Modifier.width(6.dp))
-            Box(Modifier.size(6.dp).background(Color(0xFF4A9EFF), CircleShape))
-        }
-        Spacer(Modifier.width(6.dp))
-        Box(
-            Modifier
-                .size(14.dp)
-                .clickable(
-                    interactionSource = remember { MutableInteractionSource() },
-                    indication = null,
-                    onClick = onClose,
-                ),
-            contentAlignment = Alignment.Center,
+    Tip(hint) {
+        Row(
+            modifier =
+                Modifier
+                    .bringIntoViewRequester(requester)
+                    .background(bg)
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                        onClick = onClick,
+                    ).padding(horizontal = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            AppIconView(AppIcon.UI_CLOSE, size = 12.dp, tint = GhostlyText)
+            AppIconView(icon)
+            Spacer(Modifier.width(6.dp))
+            Text(label, color = TextForeground, fontSize = 12.sp, maxLines = 1)
+            if (modified) {
+                Spacer(Modifier.width(6.dp))
+                Box(Modifier.size(6.dp).background(Color(0xFF4A9EFF), CircleShape))
+            }
+            Spacer(Modifier.width(6.dp))
+            Tip("Закрыть вкладку (Ctrl+W)") {
+                Box(
+                    Modifier
+                        .size(14.dp)
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null,
+                            onClick = onClose,
+                        ),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    AppIconView(AppIcon.UI_CLOSE, size = 12.dp, tint = GhostlyText)
+                }
+            }
+            Spacer(Modifier.width(2.dp))
         }
-        Spacer(Modifier.width(2.dp))
     }
     Box(Modifier.width(1.dp).fillMaxHeight().background(DarkenedBorder))
 }
@@ -574,8 +581,8 @@ private fun ChangedOnDiskBanner(
             fontSize = 12.sp,
             modifier = Modifier.weight(1f),
         )
-        DarkButton("Перезагрузить", onClick = onReload)
-        DarkButton("Игнорировать", onClick = onIgnore)
+        DarkButton("Перезагрузить", onClick = onReload, tooltip = "Прочитать файл с диска заново, правки в редакторе пропадут")
+        DarkButton("Игнорировать", onClick = onIgnore, tooltip = "Оставить то, что открыто в редакторе")
     }
 }
 
@@ -603,15 +610,25 @@ private fun RightPanel(state: LayoutEditorState) {
                 },
                 "History",
             ).forEachIndexed { i, title ->
-                Box(
-                    Modifier
-                        .weight(1f)
-                        .fillMaxHeight()
-                        .background(if (rightTab == i) FrameBackground else ElementsBackground)
-                        .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { rightTab = i },
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(title, color = if (rightTab == i) TextForeground else GhostlyText, fontSize = 12.sp, maxLines = 1)
+                Box(Modifier.weight(1f).fillMaxHeight()) {
+                    Tip(
+                        listOf(
+                            "Свойства выбранного виджета",
+                            "Виджеты, которые можно добавить",
+                            "Что в layout выглядит неверно",
+                            "Действия в этом layout, можно вернуться к любому",
+                        )[i],
+                    ) {
+                        Box(
+                            Modifier
+                                .fillMaxSize()
+                                .background(if (rightTab == i) FrameBackground else ElementsBackground)
+                                .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { rightTab = i },
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Text(title, color = if (rightTab == i) TextForeground else GhostlyText, fontSize = 12.sp, maxLines = 1)
+                        }
+                    }
                 }
             }
         }

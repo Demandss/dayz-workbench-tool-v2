@@ -45,6 +45,7 @@ import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.parseWidg
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.screenRect
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.toFileColor
 import com.github.demandss.dayz_workbench_tool.layout_editor.updateNode
+import com.github.demandss.dayz_workbench_tool.ui.components.Tip
 import com.github.demandss.dayz_workbench_tool.ui.icons.AppIcon
 import com.github.demandss.dayz_workbench_tool.ui.icons.AppIconView
 import com.github.demandss.dayz_workbench_tool.ui.icons.widgetIcon
@@ -364,15 +365,17 @@ private fun AlignmentGrid(
             Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
                 for (h in HALIGN_GRID) {
                     val on = h0 == h && v0 == v
-                    Box(
-                        Modifier
-                            .size(18.dp)
-                            .background(if (on) SubSelectColor else DarkenedBorder)
-                            .border(1.dp, if (on) SubSelectColor else Color(0xFF3A3C40))
-                            .clickable(remember { MutableInteractionSource() }, null) { onSet(h, v) },
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Box(Modifier.size(4.dp).background(if (on) Color.White else Color(0xFF8A8F96)))
+                    Tip("halign $h, valign $v") {
+                        Box(
+                            Modifier
+                                .size(18.dp)
+                                .background(if (on) SubSelectColor else DarkenedBorder)
+                                .border(1.dp, if (on) SubSelectColor else Color(0xFF3A3C40))
+                                .clickable(remember { MutableInteractionSource() }, null) { onSet(h, v) },
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Box(Modifier.size(4.dp).background(if (on) Color.White else Color(0xFF8A8F96)))
+                        }
                     }
                 }
             }
@@ -550,14 +553,16 @@ private fun ColorRows(
         var picking by remember { mutableStateOf(false) }
         val anchorHeight = with(LocalDensity.current) { 22.dp.roundToPx() }
         Box {
-            Box(
-                Modifier
-                    .size(22.dp)
-                    .background(Color(0xFF2B2B30))
-                    .background(shown)
-                    .border(1.dp, Color(0xFF3A3C40))
-                    .clickable(remember { MutableInteractionSource() }, null) { picking = true },
-            )
+            Tip("Выбрать цвет") {
+                Box(
+                    Modifier
+                        .size(22.dp)
+                        .background(Color(0xFF2B2B30))
+                        .background(shown)
+                        .border(1.dp, Color(0xFF3A3C40))
+                        .clickable(remember { MutableInteractionSource() }, null) { picking = true },
+                )
+            }
             if (picking) {
                 ColorPickerPopup(
                     initial = shown,
@@ -908,17 +913,19 @@ private fun UnitSwitch(
     isPx: Boolean,
     onChange: (Boolean) -> Unit,
 ) {
-    Box(
-        Modifier
-            .height(24.dp)
-            .widthIn(min = 24.dp)
-            .background(ElementsBackground)
-            .border(1.dp, Color(0xFF3A3C40))
-            .clickable(remember { MutableInteractionSource() }, null) { onChange(!isPx) }
-            .padding(horizontal = 3.dp),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(if (isPx) "px" else "%", color = GhostlyText, fontSize = 10.sp)
+    Tip(if (isPx) "Пиксели. Клик переключает на долю родителя" else "Доля родителя. Клик переключает на пиксели") {
+        Box(
+            Modifier
+                .height(24.dp)
+                .widthIn(min = 24.dp)
+                .background(ElementsBackground)
+                .border(1.dp, Color(0xFF3A3C40))
+                .clickable(remember { MutableInteractionSource() }, null) { onChange(!isPx) }
+                .padding(horizontal = 3.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(if (isPx) "px" else "%", color = GhostlyText, fontSize = 10.sp)
+        }
     }
 }
 

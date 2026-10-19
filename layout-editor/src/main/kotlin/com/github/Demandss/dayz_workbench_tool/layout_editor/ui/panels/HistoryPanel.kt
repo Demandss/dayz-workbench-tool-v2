@@ -19,6 +19,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.LayoutEditorState
+import com.github.demandss.dayz_workbench_tool.ui.components.Tip
 import com.github.demandss.dayz_workbench_tool.ui.theme.FrameBackground
 import com.github.demandss.dayz_workbench_tool.ui.theme.GhostlyText
 import com.github.demandss.dayz_workbench_tool.ui.theme.SelectColor
@@ -58,15 +59,17 @@ private fun HistoryRow(
     undone: Boolean,
     onClick: () -> Unit,
 ) {
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .height(22.dp)
-            .background(if (current) SelectColor else Color.Transparent)
-            .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null, onClick = onClick)
-            .padding(horizontal = 10.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(label, color = if (undone) GhostlyText else TextForeground, fontSize = 11.sp, maxLines = 1)
+    Tip(if (current) "Текущее состояние" else "Перейти к состоянию после этого действия") {
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .height(22.dp)
+                .background(if (current) SelectColor else Color.Transparent)
+                .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null, onClick = onClick)
+                .padding(horizontal = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(label, color = if (undone) GhostlyText else TextForeground, fontSize = 11.sp, maxLines = 1)
+        }
     }
 }

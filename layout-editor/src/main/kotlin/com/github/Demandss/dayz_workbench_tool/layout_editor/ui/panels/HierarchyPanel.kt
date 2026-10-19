@@ -24,6 +24,7 @@ import com.github.demandss.dayz_workbench_tool.layout_editor.state.DragSession
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.DragSource
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.LayoutEditorState
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.hasBareCenter
+import com.github.demandss.dayz_workbench_tool.ui.components.Tip
 import com.github.demandss.dayz_workbench_tool.ui.icons.AppIcon
 import com.github.demandss.dayz_workbench_tool.ui.icons.AppIconView
 import com.github.demandss.dayz_workbench_tool.ui.icons.widgetIcon
@@ -285,22 +286,24 @@ private fun RowToggle(
     on: Boolean,
     onClick: () -> Unit,
 ) {
-    Box(
-        Modifier
-            .size(20.dp)
-            .pointerInput(Unit) {
-                awaitPointerEventScope {
-                    while (true) {
-                        val event = awaitPointerEvent(PointerEventPass.Main)
-                        if (event.type == PointerEventType.Press && event.buttons.isPrimaryPressed) {
-                            onClick()
-                            event.changes.forEach { it.consume() }
+    Tip(hint) {
+        Box(
+            Modifier
+                .size(20.dp)
+                .pointerInput(Unit) {
+                    awaitPointerEventScope {
+                        while (true) {
+                            val event = awaitPointerEvent(PointerEventPass.Main)
+                            if (event.type == PointerEventType.Press && event.buttons.isPrimaryPressed) {
+                                onClick()
+                                event.changes.forEach { it.consume() }
+                            }
                         }
                     }
-                }
-            },
-        contentAlignment = Alignment.Center,
-    ) {
-        AppIconView(icon, size = 13.dp, tint = if (on) Color(0xFF4A9EFF) else GhostlyText)
+                },
+            contentAlignment = Alignment.Center,
+        ) {
+            AppIconView(icon, size = 13.dp, tint = if (on) Color(0xFF4A9EFF) else GhostlyText)
+        }
     }
 }

@@ -100,13 +100,17 @@ fun ReferencePanel(
                 overflow = TextOverflow.Ellipsis,
             )
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                DarkButton("Загрузить…", onClick = {
+                DarkButton("Загрузить…", tooltip = "Выбрать скриншот из Workbench", onClick = {
                     scope.launch {
                         val start = File(state.referencePath).parent ?: state.workDrivePath.ifBlank { null }
                         pickFile("Скриншот Workbench", "*", start)?.let { state.loadReference(it) }
                     }
                 })
-                if (image != null) DarkButton("Убрать", onClick = { state.clearReference() }, muted = true)
+                if (image !=
+                    null
+                ) {
+                    DarkButton("Убрать", onClick = { state.clearReference() }, muted = true, tooltip = "Убрать скриншот с холста")
+                }
             }
             if (image != null) {
                 Text("Прозрачность ${(state.referenceOpacity * 100).roundToInt()}%", color = GhostlyText, fontSize = 11.sp)

@@ -36,6 +36,7 @@ import com.github.demandss.dayz_workbench_tool.layout_editor.state.LayoutEditorS
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.ToastKind
 import com.github.demandss.dayz_workbench_tool.texture.EddsCodec
 import com.github.demandss.dayz_workbench_tool.ui.components.DarkIconButton
+import com.github.demandss.dayz_workbench_tool.ui.components.Tip
 import com.github.demandss.dayz_workbench_tool.ui.icons.AppIcon
 import com.github.demandss.dayz_workbench_tool.ui.icons.AppIconView
 import com.github.demandss.dayz_workbench_tool.ui.icons.fileIcon
@@ -553,19 +554,21 @@ private fun TreeRow(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         // Expand arrow (dirs only)
-        Box(
-            Modifier
-                .size(14.dp)
-                .clickable(
-                    interactionSource = remember { MutableInteractionSource() },
-                    indication = null,
-                    enabled = entry.isDir,
-                    onClick = onToggle,
-                ),
-            contentAlignment = Alignment.Center,
-        ) {
-            if (entry.isDir) {
-                AppIconView(if (isExpanded) AppIcon.UI_DOWN else AppIcon.UI_RIGHT, size = 12.dp, tint = GhostlyText)
+        Tip(if (entry.isDir) (if (isExpanded) "Свернуть папку" else "Развернуть папку") else null) {
+            Box(
+                Modifier
+                    .size(14.dp)
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                        enabled = entry.isDir,
+                        onClick = onToggle,
+                    ),
+                contentAlignment = Alignment.Center,
+            ) {
+                if (entry.isDir) {
+                    AppIconView(if (isExpanded) AppIcon.UI_DOWN else AppIcon.UI_RIGHT, size = 12.dp, tint = GhostlyText)
+                }
             }
         }
 
@@ -858,18 +861,21 @@ private fun SearchField(
         if (value.isEmpty()) {
             Text("Поиск по имени…", color = GhostlyText, fontSize = 11.sp)
         } else {
-            Box(
-                Modifier
-                    .align(Alignment.CenterEnd)
-                    .size(14.dp)
-                    .clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null,
-                        onClick = { onChange("") },
-                    ),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text("×", color = GhostlyText, fontSize = 14.sp, lineHeight = 14.sp)
+            Box(Modifier.align(Alignment.CenterEnd)) {
+                Tip("Очистить поиск") {
+                    Box(
+                        Modifier
+                            .size(14.dp)
+                            .clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = null,
+                                onClick = { onChange("") },
+                            ),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text("×", color = GhostlyText, fontSize = 14.sp, lineHeight = 14.sp)
+                    }
+                }
             }
         }
     }
@@ -889,17 +895,19 @@ private fun RecentFiles(state: LayoutEditorState) {
         }
         recent.forEach { path ->
             val name = java.io.File(path).name
-            Row(
-                Modifier
-                    .fillMaxWidth()
-                    .height(22.dp)
-                    .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { state.openAny(path) }
-                    .padding(start = 14.dp, end = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                AppIconView(fileIcon(name), size = 14.dp)
-                Spacer(Modifier.width(6.dp))
-                Text(name, color = TextForeground, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Tip(path) {
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .height(22.dp)
+                        .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { state.openAny(path) }
+                        .padding(start = 14.dp, end = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    AppIconView(fileIcon(name), size = 14.dp)
+                    Spacer(Modifier.width(6.dp))
+                    Text(name, color = TextForeground, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
             }
         }
     }

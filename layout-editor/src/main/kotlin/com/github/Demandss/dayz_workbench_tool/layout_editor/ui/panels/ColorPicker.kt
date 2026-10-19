@@ -53,6 +53,7 @@ import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.hsvToColo
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.parseColorText
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.toHex
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.toHsv
+import com.github.demandss.dayz_workbench_tool.ui.components.Tip
 import com.github.demandss.dayz_workbench_tool.ui.theme.DarkenedBorder
 import com.github.demandss.dayz_workbench_tool.ui.theme.ElementsBackground
 import com.github.demandss.dayz_workbench_tool.ui.theme.FrameBackground
@@ -154,6 +155,7 @@ fun ColorPickerPopup(
                     Brush.horizontalGradient(
                         listOf(0f, 60f, 120f, 180f, 240f, 300f, 360f).map { hsvToColor(it.coerceAtMost(359.9f), 1f, 1f) },
                     ),
+                tooltip = "Оттенок",
                 fraction = hue / 360f,
                 onPick = { f ->
                     hue = f * 360f
@@ -164,6 +166,7 @@ fun ColorPickerPopup(
             // Alpha
             Slider(
                 brush = Brush.horizontalGradient(listOf(Color.Transparent, hsvToColor(hue, sat, value))),
+                tooltip = "Прозрачность",
                 fraction = alpha,
                 backdrop = true,
                 onPick = { alpha = it },
@@ -237,17 +240,21 @@ fun ColorPickerPopup(
                 PRESETS.chunked(6).forEach { row ->
                     Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                         row.forEach { preset ->
-                            Box(
-                                Modifier
-                                    .weight(1f)
-                                    .height(20.dp)
-                                    .background(preset)
-                                    .border(1.dp, DarkenedBorder)
-                                    .clickable(remember { MutableInteractionSource() }, null) {
-                                        set(preset.copy(alpha = alpha))
-                                        finish()
-                                    },
-                            )
+                            Box(Modifier.weight(1f)) {
+                                Tip(preset.toHex()) {
+                                    Box(
+                                        Modifier
+                                            .fillMaxWidth()
+                                            .height(20.dp)
+                                            .background(preset)
+                                            .border(1.dp, DarkenedBorder)
+                                            .clickable(remember { MutableInteractionSource() }, null) {
+                                                set(preset.copy(alpha = alpha))
+                                                finish()
+                                            },
+                                    )
+                                }
+                            }
                         }
                     }
                 }
@@ -263,41 +270,44 @@ private fun Slider(
     onPick: (Float) -> Unit,
     onDone: () -> Unit,
     backdrop: Boolean = false,
+    tooltip: String? = null,
 ) {
-    Box(
-        Modifier
-            .fillMaxWidth()
-            .height(14.dp)
-            .border(1.dp, DarkenedBorder)
-            .dragPick({ p, size -> onPick((p.x / size.width).coerceIn(0f, 1f)) }, onDone),
-    ) {
-        Canvas(Modifier.fillMaxSize()) {
-            if (backdrop) {
-                val cell = 7f
-                var y = 0f
-                var row = 0
-                while (y < size.height) {
-                    var x = 0f
-                    var col = row % 2
-                    while (x < size.width) {
-                        if (col % 2 ==
-                            0
-                        ) {
-                            drawRect(Color(0xFF3A3A3F), Offset(x, y), Size(cell, cell))
-                        } else {
-                            drawRect(Color(0xFF2B2B30), Offset(x, y), Size(cell, cell))
+    Tip(tooltip) {
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .height(14.dp)
+                .border(1.dp, DarkenedBorder)
+                .dragPick({ p, size -> onPick((p.x / size.width).coerceIn(0f, 1f)) }, onDone),
+        ) {
+            Canvas(Modifier.fillMaxSize()) {
+                if (backdrop) {
+                    val cell = 7f
+                    var y = 0f
+                    var row = 0
+                    while (y < size.height) {
+                        var x = 0f
+                        var col = row % 2
+                        while (x < size.width) {
+                            if (col % 2 ==
+                                0
+                            ) {
+                                drawRect(Color(0xFF3A3A3F), Offset(x, y), Size(cell, cell))
+                            } else {
+                                drawRect(Color(0xFF2B2B30), Offset(x, y), Size(cell, cell))
+                            }
+                            x += cell
+                            col++
                         }
-                        x += cell
-                        col++
+                        y += cell
+                        row++
                     }
-                    y += cell
-                    row++
                 }
+                drawRect(brush)
+                val x = fraction * size.width
+                drawRect(Color.White, Offset(x - 2f, 0f), Size(4f, size.height))
+                drawRect(Color.Black, Offset(x - 2f, 0f), Size(4f, size.height), style = Stroke(1f))
             }
-            drawRect(brush)
-            val x = fraction * size.width
-            drawRect(Color.White, Offset(x - 2f, 0f), Size(4f, size.height))
-            drawRect(Color.Black, Offset(x - 2f, 0f), Size(4f, size.height), style = Stroke(1f))
         }
     }
 }

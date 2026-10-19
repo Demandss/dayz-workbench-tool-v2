@@ -99,23 +99,25 @@ fun TextureViewer(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(2.dp),
         ) {
-            DarkToolButton("Fit", { fit(limitTo100 = false) }, icon = AppIcon.UI_FIT)
-            DarkToolButton("100%", {
+            DarkToolButton("Fit", { fit(limitTo100 = false) }, icon = AppIcon.UI_FIT, tooltip = "Вписать текстуру в окно")
+            DarkToolButton("100%", tooltip = "Один пиксель текстуры на один пиксель экрана", onClick = {
                 val s = source
                 if (s != null && viewSize != Size.Zero) {
                     zoom = 1f
                     pan = Offset((viewSize.width - s.width) / 2f, (viewSize.height - s.height) / 2f)
                 }
             })
-            DarkToolButton(null, { zoomAboutCentre(1f / 1.25f) }, icon = AppIcon.UI_ZOOMOUT)
-            DarkToolButton(null, { zoomAboutCentre(1.25f) }, icon = AppIcon.UI_ZOOMIN)
+            DarkToolButton(null, { zoomAboutCentre(1f / 1.25f) }, icon = AppIcon.UI_ZOOMOUT, tooltip = "Уменьшить")
+            DarkToolButton(null, { zoomAboutCentre(1.25f) }, icon = AppIcon.UI_ZOOMIN, tooltip = "Увеличить")
             ToolSeparator()
             ChannelMode.entries.forEach { mode ->
-                DarkToolButton(mode.label, { channel = mode }, active = channel == mode)
+                DarkToolButton(mode.label, { channel = mode }, active = channel == mode, tooltip = "Показать канал ${mode.label}")
             }
             ToolSeparator()
-            DarkToolButton("Шахматка", { checker = !checker }, icon = AppIcon.UI_GRID, active = checker)
-            DarkToolButton("Reload", { state.reloadTexture(doc.path) }, icon = AppIcon.UI_RELOAD)
+            DarkToolButton("Шахматка", {
+                checker = !checker
+            }, icon = AppIcon.UI_GRID, active = checker, tooltip = "Шахматный фон, чтобы видеть прозрачность")
+            DarkToolButton("Reload", { state.reloadTexture(doc.path) }, icon = AppIcon.UI_RELOAD, tooltip = "Прочитать файл с диска заново")
             Spacer(Modifier.weight(1f))
             Text("${(zoom * 100).roundToInt()}%", color = GhostlyText, fontSize = 11.sp)
         }

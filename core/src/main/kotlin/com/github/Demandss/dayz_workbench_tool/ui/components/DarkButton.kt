@@ -27,38 +27,41 @@ fun DarkButton(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     muted: Boolean = false,
+    tooltip: String? = null,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
 
-    Box(
-        modifier =
-            modifier
-                .height(24.dp)
-                .background(
+    Tip(tooltip) {
+        Box(
+            modifier =
+                modifier
+                    .height(24.dp)
+                    .background(
+                        when {
+                            !enabled -> ElementsBackground.copy(alpha = 0.5f)
+                            isPressed -> SelectColor
+                            else -> ElementsBackground
+                        },
+                    ).clickable(
+                        interactionSource = interactionSource,
+                        indication = null,
+                        enabled = enabled,
+                        onClick = onClick,
+                    ),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                text = text,
+                color =
                     when {
-                        !enabled -> ElementsBackground.copy(alpha = 0.5f)
-                        isPressed -> SelectColor
-                        else -> ElementsBackground
+                        !enabled -> GhostlyText.copy(alpha = 0.5f)
+                        muted -> GhostlyText
+                        else -> TextForeground
                     },
-                ).clickable(
-                    interactionSource = interactionSource,
-                    indication = null,
-                    enabled = enabled,
-                    onClick = onClick,
-                ),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(
-            text = text,
-            color =
-                when {
-                    !enabled -> GhostlyText.copy(alpha = 0.5f)
-                    muted -> GhostlyText
-                    else -> TextForeground
-                },
-            fontSize = 10.sp,
-            modifier = Modifier.padding(horizontal = 4.dp),
-        )
+                fontSize = 10.sp,
+                modifier = Modifier.padding(horizontal = 4.dp),
+            )
+        }
     }
 }

@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.LayoutEditorState
 import com.github.demandss.dayz_workbench_tool.ui.components.DarkButton
+import com.github.demandss.dayz_workbench_tool.ui.components.Tip
 import com.github.demandss.dayz_workbench_tool.ui.icons.AppIcon
 import com.github.demandss.dayz_workbench_tool.ui.icons.AppIconView
 import com.github.demandss.dayz_workbench_tool.ui.icons.fileIcon
@@ -43,7 +44,12 @@ fun EmptyState(
             AppIconView(AppIcon.LAYOUT, size = 44.dp)
             Text("Откройте layout или текстуру", color = TextForeground, fontSize = 14.sp)
             Text("Двойной клик по файлу в дереве или кнопка ниже", color = GhostlyText, fontSize = 11.sp)
-            DarkButton("Открыть файл…", onClick = onOpenFile, modifier = Modifier.width(140.dp))
+            DarkButton(
+                "Открыть файл…",
+                onClick = onOpenFile,
+                modifier = Modifier.width(140.dp),
+                tooltip = "Выбрать .layout, .edds или картинку",
+            )
 
             val recent = state.recentFiles.take(5)
             if (recent.isNotEmpty()) {
@@ -63,18 +69,20 @@ private fun RecentRow(
     onClick: () -> Unit,
 ) {
     val file = File(path)
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .height(24.dp)
-            .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null, onClick = onClick)
-            .padding(horizontal = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        AppIconView(fileIcon(file.name), size = 14.dp)
-        Spacer(Modifier.width(8.dp))
-        Text(file.name, color = TextForeground, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        Spacer(Modifier.width(8.dp))
-        Text(file.parentFile?.name.orEmpty(), color = GhostlyText, fontSize = 10.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+    Tip(path) {
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .height(24.dp)
+                .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null, onClick = onClick)
+                .padding(horizontal = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            AppIconView(fileIcon(file.name), size = 14.dp)
+            Spacer(Modifier.width(8.dp))
+            Text(file.name, color = TextForeground, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Spacer(Modifier.width(8.dp))
+            Text(file.parentFile?.name.orEmpty(), color = GhostlyText, fontSize = 10.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        }
     }
 }

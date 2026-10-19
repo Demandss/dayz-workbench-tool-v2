@@ -32,6 +32,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
+import com.github.demandss.dayz_workbench_tool.ui.components.Tip
 import com.github.demandss.dayz_workbench_tool.ui.theme.DarkenedBorder
 import com.github.demandss.dayz_workbench_tool.ui.theme.ElementsBackground
 import com.github.demandss.dayz_workbench_tool.ui.theme.FrameBackground
@@ -46,22 +47,25 @@ fun <T> DropdownField(
     options: List<T>,
     label: (T) -> String,
     modifier: Modifier = Modifier,
+    tooltip: String? = null,
     onSelect: (T) -> Unit,
 ) {
     var expanded by remember { mutableStateOf(false) }
     val fieldHeight = with(LocalDensity.current) { 24.dp.roundToPx() }
     Box(modifier) {
-        Box(
-            Modifier
-                .height(24.dp)
-                .widthIn(min = 64.dp)
-                .background(FrameBackground)
-                .border(1.dp, DarkenedBorder)
-                .clickable(remember { MutableInteractionSource() }, null) { expanded = true }
-                .padding(horizontal = 6.dp),
-            contentAlignment = Alignment.CenterStart,
-        ) {
-            Text(label(selected), color = TextForeground, fontSize = 11.sp, maxLines = 1)
+        Tip(tooltip) {
+            Box(
+                Modifier
+                    .height(24.dp)
+                    .widthIn(min = 64.dp)
+                    .background(FrameBackground)
+                    .border(1.dp, DarkenedBorder)
+                    .clickable(remember { MutableInteractionSource() }, null) { expanded = true }
+                    .padding(horizontal = 6.dp),
+                contentAlignment = Alignment.CenterStart,
+            ) {
+                Text(label(selected), color = TextForeground, fontSize = 11.sp, maxLines = 1)
+            }
         }
         if (expanded) {
             DropdownPopup(selected, options, label, fieldHeight, { expanded = false }, onSelect)

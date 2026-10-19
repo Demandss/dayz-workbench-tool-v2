@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.sp
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.LayoutEditorState
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.Severity
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.findProblems
+import com.github.demandss.dayz_workbench_tool.ui.components.Tip
 import com.github.demandss.dayz_workbench_tool.ui.icons.AppIcon
 import com.github.demandss.dayz_workbench_tool.ui.icons.AppIconView
 import com.github.demandss.dayz_workbench_tool.ui.theme.FrameBackground
@@ -46,32 +47,34 @@ fun ProblemsPanel(
     }
     LazyColumn(modifier.background(FrameBackground)) {
         items(problems) { p ->
-            Row(
-                Modifier
-                    .fillMaxWidth()
-                    .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) {
-                        state.selectedIds.clear()
-                        state.selectedIds.add(p.nodeId)
-                    }.padding(horizontal = 8.dp, vertical = 5.dp),
-                verticalAlignment = Alignment.Top,
-            ) {
-                AppIconView(
-                    AppIcon.UI_WARN,
-                    size = 14.dp,
-                    tint =
-                        if (p.severity ==
-                            Severity.ERROR
-                        ) {
-                            androidx.compose.ui.graphics
-                                .Color(0xFFFF5555)
-                        } else {
-                            null
-                        },
-                )
-                Spacer(Modifier.width(8.dp))
-                Column {
-                    Text(p.widgetName, color = TextForeground, fontSize = 11.sp)
-                    Text(p.message, color = GhostlyText, fontSize = 10.sp)
+            Tip("Выбрать виджет «${p.widgetName}»") {
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) {
+                            state.selectedIds.clear()
+                            state.selectedIds.add(p.nodeId)
+                        }.padding(horizontal = 8.dp, vertical = 5.dp),
+                    verticalAlignment = Alignment.Top,
+                ) {
+                    AppIconView(
+                        AppIcon.UI_WARN,
+                        size = 14.dp,
+                        tint =
+                            if (p.severity ==
+                                Severity.ERROR
+                            ) {
+                                androidx.compose.ui.graphics
+                                    .Color(0xFFFF5555)
+                            } else {
+                                null
+                            },
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Column {
+                        Text(p.widgetName, color = TextForeground, fontSize = 11.sp)
+                        Text(p.message, color = GhostlyText, fontSize = 10.sp)
+                    }
                 }
             }
         }

@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.github.demandss.dayz_workbench_tool.layout_editor.pathTo
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.LayoutEditorState
+import com.github.demandss.dayz_workbench_tool.ui.components.Tip
 import com.github.demandss.dayz_workbench_tool.ui.icons.AppIcon
 import com.github.demandss.dayz_workbench_tool.ui.icons.AppIconView
 import com.github.demandss.dayz_workbench_tool.ui.icons.widgetIcon
@@ -53,21 +54,23 @@ fun Breadcrumbs(state: LayoutEditorState) {
             path.forEachIndexed { index, node ->
                 if (index > 0) AppIconView(AppIcon.UI_RIGHT, size = 12.dp, tint = GhostlyText)
                 val current = index == path.lastIndex
-                Row(
-                    Modifier
-                        .background(if (current) SelectColor else Color.Transparent)
-                        .clickable(
-                            interactionSource = remember { MutableInteractionSource() },
-                            indication = null,
-                        ) {
-                            state.selectedIds.clear()
-                            state.selectedIds.add(node.id)
-                        }.padding(horizontal = 6.dp, vertical = 3.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    AppIconView(widgetIcon(node.node.type), size = 14.dp)
-                    Spacer(Modifier.width(5.dp))
-                    Text(node.node.name.ifEmpty { "(root)" }, color = TextForeground, fontSize = 11.sp, maxLines = 1)
+                Tip(if (current) "Выбранный виджет" else "Выбрать ${node.node.name.ifEmpty { "(root)" }}") {
+                    Row(
+                        Modifier
+                            .background(if (current) SelectColor else Color.Transparent)
+                            .clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = null,
+                            ) {
+                                state.selectedIds.clear()
+                                state.selectedIds.add(node.id)
+                            }.padding(horizontal = 6.dp, vertical = 3.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        AppIconView(widgetIcon(node.node.type), size = 14.dp)
+                        Spacer(Modifier.width(5.dp))
+                        Text(node.node.name.ifEmpty { "(root)" }, color = TextForeground, fontSize = 11.sp, maxLines = 1)
+                    }
                 }
             }
         }

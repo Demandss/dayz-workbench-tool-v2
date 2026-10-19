@@ -47,21 +47,7 @@ fun DarkIconButton(
     val hovered by interaction.collectIsHoveredAsState()
     val pressed by interaction.collectIsPressedAsState()
 
-    TooltipArea(
-        tooltip = {
-            Text(
-                label,
-                color = TextForeground,
-                fontSize = 11.sp,
-                modifier =
-                    Modifier
-                        .background(ElementsBackground)
-                        .border(1.dp, DarkenedBorder)
-                        .padding(horizontal = 8.dp, vertical = 4.dp),
-            )
-        },
-        delayMillis = 500,
-    ) {
+    Tip(label) {
         Box(
             modifier =
                 modifier

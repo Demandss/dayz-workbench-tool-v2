@@ -17,6 +17,7 @@ import androidx.compose.ui.unit.dp
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.LayoutEditorState
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.layoutTree
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.screenRect
+import com.github.demandss.dayz_workbench_tool.ui.components.Tip
 import com.github.demandss.dayz_workbench_tool.ui.theme.DarkenedBorder
 
 private val Back = Color(0xE61E1F22)
@@ -35,77 +36,80 @@ fun Minimap(
     val width = 168.dp
     val height = width * (screen.height / screen.width)
 
-    Canvas(
-        modifier
-            .size(width, height)
-            .background(Back)
-            .border(1.dp, DarkenedBorder)
-            .clipToBounds()
-            .pointerInput(screen, state.lastCanvasSize) {
-                awaitPointerEventScope {
-                    var down = false
-                    while (true) {
-                        val event = awaitPointerEvent()
-                        val pos = event.changes.firstOrNull()?.position ?: continue
-                        val scale = size.width / screen.width
+    Tip("Миникарта: клик или перетаскивание переносит вид") {
+        Canvas(
+            modifier
+                .size(width, height)
+                .background(Back)
+                .border(1.dp, DarkenedBorder)
+                .clipToBounds()
+                .pointerInput(screen, state.lastCanvasSize) {
+                    awaitPointerEventScope {
+                        var down = false
+                        while (true) {
+                            val event = awaitPointerEvent()
+                            val pos = event.changes.firstOrNull()?.position ?: continue
+                            val scale = size.width / screen.width
 
-                        fun centreOn(p: Offset) {
-                            val world = Offset(p.x / scale, p.y / scale)
-                            val canvas = state.lastCanvasSize
-                            state.panOffset = Offset(canvas.width / 2f - world.x * state.zoom, canvas.height / 2f - world.y * state.zoom)
-                        }
-                        when (event.type) {
-                            PointerEventType.Press -> {
-                                down = true
-                                centreOn(pos)
-                                event.changes.forEach { it.consume() }
+                            fun centreOn(p: Offset) {
+                                val world = Offset(p.x / scale, p.y / scale)
+                                val canvas = state.lastCanvasSize
+                                state.panOffset =
+                                    Offset(canvas.width / 2f - world.x * state.zoom, canvas.height / 2f - world.y * state.zoom)
                             }
-
-                            PointerEventType.Move -> {
-                                if (down) {
+                            when (event.type) {
+                                PointerEventType.Press -> {
+                                    down = true
                                     centreOn(pos)
                                     event.changes.forEach { it.consume() }
                                 }
-                            }
 
-                            PointerEventType.Release -> {
-                                down = false
-                            }
+                                PointerEventType.Move -> {
+                                    if (down) {
+                                        centreOn(pos)
+                                        event.changes.forEach { it.consume() }
+                                    }
+                                }
 
-                            else -> {}
+                                PointerEventType.Release -> {
+                                    down = false
+                                }
+
+                                else -> {}
+                            }
                         }
                     }
-                }
-            },
-    ) {
-        val scale = size.width / screen.width
-        val layout = layoutTree(doc.root, screen)
-        for ((id, rect) in layout.rects) {
-            if (id == doc.root.id || id in state.hiddenIds) continue
-            val selected = id in state.selectedIds
-            drawRect(
-                if (selected) View else Shape,
-                Offset(rect.left * scale, rect.top * scale),
-                Size(rect.width * scale, rect.height * scale),
-                style = Stroke(if (selected) 1.5f else 1f),
-            )
-        }
-        // What the canvas shows now
-        val canvas = state.lastCanvasSize
-        if (state.zoom > 0f && canvas.width > 0f) {
-            val left = -state.panOffset.x / state.zoom * scale
-            val top = -state.panOffset.y / state.zoom * scale
-            drawRect(
-                View.copy(alpha = 0.18f),
-                Offset(left, top),
-                Size(canvas.width / state.zoom * scale, canvas.height / state.zoom * scale),
-            )
-            drawRect(
-                View,
-                Offset(left, top),
-                Size(canvas.width / state.zoom * scale, canvas.height / state.zoom * scale),
-                style = Stroke(1f),
-            )
+                },
+        ) {
+            val scale = size.width / screen.width
+            val layout = layoutTree(doc.root, screen)
+            for ((id, rect) in layout.rects) {
+                if (id == doc.root.id || id in state.hiddenIds) continue
+                val selected = id in state.selectedIds
+                drawRect(
+                    if (selected) View else Shape,
+                    Offset(rect.left * scale, rect.top * scale),
+                    Size(rect.width * scale, rect.height * scale),
+                    style = Stroke(if (selected) 1.5f else 1f),
+                )
+            }
+            // What the canvas shows now
+            val canvas = state.lastCanvasSize
+            if (state.zoom > 0f && canvas.width > 0f) {
+                val left = -state.panOffset.x / state.zoom * scale
+                val top = -state.panOffset.y / state.zoom * scale
+                drawRect(
+                    View.copy(alpha = 0.18f),
+                    Offset(left, top),
+                    Size(canvas.width / state.zoom * scale, canvas.height / state.zoom * scale),
+                )
+                drawRect(
+                    View,
+                    Offset(left, top),
+                    Size(canvas.width / state.zoom * scale, canvas.height / state.zoom * scale),
+                    style = Stroke(1f),
+                )
+            }
         }
     }
 }

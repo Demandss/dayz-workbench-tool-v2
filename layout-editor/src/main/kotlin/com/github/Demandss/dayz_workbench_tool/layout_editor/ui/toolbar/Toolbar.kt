@@ -18,6 +18,7 @@ import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.DropdownP
 import com.github.demandss.dayz_workbench_tool.ui.components.DarkButton
 import com.github.demandss.dayz_workbench_tool.ui.components.DarkIconButton
 import com.github.demandss.dayz_workbench_tool.ui.components.DarkToolButton
+import com.github.demandss.dayz_workbench_tool.ui.components.Tip
 import com.github.demandss.dayz_workbench_tool.ui.icons.AppIcon
 import com.github.demandss.dayz_workbench_tool.ui.theme.*
 import kotlin.math.roundToInt
@@ -48,7 +49,7 @@ fun Toolbar(
         DarkIconButton(AppIcon.UI_ZOOMOUT, "Уменьшить", onClick = {
             state.zoom = (state.zoom * 0.9f).coerceIn(0.1f, 8f)
         })
-        ZoomLabel(state.zoom)
+        Tip("Текущий масштаб холста") { ZoomLabel(state.zoom) }
         DarkIconButton(AppIcon.UI_ZOOMIN, "Увеличить", onClick = {
             state.zoom = (state.zoom * 1.1f).coerceIn(0.1f, 8f)
         })
@@ -56,7 +57,7 @@ fun Toolbar(
         DarkButton("100%", onClick = {
             state.zoom = 1f
             state.centerView()
-        })
+        }, tooltip = "Масштаб 100%")
 
         Divider()
 
@@ -120,6 +121,7 @@ fun Toolbar(
         Spacer(Modifier.width(4.dp))
         DarkToolButton(
             "Live Preview",
+            tooltip = "Чистый вид без рамок, подписей и выделения",
             onClick = { state.livePreview = !state.livePreview },
             icon = AppIcon.UI_PLAY,
             active = state.livePreview,
@@ -159,7 +161,7 @@ private fun ResolutionPicker(
 ) {
     var expanded by remember { mutableStateOf(false) }
     Box {
-        DarkButton(selected.label, onClick = { expanded = true })
+        DarkButton(selected.label, onClick = { expanded = true }, tooltip = "Разрешение, на котором рисуется layout")
         if (expanded) {
             DropdownPopup(
                 selected,

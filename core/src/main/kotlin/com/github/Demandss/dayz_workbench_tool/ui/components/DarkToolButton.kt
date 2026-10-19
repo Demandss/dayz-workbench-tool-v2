@@ -38,6 +38,7 @@ fun DarkToolButton(
     icon: AppIcon? = null,
     active: Boolean? = null,
     primary: Boolean = false,
+    tooltip: String? = label,
 ) {
     val interaction = remember { MutableInteractionSource() }
     val hovered by interaction.collectIsHoveredAsState()
@@ -51,17 +52,19 @@ fun DarkToolButton(
         }
     val foreground = if (primary || active == true) Color.White else TextForeground
 
-    Row(
-        modifier
-            .height(26.dp)
-            .background(background)
-            .hoverable(interaction)
-            .clickable(interactionSource = interaction, indication = null, onClick = onClick)
-            .padding(horizontal = 7.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        if (icon != null) AppIconView(icon, size = 16.dp, tint = if (active == false) GhostlyText else foreground)
-        if (icon != null && label != null) Spacer(Modifier.width(5.dp))
-        if (label != null) Text(label, color = foreground, fontSize = 11.sp, maxLines = 1)
+    Tip(tooltip) {
+        Row(
+            modifier
+                .height(26.dp)
+                .background(background)
+                .hoverable(interaction)
+                .clickable(interactionSource = interaction, indication = null, onClick = onClick)
+                .padding(horizontal = 7.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            if (icon != null) AppIconView(icon, size = 16.dp, tint = if (active == false) GhostlyText else foreground)
+            if (icon != null && label != null) Spacer(Modifier.width(5.dp))
+            if (label != null) Text(label, color = foreground, fontSize = 11.sp, maxLines = 1)
+        }
     }
 }
