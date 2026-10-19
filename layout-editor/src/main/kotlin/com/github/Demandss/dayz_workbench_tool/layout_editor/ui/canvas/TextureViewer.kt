@@ -25,6 +25,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.LayoutEditorState
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.TextureDocument
+import com.github.demandss.dayz_workbench_tool.ui.components.DarkToolButton
+import com.github.demandss.dayz_workbench_tool.ui.icons.AppIcon
 import com.github.demandss.dayz_workbench_tool.ui.theme.*
 import java.awt.image.BufferedImage
 import kotlin.math.ceil
@@ -71,6 +73,14 @@ fun TextureViewer(
         pan = Offset((viewSize.width - s.width * z) / 2f, (viewSize.height - s.height * z) / 2f)
     }
 
+    fun zoomAboutCentre(factor: Float) {
+        if (viewSize == Size.Zero) return
+        val z = (zoom * factor).coerceIn(MIN_ZOOM, MAX_ZOOM)
+        val centre = Offset(viewSize.width / 2f, viewSize.height / 2f)
+        pan = centre - (centre - pan) * (z / zoom)
+        zoom = z
+    }
+
     LaunchedEffect(source, viewSize) {
         if (!fitted && source != null && viewSize != Size.Zero) {
             fit(limitTo100 = true)
@@ -83,27 +93,29 @@ fun TextureViewer(
         Row(
             Modifier
                 .fillMaxWidth()
-                .height(30.dp)
+                .height(32.dp)
                 .background(ElementsBackground)
-                .padding(horizontal = 6.dp),
+                .padding(horizontal = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            horizontalArrangement = Arrangement.spacedBy(2.dp),
         ) {
-            Chip("Fit", false) { fit(limitTo100 = false) }
-            Chip("100%", false) {
+            DarkToolButton("Fit", { fit(limitTo100 = false) }, icon = AppIcon.UI_FIT)
+            DarkToolButton("100%", {
                 val s = source
                 if (s != null && viewSize != Size.Zero) {
                     zoom = 1f
                     pan = Offset((viewSize.width - s.width) / 2f, (viewSize.height - s.height) / 2f)
                 }
-            }
-            Spacer(Modifier.width(8.dp))
+            })
+            DarkToolButton(null, { zoomAboutCentre(1f / 1.25f) }, icon = AppIcon.UI_ZOOMOUT)
+            DarkToolButton(null, { zoomAboutCentre(1.25f) }, icon = AppIcon.UI_ZOOMIN)
+            ToolSeparator()
             ChannelMode.entries.forEach { mode ->
-                Chip(mode.label, channel == mode) { channel = mode }
+                DarkToolButton(mode.label, { channel = mode }, active = channel == mode)
             }
-            Spacer(Modifier.width(8.dp))
-            Chip("Checker", checker) { checker = !checker }
-            Chip("Reload", false) { state.reloadTexture(doc.path) }
+            ToolSeparator()
+            DarkToolButton("Шахматка", { checker = !checker }, icon = AppIcon.UI_GRID, active = checker)
+            DarkToolButton("Reload", { state.reloadTexture(doc.path) }, icon = AppIcon.UI_RELOAD)
             Spacer(Modifier.weight(1f))
             Text("${(zoom * 100).roundToInt()}%", color = GhostlyText, fontSize = 11.sp)
         }
@@ -207,20 +219,14 @@ private fun BoxScope.StatusText(text: String) {
 }
 
 @Composable
-private fun Chip(
-    label: String,
-    selected: Boolean,
-    onClick: () -> Unit,
-) {
+private fun ToolSeparator() {
     Box(
         Modifier
-            .background(if (selected) SelectColor else FrameBackground)
-            .border(1.dp, DarkenedBorder)
-            .clickable(onClick = onClick)
-            .padding(horizontal = 8.dp, vertical = 3.dp),
-    ) {
-        Text(label, color = TextForeground, fontSize = 11.sp, maxLines = 1)
-    }
+            .padding(horizontal = 4.dp)
+            .width(1.dp)
+            .height(20.dp)
+            .background(DarkenedBorder),
+    )
 }
 
 @Composable

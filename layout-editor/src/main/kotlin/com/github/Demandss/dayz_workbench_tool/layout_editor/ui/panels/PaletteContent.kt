@@ -7,6 +7,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.text.BasicTextField
@@ -72,6 +73,15 @@ fun PaletteContent(
             modifier = Modifier.fillMaxSize().padding(horizontal = 4.dp),
         ) {
             items(shown) { type -> PaletteRow(type, enabled, state) }
+            item(span = { GridItemSpan(maxLineSpan) }) {
+                Text(
+                    "Перетащите виджет на холст или на строку в иерархии. Клик добавляет в выбранный виджет.",
+                    color = GhostlyText,
+                    fontSize = 11.sp,
+                    lineHeight = 16.sp,
+                    modifier = Modifier.padding(8.dp),
+                )
+            }
         }
     }
 }
@@ -91,7 +101,9 @@ private fun PaletteRow(
                 .fillMaxWidth()
                 .height(26.dp)
                 .hoverable(interactionSource)
-                .background(if (enabled && hovered) SubSelectColor else Color.Transparent)
+                .padding(2.dp)
+                .background(DarkenedBorder)
+                .border(1.dp, if (enabled && hovered) GhostlyText else Color.Transparent)
                 .padding(horizontal = 8.dp)
                 .pointerInput(type, enabled) {
                     if (!enabled) return@pointerInput

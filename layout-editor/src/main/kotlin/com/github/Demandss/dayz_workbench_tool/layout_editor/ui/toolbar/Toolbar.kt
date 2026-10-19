@@ -8,6 +8,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -15,6 +17,7 @@ import com.github.demandss.dayz_workbench_tool.layout_editor.state.LayoutEditorS
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.Resolution
 import com.github.demandss.dayz_workbench_tool.ui.components.DarkButton
 import com.github.demandss.dayz_workbench_tool.ui.components.DarkIconButton
+import com.github.demandss.dayz_workbench_tool.ui.components.DarkToolButton
 import com.github.demandss.dayz_workbench_tool.ui.icons.AppIcon
 import com.github.demandss.dayz_workbench_tool.ui.theme.*
 import kotlin.math.roundToInt
@@ -28,8 +31,9 @@ fun Toolbar(
         modifier =
             Modifier
                 .fillMaxWidth()
-                .height(32.dp)
-                .background(ElementsBackground),
+                .height(38.dp)
+                .background(FrameBackground)
+                .drawBehind { drawLine(Color(0xFF1E1F22), Offset(0f, size.height - 0.5f), Offset(size.width, size.height - 0.5f), 1f) },
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(2.dp),
     ) {
@@ -37,23 +41,6 @@ fun Toolbar(
 
         // File
         DarkIconButton(AppIcon.FOLDER_OPEN, "Открыть layout…", onClick = onOpenFile)
-        DarkIconButton(AppIcon.UI_SAVE, "Сохранить (Ctrl+S)", onClick = { state.saveActiveFile() }, enabled = state.activeFile != null)
-
-        Divider()
-
-        // Undo/Redo
-        DarkIconButton(
-            AppIcon.UI_UNDO,
-            "Отменить (Ctrl+Z)",
-            onClick = { state.undo(state.activeFileIndex) },
-            enabled = state.activeFile?.undoStack?.isNotEmpty() == true,
-        )
-        DarkIconButton(
-            AppIcon.UI_REDO,
-            "Повторить (Ctrl+Y)",
-            onClick = { state.redo(state.activeFileIndex) },
-            enabled = state.activeFile?.redoStack?.isNotEmpty() == true,
-        )
 
         Divider()
 
@@ -118,12 +105,26 @@ fun Toolbar(
 
         Spacer(Modifier.weight(1f))
         DarkIconButton(
-            AppIcon.UI_PLAY,
-            "Live Preview: чистый вид без рамок, подписей и выделения",
-            onClick = { state.livePreview = !state.livePreview },
-            active = state.livePreview,
+            AppIcon.UI_UNDO,
+            "Отменить (Ctrl+Z)",
+            onClick = { state.undo(state.activeFileIndex) },
+            enabled = state.activeFile?.undoStack?.isNotEmpty() == true,
         )
-
+        DarkIconButton(
+            AppIcon.UI_REDO,
+            "Повторить (Ctrl+Y)",
+            onClick = { state.redo(state.activeFileIndex) },
+            enabled = state.activeFile?.redoStack?.isNotEmpty() == true,
+        )
+        DarkIconButton(AppIcon.UI_SAVE, "Сохранить (Ctrl+S)", onClick = { state.saveActiveFile() }, enabled = state.activeFile != null)
+        Spacer(Modifier.width(4.dp))
+        DarkToolButton(
+            "Live Preview",
+            onClick = { state.livePreview = !state.livePreview },
+            icon = AppIcon.UI_PLAY,
+            active = state.livePreview,
+            primary = true,
+        )
         Spacer(Modifier.width(4.dp))
     }
 }

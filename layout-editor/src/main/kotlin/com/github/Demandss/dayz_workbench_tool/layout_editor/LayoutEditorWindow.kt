@@ -586,15 +586,35 @@ private fun ChangedOnDiskBanner(
 @Composable
 private fun RightPanel(state: LayoutEditorState) {
     var rightTab by remember { mutableStateOf(0) }
-    Column(Modifier.width(260.dp).fillMaxHeight()) {
+    Column(Modifier.width(300.dp).fillMaxHeight()) {
         HierarchyPanel(state, Modifier.weight(1f).fillMaxWidth())
         Box(Modifier.fillMaxWidth().height(1.dp).background(DarkenedBorder))
         val problemCount = state.activeFile?.let { remember(it.root) { findProblems(it.root).size } } ?: 0
-        DarkTabRow(
-            tabs = listOf("Properties", "Palette", if (problemCount > 0) "Problems $problemCount" else "Problems", "History"),
-            selectedIndex = rightTab,
-            onTabSelected = { rightTab = it },
-        )
+        Row(Modifier.fillMaxWidth().height(28.dp).background(ElementsBackground)) {
+            listOf(
+                "Properties",
+                "Palette",
+                if (problemCount >
+                    0
+                ) {
+                    "Problems $problemCount"
+                } else {
+                    "Problems"
+                },
+                "History",
+            ).forEachIndexed { i, title ->
+                Box(
+                    Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                        .background(if (rightTab == i) FrameBackground else ElementsBackground)
+                        .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { rightTab = i },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(title, color = if (rightTab == i) TextForeground else GhostlyText, fontSize = 12.sp, maxLines = 1)
+                }
+            }
+        }
         when (rightTab) {
             0 -> PropertiesContent(state, Modifier.weight(1.7f).fillMaxWidth())
             1 -> PaletteContent(state, Modifier.weight(1.7f).fillMaxWidth())
