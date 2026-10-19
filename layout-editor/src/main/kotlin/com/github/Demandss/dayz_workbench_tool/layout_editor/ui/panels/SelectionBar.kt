@@ -35,6 +35,7 @@ fun SelectionBar(
     ) {
         DarkIconButton(AppIcon.UI_COPY, "Дублировать (Ctrl+D)", onClick = { state.duplicateSelected() })
         DarkIconButton(AppIcon.UI_TRASH, "Удалить (Delete)", onClick = { state.deleteSelected() })
+        DarkIconButton(AppIcon.UI_CMD, "Скопировать код доступа (Enforce Script)", onClick = { state.copyScriptSnippet() })
         DarkIconButton(AppIcon.UI_LAYERS, "Сгруппировать в Frame (Ctrl+G), в WrapSpacer: Shift+A", onClick = { state.groupSelected() })
         if (ids.size >= 2) {
             Box(

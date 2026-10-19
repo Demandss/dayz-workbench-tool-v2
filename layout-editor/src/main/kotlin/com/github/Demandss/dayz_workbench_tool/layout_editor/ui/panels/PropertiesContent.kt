@@ -43,6 +43,7 @@ import com.github.demandss.dayz_workbench_tool.layout.WidgetType
 import com.github.demandss.dayz_workbench_tool.layout_editor.findNode
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.LayoutEditorState
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.convertUnit
+import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.documentColors
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.formatNumber
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.layoutTree
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.parseWidgetColor
@@ -233,7 +234,7 @@ fun PropertiesContent(
 
         Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState())) {
             PropertiesHeader(state, node.id, node.node.name, node.node.type, props, commit)
-            WidgetSection(props, commit)
+            WidgetSection(props, commit, remember(doc?.root) { doc?.root?.let { documentColors(it) }.orEmpty() })
             if (node.node.type in IMAGE_TYPES) ImageWidgetSection(props, commit, state.workDrivePath)
             val extra = props.filter { it.key !in WIDGET_KEYS && it.key !in IMAGE_KEYS }
             if (extra.isNotEmpty()) RawSection(extra, commit)
@@ -394,6 +395,7 @@ private fun AlignmentGrid(
 private fun WidgetSection(
     props: Map<String, String>,
     commit: (String, String) -> Unit,
+    documentColors: List<Color>,
 ) {
     var expanded by remember { mutableStateOf(true) }
     SectionHeader("Widget", expanded) { expanded = !expanded }
@@ -407,7 +409,7 @@ private fun WidgetSection(
     CheckRow("ignoregloballv", props["ignoregloballv"], commit)
     CheckRow("keepsafezone", props["keepsafezone"], commit)
 
-    ColorRows(props, commit)
+    ColorRows(props, commit, documentColors)
 
     CheckRow("scaled", props["scaled"], commit, "Пересчитывает размеры под относительное разрешение (в редакторе не учитывается)")
     PropRow(
@@ -535,6 +537,7 @@ private fun RawSection(
 private fun ColorRows(
     props: Map<String, String>,
     commit: (String, String) -> Unit,
+    documentColors: List<Color>,
 ) {
     val cv = props["color"] ?: ""
     val parts = cv.trim().split(Regex("\\s+"))
@@ -571,6 +574,7 @@ private fun ColorRows(
                     initial = shown,
                     anchorHeightPx = anchorHeight,
                     onDismiss = { picking = false },
+                    documentColors = documentColors,
                     onCommit = { commit("color", it.toFileColor()) },
                 )
             }

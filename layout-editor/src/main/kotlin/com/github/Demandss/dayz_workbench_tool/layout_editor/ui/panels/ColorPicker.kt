@@ -85,6 +85,7 @@ fun ColorPickerPopup(
     initial: Color,
     anchorHeightPx: Int,
     onDismiss: () -> Unit,
+    documentColors: List<Color> = emptyList(),
     onCommit: (Color) -> Unit,
 ) {
     val start = remember { initial.toHsv() }
@@ -236,6 +237,35 @@ fun ColorPickerPopup(
             }
             Text("Вставьте цвет из браузера: rgb(...), #hex или hsl(...)", color = GhostlyText, fontSize = 10.sp)
 
+            if (documentColors.isNotEmpty()) {
+                Text("Цвета этого layout", color = GhostlyText, fontSize = 10.sp)
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    documentColors.chunked(6).forEach { row ->
+                        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            row.forEach { used ->
+                                Box(Modifier.weight(1f)) {
+                                    Tip(used.toHex()) {
+                                        Box(
+                                            Modifier
+                                                .fillMaxWidth()
+                                                .height(20.dp)
+                                                .background(Color(0xFF2B2B30))
+                                                .background(used)
+                                                .border(1.dp, DarkenedBorder)
+                                                .clickable(remember { MutableInteractionSource() }, null) {
+                                                    set(used)
+                                                    alpha = used.alpha
+                                                    finish()
+                                                },
+                                        )
+                                    }
+                                }
+                            }
+                            repeat(6 - row.size) { Box(Modifier.weight(1f)) }
+                        }
+                    }
+                }
+            }
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 PRESETS.chunked(6).forEach { row ->
                     Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {

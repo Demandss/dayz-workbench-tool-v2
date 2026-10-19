@@ -43,6 +43,7 @@ import androidx.compose.ui.unit.sp
 import com.github.demandss.dayz_workbench_tool.layout.WidgetType
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.LayoutEditorState
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.AlignMode
+import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.BulkMode
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.Reorder
 import com.github.demandss.dayz_workbench_tool.ui.icons.AppIcon
 import com.github.demandss.dayz_workbench_tool.ui.icons.AppIconView
@@ -105,6 +106,15 @@ fun buildCommands(
         add(Command("Копировать свойства", AppIcon.UI_COPY, "Ctrl+Alt+C", hasSelection) { state.copyAppearance() })
         add(Command("Вставить свойства", AppIcon.UI_COPY, "Ctrl+Alt+V", hasSelection) { state.pasteAppearance() })
         add(Command("Переименовать", AppIcon.UI_SEARCH, "F2", hasSelection) { state.requestRename() })
+        add(Command("Скопировать код доступа к виджету", AppIcon.UI_CMD, "Enforce Script", hasSelection) { state.copyScriptSnippet() })
+        add(Command("Заменить в именах виджетов…", AppIcon.UI_SEARCH, enabled = hasDoc) { state.bulkDialog = BulkMode.NAME })
+        add(Command("Заменить значение свойства…", AppIcon.UI_SEARCH, enabled = hasDoc) { state.bulkDialog = BulkMode.PROPERTY })
+        add(
+            toggle("сравнение разрешений", AppIcon.UI_PIXEL, state.compareResolutions) {
+                state.compareResolutions =
+                    !state.compareResolutions
+            },
+        )
         add(
             Command("Масштаб 100%", AppIcon.UI_ZOOMIN, enabled = hasDoc) {
                 state.zoom = 1f

@@ -19,11 +19,13 @@ import com.github.demandss.dayz_workbench_tool.layout_editor.removeNode
 import com.github.demandss.dayz_workbench_tool.layout_editor.toEditorNode
 import com.github.demandss.dayz_workbench_tool.layout_editor.toWidgetNode
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.AlignMode
+import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.BulkMode
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.GuideLine
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.Reorder
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.alignedRoot
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.allNames
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.appearance
+import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.bulkReplace
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.clipboardText
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.distributed
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.layoutTree
@@ -33,6 +35,7 @@ import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.parseClip
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.reanchored
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.reordered
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.screenRect
+import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.scriptSnippet
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.ungrouped
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.uniqueName
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.withAppearance
@@ -251,6 +254,41 @@ class LayoutEditorState(
     }
 
     var commandPaletteOpen by mutableStateOf(false)
+
+    // Find and replace dialog, and the strip that shows the layout at several resolutions at once
+    var bulkDialog by mutableStateOf<BulkMode?>(null)
+    var compareResolutions by mutableStateOf(false)
+
+    fun applyBulk(
+        mode: BulkMode,
+        key: String,
+        find: String,
+        replace: String,
+        selectedOnly: Boolean,
+    ) {
+        val idx = activeFileIndex
+        val doc = openFiles.getOrNull(idx) ?: return
+        val scope = if (selectedOnly) selectedIds.toSet() else null
+        val (root, changed) = bulkReplace(doc.root, scope, mode, key, find, replace)
+        if (changed == 0) return
+        pushUndo(idx, doc.root, if (mode == BulkMode.NAME) "Замена в именах ($changed)" else "Замена $key ($changed)")
+        updateActiveRoot(root)
+        notify("Изменено виджетов: $changed", ToastKind.SUCCESS)
+    }
+
+    /** Puts Enforce Script that declares and finds the selected widgets on the clipboard. */
+    fun copyScriptSnippet() {
+        val doc = activeFile ?: return
+        val nodes = selectedIds.filter { it != doc.root.id }.mapNotNull { doc.root.findNode(it) }
+        if (nodes.isEmpty()) return
+        runCatching {
+            Toolkit.getDefaultToolkit().systemClipboard.setContents(java.awt.datatransfer.StringSelection(scriptSnippet(nodes)), null)
+        }.onFailure {
+            notify("Не удалось скопировать: ${it.message ?: it.javaClass.simpleName}", ToastKind.ERROR)
+            return
+        }
+        notify("Код доступа скопирован: ${nodes.size}", ToastKind.SUCCESS)
+    }
 
     // The look copied with "Copy properties"
     private var copiedAppearance: Map<String, String>? = null

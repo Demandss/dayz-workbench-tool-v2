@@ -45,6 +45,7 @@ import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.LayoutCan
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.TextureViewer
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.findProblems
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.Breadcrumbs
+import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.BulkEditDialog
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.CommandPalette
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.EmptyState
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.FileTreePanel
@@ -55,6 +56,7 @@ import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.PaletteCo
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.ProblemsPanel
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.PropertiesContent
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.ReferencePanel
+import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.ResolutionCompare
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.Rulers
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.SelectionBar
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.StatusBar
@@ -264,6 +266,9 @@ fun LayoutEditorWindow(
                                         ) {
                                             Minimap(state, Modifier.align(Alignment.BottomEnd).padding(10.dp))
                                         }
+                                        if (state.compareResolutions && !state.livePreview) {
+                                            ResolutionCompare(state, Modifier.align(Alignment.BottomCenter).padding(bottom = 10.dp))
+                                        }
                                         ViewportChips(
                                             state,
                                             Modifier
@@ -317,6 +322,7 @@ fun LayoutEditorWindow(
                     }
                 }
 
+                BulkEditDialog(state)
                 ToastHost(state, Modifier.align(Alignment.BottomEnd).padding(bottom = 22.dp))
                 CommandPalette(state) {
                     scope.launch {

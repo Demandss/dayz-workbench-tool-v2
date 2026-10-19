@@ -179,7 +179,7 @@ private fun DrawScope.drawEdgeDistances(
     }
 }
 
-private fun DrawScope.drawWidgetTree(
+internal fun DrawScope.drawWidgetTree(
     node: EditorWidgetNode,
     layout: TreeLayout,
     isRoot: Boolean,
@@ -377,7 +377,23 @@ fun LayoutCanvas(
 
                             when (event.type) {
                                 PointerEventType.Scroll -> {
-                                    if (!event.keyboardModifiers.isCtrlPressed) continue
+                                    if (!event.keyboardModifiers.isCtrlPressed) {
+                                        // The wheel moves the view, with Shift sideways, as in Figma
+                                        val scroll = event.changes.firstOrNull()?.scrollDelta ?: Offset.Zero
+                                        val sideways = event.keyboardModifiers.isShiftPressed
+                                        val shift =
+                                            if (sideways) {
+                                                Offset(-(scroll.y + scroll.x) * 40f, 0f)
+                                            } else {
+                                                Offset(
+                                                    -scroll.x * 40f,
+                                                    -scroll.y * 40f,
+                                                )
+                                            }
+                                        state.panOffset += shift
+                                        event.changes.forEach { it.consume() }
+                                        continue
+                                    }
                                     val dy =
                                         event.changes
                                             .firstOrNull()

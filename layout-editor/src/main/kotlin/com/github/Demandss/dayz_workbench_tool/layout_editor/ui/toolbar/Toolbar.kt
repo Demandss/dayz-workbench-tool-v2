@@ -103,6 +103,9 @@ fun Toolbar(
 
         DarkIconButton(AppIcon.UI_RULER, "Линейки", onClick = { state.showRulers = !state.showRulers }, active = state.showRulers)
         DarkIconButton(AppIcon.UI_FIT, "Миникарта", onClick = { state.showMinimap = !state.showMinimap }, active = state.showMinimap)
+        DarkIconButton(AppIcon.UI_PIXEL, "Сравнить 4:3, 5:4 и 16:9", onClick = {
+            state.compareResolutions = !state.compareResolutions
+        }, active = state.compareResolutions)
 
         Spacer(Modifier.weight(1f))
         DarkIconButton(
