@@ -4,6 +4,7 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -244,9 +245,10 @@ fun LayoutEditorWindow(
                 // ── Main layout ───────────────────────────────────────────
                 Column(Modifier.fillMaxSize()) {
                     Row(Modifier.weight(1f).fillMaxWidth()) {
-                        FileTreePanel(state, width = 220.dp)
+                        var treeWidth by remember { mutableStateOf(220.dp) }
+                        FileTreePanel(state, width = treeWidth)
 
-                        Box(Modifier.width(1.dp).fillMaxHeight().background(DarkenedBorder))
+                        ResizeDivider { delta -> treeWidth = (treeWidth + delta).coerceIn(160.dp, 600.dp) }
 
                         Column(Modifier.weight(1f).fillMaxHeight()) {
                             FileTabBar(state)
@@ -693,5 +695,26 @@ private fun RightPanel(state: LayoutEditorState) {
             2 -> ProblemsPanel(state, Modifier.weight(1.7f).fillMaxWidth())
             3 -> HistoryPanel(state, Modifier.weight(1.7f).fillMaxWidth())
         }
+    }
+}
+
+/** A one pixel line with a wider grab area: dragging it sideways reports the change of width. */
+@Composable
+private fun ResizeDivider(onDrag: (androidx.compose.ui.unit.Dp) -> Unit) {
+    val density = androidx.compose.ui.platform.LocalDensity.current
+    Box(
+        Modifier
+            .width(5.dp)
+            .fillMaxHeight()
+            .pointerHoverIcon(PointerIcon(java.awt.Cursor(java.awt.Cursor.E_RESIZE_CURSOR)))
+            .pointerInput(Unit) {
+                detectHorizontalDragGestures { change, amount ->
+                    change.consume()
+                    onDrag(with(density) { amount.toDp() })
+                }
+            },
+        contentAlignment = Alignment.Center,
+    ) {
+        Box(Modifier.width(1.dp).fillMaxHeight().background(DarkenedBorder))
     }
 }
