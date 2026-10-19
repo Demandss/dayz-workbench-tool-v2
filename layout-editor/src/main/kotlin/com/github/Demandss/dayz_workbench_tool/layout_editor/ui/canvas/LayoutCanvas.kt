@@ -539,14 +539,21 @@ fun LayoutCanvas(
                                                 undoPushed = true
                                             }
                                             var worldDelta = (pos - dragStartScreen) / zoom
+                                            // Positions in pixels are whole, so the measured gaps are as well
+                                            if (dragInfos.all { it.hexactpos }) worldDelta = Offset(round(worldDelta.x), worldDelta.y)
+                                            if (dragInfos.all { it.vexactpos }) worldDelta = Offset(worldDelta.x, round(worldDelta.y))
                                             // Snap to the neighbours. Ctrl switches it off
                                             val union = dragUnion
                                             if (union != null && undoPushed && !event.keyboardModifiers.isCtrlPressed) {
-                                                val snap = snapMove(union, worldDelta, dragCandidates, 6f / zoom)
+                                                val screenRect = screenRect(state)
+                                                // The edges of the screen are snapped to, but no gap is measured to them
+                                                val snap = snapMove(union, worldDelta, dragCandidates, 6f / zoom) { it != screenRect }
                                                 worldDelta += Offset(snap.dx, snap.dy)
                                                 state.snapGuides = snap.guides
+                                                state.snapDistances = snap.distances
                                             } else {
                                                 state.snapGuides = emptyList()
+                                                state.snapDistances = emptyList()
                                             }
                                             val doc = state.activeFile
                                             if (doc != null && undoPushed) {
@@ -629,6 +636,7 @@ fun LayoutCanvas(
                                     isPanning = false
                                     isDragging = false
                                     state.snapGuides = emptyList()
+                                    state.snapDistances = emptyList()
                                     isBoxSelecting = false
                                     dragInfos = emptyList()
                                 }
@@ -727,6 +735,8 @@ fun LayoutCanvas(
             val b = if (g.vertical) worldToScreen(Offset(g.at, g.to), zoom, pan) else worldToScreen(Offset(g.to, g.at), zoom, pan)
             drawLine(Color(0xFFFF4FA3), a, b, 1f)
         }
+        // The gaps to the widgets that the dragged one snapped to, in layout pixels
+        if (state.snapDistances.isNotEmpty()) drawEdgeDistances(state.snapDistances, textMeasurer, zoom, pan)
 
         // Alt over another widget: the distances between it and the selected one
         val hover = state.hoverWorld

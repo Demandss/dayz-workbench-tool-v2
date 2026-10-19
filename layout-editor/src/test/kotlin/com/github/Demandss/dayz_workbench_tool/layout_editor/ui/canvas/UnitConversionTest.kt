@@ -25,6 +25,8 @@ class UnitConversionTest {
         assertEquals("0.123456", formatNumber(0.123456f))
         assertEquals("0", formatNumber(-0.0000001f))
         assertEquals("1234.5", formatNumber(1234.5f))
+        assertEquals("722.5", formatNumber(722.5f))
+        assertEquals("1079.5", formatNumber(1079.5f))
     }
 }
 

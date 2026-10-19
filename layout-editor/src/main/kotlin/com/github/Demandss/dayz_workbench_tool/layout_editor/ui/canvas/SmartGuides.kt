@@ -19,6 +19,8 @@ internal class SnapResult(
     val dx: Float,
     val dy: Float,
     val guides: List<GuideLine>,
+    // The gaps, in layout pixels, between the snapped rectangle and the widgets it snapped to
+    val distances: List<EdgeDistance> = emptyList(),
 )
 
 private fun Rect.xs() = floatArrayOf(left, center.x, right)
@@ -34,6 +36,7 @@ internal fun snapMove(
     delta: Offset,
     others: List<Rect>,
     threshold: Float,
+    measured: (Rect) -> Boolean = { true },
 ): SnapResult {
     val moved = moving.translate(delta)
 
@@ -66,6 +69,7 @@ internal fun snapMove(
     val snapped = moved.translate(Offset(dx, dy))
 
     val guides = mutableListOf<GuideLine>()
+    val distances = mutableListOf<EdgeDistance>()
     if (x != null) {
         // Every edge of the moving rectangle that now lines up with an edge of any other rectangle gets a line
         for (other in others) {
@@ -73,6 +77,8 @@ internal fun snapMove(
                 for (m in snapped.xs()) {
                     if (abs(t - m) < 0.01f) {
                         guides += GuideLine(true, t, min(snapped.top, other.top), max(snapped.bottom, other.bottom))
+                        // Lined up on a vertical line, so what matters is the vertical gap to that widget
+                        if (measured(other)) distances += distancesBetween(snapped, other).filter { it.from.x == it.to.x }
                     }
                 }
             }
@@ -84,12 +90,13 @@ internal fun snapMove(
                 for (m in snapped.ys()) {
                     if (abs(t - m) < 0.01f) {
                         guides += GuideLine(false, t, min(snapped.left, other.left), max(snapped.right, other.right))
+                        if (measured(other)) distances += distancesBetween(snapped, other).filter { it.from.y == it.to.y }
                     }
                 }
             }
         }
     }
-    return SnapResult(dx, dy, guides.distinct())
+    return SnapResult(dx, dy, guides.distinct(), distances.distinct())
 }
 
 /**

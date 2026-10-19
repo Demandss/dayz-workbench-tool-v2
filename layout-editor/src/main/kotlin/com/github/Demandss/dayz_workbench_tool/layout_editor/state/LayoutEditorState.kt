@@ -20,6 +20,7 @@ import com.github.demandss.dayz_workbench_tool.layout_editor.toEditorNode
 import com.github.demandss.dayz_workbench_tool.layout_editor.toWidgetNode
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.AlignMode
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.BulkMode
+import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.EdgeDistance
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.GuideLine
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.Reorder
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.alignedRoot
@@ -413,6 +414,7 @@ class LayoutEditorState(
 
     // Shown while dragging (snap guides) and while Alt is held over another widget (distances between the two)
     var snapGuides by mutableStateOf<List<GuideLine>>(emptyList())
+    var snapDistances by mutableStateOf<List<EdgeDistance>>(emptyList())
     var hoverWorld by mutableStateOf<Offset?>(null)
     var altHeld by mutableStateOf(false)
 

@@ -50,4 +50,13 @@ class SmartGuidesTest {
         val values = distancesBetween(inner, outer).map { it.value }.sorted()
         assertEquals(listOf(20f, 30f, 30f, 40f), values)
     }
+
+    @Test
+    fun `the gap to the widget it snapped to is measured`() {
+        // The moving rectangle lines up with the left edge of the other one and sits 20 pixels above it
+        val moving = Rect(0f, 0f, 40f, 30f)
+        val snap = snapMove(moving, Offset(97f, 50f), listOf(other), threshold = 6f)
+        val gap = snap.distances.single { it.from.x == it.to.x }
+        assertEquals(20f, gap.value)
+    }
 }

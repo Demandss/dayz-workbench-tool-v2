@@ -17,8 +17,9 @@ internal fun convertUnit(
 
 /** A number as it is written in a layout: up to six decimals, no trailing zeros, no `-0`. */
 internal fun formatNumber(value: Float): String {
-    val rounded = round(value * 1000000f) / 1000000f
-    if (abs(rounded) < 0.0000005f) return "0"
+    // In double, because a float this large has no room for six decimals and would print 722.499939 for 722.5
+    val rounded = kotlin.math.round(value.toDouble() * 1_000_000.0) / 1_000_000.0
+    if (abs(rounded) < 0.0000005) return "0"
     val text = "%.6f".format(java.util.Locale.ROOT, rounded)
     return text.trimEnd('0').trimEnd('.')
 }
