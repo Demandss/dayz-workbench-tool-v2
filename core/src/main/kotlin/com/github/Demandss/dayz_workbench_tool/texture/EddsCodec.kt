@@ -211,6 +211,7 @@ object EddsCodec {
                     77 -> PixelFormat.BC3
                     80 -> PixelFormat.BC4
                     83 -> PixelFormat.BC5
+                    98 -> PixelFormat.BC7
                     87 -> PixelFormat.BGRA32
                     28 -> PixelFormat.RGBA32
                     61 -> PixelFormat.L8

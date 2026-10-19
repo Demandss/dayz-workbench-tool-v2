@@ -1015,6 +1015,13 @@ class LayoutEditorState(
                                 ImageIO.read(file)
                             }
                         image?.toComposeImageBitmap()
+                    }.onFailure { error ->
+                        withContext(Dispatchers.Main) {
+                            notify(
+                                "Не удалось прочитать текстуру ${file.name}: ${error.message ?: error.javaClass.simpleName}",
+                                ToastKind.ERROR,
+                            )
+                        }
                     }.getOrNull()
                 withContext(Dispatchers.Main) { imageSetBitmaps[key] = bitmap }
             }

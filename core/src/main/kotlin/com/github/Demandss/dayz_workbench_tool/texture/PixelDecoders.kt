@@ -13,6 +13,7 @@ internal enum class PixelFormat(
     BC3(16, 4),
     BC4(8, 4),
     BC5(16, 4),
+    BC7(16, 4),
     ;
 
     fun mipBytes(
@@ -100,6 +101,10 @@ internal object PixelDecoders {
                         val r = bc4Channel(data, p)
                         val g = bc4Channel(data, p + 8)
                         for (i in 0 until 16) block[i] = argb(255, r[i], g[i], 0)
+                    }
+
+                    PixelFormat.BC7 -> {
+                        Bc7.decodeBlock(data, p, block)
                     }
 
                     else -> {
