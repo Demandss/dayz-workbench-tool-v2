@@ -3,6 +3,7 @@ package com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -15,9 +16,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
@@ -32,26 +36,42 @@ import com.github.demandss.dayz_workbench_tool.ui.theme.ElementsBackground
 import com.github.demandss.dayz_workbench_tool.ui.theme.FrameBackground
 import com.github.demandss.dayz_workbench_tool.ui.theme.TextForeground
 
-/** A flat dialog over the window: a title strip, the [content] and a row of [buttons]. Esc closes it. */
+/** A flat dialog over the window: a title strip, the [content] and a row of [buttons]. Esc closes it, Enter runs [onConfirm]. */
 @Composable
 fun FlatDialog(
     title: String,
     onDismiss: () -> Unit,
+    onConfirm: (() -> Unit)? = null,
     width: Dp = 380.dp,
     buttons: @Composable () -> Unit,
     content: @Composable () -> Unit,
 ) {
+    // The dialog takes the keyboard when it opens, so that Enter and Esc reach it even before a field is clicked
+    val root = remember { FocusRequester() }
+    LaunchedEffect(Unit) { runCatching { root.requestFocus() } }
     Box(
         Modifier
             .fillMaxSize()
             .background(Color(0x66000000))
             .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { onDismiss() }
+            .focusRequester(root)
+            .focusable()
             .onPreviewKeyEvent { ev ->
-                if (ev.type == KeyEventType.KeyDown && ev.key == Key.Escape) {
-                    onDismiss()
-                    true
-                } else {
-                    false
+                if (ev.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
+                when {
+                    ev.key == Key.Escape -> {
+                        onDismiss()
+                        true
+                    }
+
+                    (ev.key == Key.Enter || ev.key == Key.NumPadEnter) && onConfirm != null -> {
+                        onConfirm()
+                        true
+                    }
+
+                    else -> {
+                        false
+                    }
                 }
             },
         contentAlignment = Alignment.Center,

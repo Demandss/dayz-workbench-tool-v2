@@ -67,6 +67,7 @@ fun BulkEditDialog(state: LayoutEditorState) {
     FlatDialog(
         title = if (mode == BulkMode.NAME) "Заменить в именах виджетов" else "Заменить значение свойства",
         onDismiss = { state.bulkDialog = null },
+        onConfirm = { if (count > 0) apply() },
         buttons = {
             DarkButton("Отмена", onClick = { state.bulkDialog = null }, muted = true, modifier = Modifier.width(80.dp))
             DarkButton(

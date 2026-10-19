@@ -17,6 +17,10 @@ fun ConfirmDialog(state: LayoutEditorState) {
     FlatDialog(
         title = question.title,
         onDismiss = { state.confirmation = null },
+        onConfirm = {
+            state.confirmation = null
+            question.onConfirm()
+        },
         width = 340.dp,
         buttons = {
             DarkButton("Отмена", onClick = { state.confirmation = null }, muted = true, modifier = Modifier.width(80.dp))

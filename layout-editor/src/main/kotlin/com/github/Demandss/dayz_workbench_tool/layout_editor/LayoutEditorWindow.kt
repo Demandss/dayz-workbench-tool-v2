@@ -408,6 +408,7 @@ private fun NameDialog(
     FlatDialog(
         title = "Новый $typeName",
         onDismiss = onDismiss,
+        onConfirm = { onConfirm(name) },
         width = 320.dp,
         buttons = {
             DarkButton("Отмена", onClick = onDismiss, muted = true, modifier = Modifier.width(80.dp))
