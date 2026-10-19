@@ -49,4 +49,35 @@ class ColorMathTest {
         assertNull(parseHex("#12"))
         assertNull(parseHex("zzzzzz"))
     }
+
+    @Test
+    fun `colours copied from a browser are understood`() {
+        assertEquals("#FF8000", parseColorText("rgb(255, 128, 0)")!!.toHex())
+        assertEquals("#FF8000", parseColorText("rgb(255 128 0)")!!.toHex())
+        assertEquals("#FF8000", parseColorText("255, 128, 0")!!.toHex())
+        assertEquals("#336699", parseColorText("#369")!!.toHex())
+        assertEquals("#FF8000", parseColorText("RGB(100%, 50.2%, 0%);")!!.toHex())
+        assertEquals("#FFFFFF", parseColorText("white")!!.toHex())
+    }
+
+    @Test
+    fun `alpha is taken from rgba and eight digit hex`() {
+        near(0.5f, parseColorText("rgba(0, 0, 0, 0.5)")!!.alpha)
+        near(0.25f, parseColorText("rgb(0 0 0 / 25%)")!!.alpha)
+        near(0.5f, parseColorText("#ff000080")!!.alpha, 0.01f)
+        assertEquals(1f, parseColorText("#ff0000")!!.alpha)
+    }
+
+    @Test
+    fun `hsl is converted`() {
+        assertEquals("#FF0000", parseColorText("hsl(0, 100%, 50%)")!!.toHex())
+        assertEquals("#00FF00", parseColorText("hsl(120deg 100% 50%)")!!.toHex())
+    }
+
+    @Test
+    fun `text that is not a colour is refused`() {
+        assertNull(parseColorText("hello"))
+        assertNull(parseColorText("1, 2"))
+        assertNull(parseColorText(""))
+    }
 }

@@ -18,12 +18,16 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
@@ -46,7 +50,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.hsvToColor
-import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.parseHex
+import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.parseColorText
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.toHex
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.toHsv
 import com.github.demandss.dayz_workbench_tool.ui.theme.DarkenedBorder
@@ -89,6 +93,7 @@ fun ColorPickerPopup(
     var alpha by remember { mutableStateOf(initial.alpha) }
     val current = hsvToColor(hue, sat, value, alpha)
     var hexText by remember { mutableStateOf(current.toHex()) }
+    val focus = remember { FocusRequester() }
 
     fun set(c: Color) {
         val h = c.toHsv()
@@ -117,6 +122,11 @@ fun ColorPickerPopup(
                 .padding(8.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
+            // The field is part of this popup, so it can take the focus only after the first frame
+            LaunchedEffect(Unit) {
+                withFrameNanos { }
+                runCatching { focus.requestFocus() }
+            }
             // Saturation and value
             Box(
                 Modifier
@@ -170,7 +180,25 @@ fun ColorPickerPopup(
                 )
                 BasicTextField(
                     value = hexText,
-                    onValueChange = { hexText = it },
+                    onValueChange = { typed ->
+                        // Text that was pasted next to the old value is read on its own
+                        val inserted =
+                            when {
+                                typed.length - hexText.length <= 1 && !typed.contains('(') -> null
+                                typed.endsWith(hexText) -> typed.removeSuffix(hexText)
+                                typed.startsWith(hexText) -> typed.removePrefix(hexText)
+                                else -> typed
+                            }
+                        val pasted = inserted?.let { parseColorText(it) }
+                        hexText = typed
+                        if (pasted != null) {
+                            val digits = inserted.trim().removePrefix("#").length
+                            // rgba(), hsla() and 4 or 8 digit hex carry their own alpha
+                            if (inserted.contains('(') || digits == 4 || digits == 8) alpha = pasted.alpha
+                            set(pasted)
+                            finish()
+                        }
+                    },
                     singleLine = true,
                     textStyle = TextStyle(color = TextForeground, fontSize = 11.sp, fontFamily = FontFamily.Monospace),
                     cursorBrush = SolidColor(TextForeground),
@@ -189,10 +217,10 @@ fun ColorPickerPopup(
                         }
                     },
                     modifier =
-                        Modifier.weight(1f).onKeyEvent { ev ->
+                        Modifier.weight(1f).focusRequester(focus).onKeyEvent { ev ->
                             if (ev.key == Key.Enter && ev.type == KeyEventType.KeyDown) {
-                                parseHex(hexText)?.let {
-                                    set(it.copy(alpha = alpha))
+                                parseColorText(hexText)?.let {
+                                    set(it)
                                     finish()
                                 }
                                 true
@@ -203,6 +231,7 @@ fun ColorPickerPopup(
                 )
                 Text("${(alpha * 100).toInt()}%", color = GhostlyText, fontSize = 11.sp)
             }
+            Text("Вставьте цвет из браузера: rgb(...), #hex или hsl(...)", color = GhostlyText, fontSize = 10.sp)
 
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 PRESETS.chunked(6).forEach { row ->

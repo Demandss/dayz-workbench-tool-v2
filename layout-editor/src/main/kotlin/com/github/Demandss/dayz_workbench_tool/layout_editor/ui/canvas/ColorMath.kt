@@ -66,6 +66,90 @@ internal fun parseHex(text: String): Color? {
     return Color(((n shr 16) and 0xFF) / 255f, ((n shr 8) and 0xFF) / 255f, (n and 0xFF) / 255f)
 }
 
+private val NAMED =
+    mapOf(
+        "black" to 0x000000,
+        "white" to 0xFFFFFF,
+        "red" to 0xFF0000,
+        "green" to 0x008000,
+        "blue" to 0x0000FF,
+        "yellow" to 0xFFFF00,
+        "orange" to 0xFFA500,
+        "purple" to 0x800080,
+        "gray" to 0x808080,
+        "grey" to 0x808080,
+        "cyan" to 0x00FFFF,
+        "magenta" to 0xFF00FF,
+        "pink" to 0xFFC0CB,
+        "brown" to 0xA52A2A,
+        "lime" to 0x00FF00,
+    )
+
+/** A number that may end with a percent sign: `50%` is `0.5` of [full], `128` is `128`. */
+private fun number(
+    token: String,
+    full: Float,
+): Float? {
+    val t = token.trim()
+    return if (t.endsWith("%")) t.dropLast(1).toFloatOrNull()?.let { it / 100f * full } else t.toFloatOrNull()
+}
+
+/**
+ * A colour as it is copied from a browser or a design tool: `#abc`, `#aabbcc`, `#aabbccdd`, `rgb(12, 34, 56)`,
+ * `rgba(12 34 56 / 50%)`, `hsl(210, 50%, 40%)`, a plain `12, 34, 56` or `12 34 56`, or a basic colour name. Null when it is
+ * none of those. A colour that has an alpha part brings it, any other has alpha 1.
+ */
+internal fun parseColorText(text: String): Color? {
+    val t = text.trim().trimEnd(';').lowercase()
+    if (t.isEmpty()) return null
+    NAMED[t]?.let { return Color((it shr 16 and 0xFF) / 255f, (it shr 8 and 0xFF) / 255f, (it and 0xFF) / 255f) }
+
+    // Hex, with 3, 4, 6 or 8 digits
+    val hex = t.removePrefix("#")
+    if ((t.startsWith("#") || hex.all { it in "0123456789abcdef" }) && hex.length in setOf(3, 4, 6, 8) &&
+        hex.all { it in "0123456789abcdef" }
+    ) {
+        val full = if (hex.length <= 4) hex.map { "$it$it" }.joinToString("") else hex
+        val n = full.toLong(16)
+        return if (full.length == 6) {
+            Color(((n shr 16) and 0xFF) / 255f, ((n shr 8) and 0xFF) / 255f, (n and 0xFF) / 255f)
+        } else {
+            Color(((n shr 24) and 0xFF) / 255f, ((n shr 16) and 0xFF) / 255f, ((n shr 8) and 0xFF) / 255f, (n and 0xFF) / 255f)
+        }
+    }
+
+    val function = Regex("^(rgba?|hsla?)\\((.*)\\)$").find(t)
+    val kind = function?.groupValues?.get(1)?.take(3)
+    val body = function?.groupValues?.get(2) ?: t
+    val parts = body.split(Regex("[\\s,/]+")).filter { it.isNotEmpty() }
+    if (parts.size !in 3..4) return null
+    if (kind == null && parts.size != 3) return null
+    val alpha = parts.getOrNull(3)?.let { number(it, 1f) }?.coerceIn(0f, 1f) ?: 1f
+
+    return if (kind == "hsl") {
+        val h = parts[0].removeSuffix("deg").toFloatOrNull() ?: return null
+        val sat = number(parts[1], 1f) ?: return null
+        val light = number(parts[2], 1f) ?: return null
+        hslToColor(((h % 360f) + 360f) % 360f, sat.coerceIn(0f, 1f), light.coerceIn(0f, 1f), alpha)
+    } else {
+        val r = number(parts[0], 255f) ?: return null
+        val g = number(parts[1], 255f) ?: return null
+        val b = number(parts[2], 255f) ?: return null
+        Color((r / 255f).coerceIn(0f, 1f), (g / 255f).coerceIn(0f, 1f), (b / 255f).coerceIn(0f, 1f), alpha)
+    }
+}
+
+private fun hslToColor(
+    h: Float,
+    s: Float,
+    l: Float,
+    alpha: Float,
+): Color {
+    val v = l + s * min(l, 1f - l)
+    val sv = if (v == 0f) 0f else 2f * (1f - l / v)
+    return hsvToColor(h, sv, v, alpha)
+}
+
 /** The `color` value of a layout for a colour that was chosen on the screen. */
 internal fun Color.toFileColor(): String =
     listOf(srgbToLinear(red), srgbToLinear(green), srgbToLinear(blue), alpha).joinToString(" ") { formatNumber(it) }
