@@ -34,6 +34,10 @@ import androidx.compose.ui.unit.sp
 import com.github.demandss.dayz_workbench_tool.layout.WidgetType
 import com.github.demandss.dayz_workbench_tool.layout_editor.findNode
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.LayoutEditorState
+import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.convertUnit
+import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.formatNumber
+import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.layoutTree
+import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.screenRect
 import com.github.demandss.dayz_workbench_tool.layout_editor.updateNode
 import com.github.demandss.dayz_workbench_tool.ui.pickFile
 import com.github.demandss.dayz_workbench_tool.ui.theme.*
@@ -127,6 +131,41 @@ private fun commitType(
     val doc = state.openFiles.getOrNull(idx) ?: return
     state.pushUndo(idx, doc.root)
     state.updateActiveRoot(doc.root.updateNode(id) { it.copy(node = it.node.copy(type = type, originalClassName = type.className)) })
+}
+
+private fun commitProps(
+    state: LayoutEditorState,
+    id: UUID,
+    values: Map<String, String>,
+) {
+    val idx = state.activeFileIndex
+    val doc = state.openFiles.getOrNull(idx) ?: return
+    state.pushUndo(idx, doc.root)
+    state.updateActiveRoot(
+        doc.root.updateNode(id) { n ->
+            n.copy(node = n.node.copy(properties = LinkedHashMap(n.node.properties).also { it.putAll(values) }))
+        },
+    )
+}
+
+/** Flips pixels and share of the parent for one axis of position or size and recalculates the number, so the widget stays where it is. */
+private fun switchUnit(
+    state: LayoutEditorState,
+    id: UUID,
+    props: Map<String, String>,
+    key: String,
+    axis: Int,
+    flag: String,
+    toPixels: Boolean,
+) {
+    val doc = state.activeFile ?: return
+    val screen = screenRect(state)
+    val parent = layoutTree(doc.root, screen).parentRects[id] ?: screen
+    val parts = (props[key] ?: "0 0").trim().split(Regex("\\s+")).toMutableList()
+    while (parts.size < 2) parts.add("0")
+    val value = parts[axis].toFloatOrNull() ?: 0f
+    parts[axis] = formatNumber(convertUnit(value, if (axis == 0) parent.width else parent.height, toPixels))
+    commitProps(state, id, mapOf(key to "${parts[0]} ${parts[1]}", flag to if (toPixels) "1" else "0"))
 }
 
 private fun commitProp(
@@ -242,11 +281,11 @@ private fun PropertiesHeader(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        NumberField("X", px, hexactpos, Modifier.weight(1f), { commit("hexactpos", if (it) "1" else "0") }) { v ->
+        NumberField("X", px, hexactpos, Modifier.weight(1f), { switchUnit(state, id, props, "position", 0, "hexactpos", it) }) { v ->
             px = v
             commit("position", "$v $py")
         }
-        NumberField("Y", py, vexactpos, Modifier.weight(1f), { commit("vexactpos", if (it) "1" else "0") }) { v ->
+        NumberField("Y", py, vexactpos, Modifier.weight(1f), { switchUnit(state, id, props, "position", 1, "vexactpos", it) }) { v ->
             py = v
             commit("position", "$px $v")
         }
@@ -256,11 +295,11 @@ private fun PropertiesHeader(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        NumberField("W", sw, hexactsize, Modifier.weight(1f), { commit("hexactsize", if (it) "1" else "0") }) { v ->
+        NumberField("W", sw, hexactsize, Modifier.weight(1f), { switchUnit(state, id, props, "size", 0, "hexactsize", it) }) { v ->
             sw = v
             commit("size", "$v $sh")
         }
-        NumberField("H", sh, vexactsize, Modifier.weight(1f), { commit("vexactsize", if (it) "1" else "0") }) { v ->
+        NumberField("H", sh, vexactsize, Modifier.weight(1f), { switchUnit(state, id, props, "size", 1, "vexactsize", it) }) { v ->
             sh = v
             commit("size", "$sw $v")
         }

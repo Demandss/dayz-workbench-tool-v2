@@ -36,8 +36,9 @@ import com.github.demandss.dayz_workbench_tool.ui.theme.TextForeground
 @Composable
 fun Breadcrumbs(state: LayoutEditorState) {
     val doc = state.activeFile ?: return
-    val id = state.selectedIds.singleOrNull() ?: return
-    val path = doc.root.pathTo(id) ?: return
+    // The bar always keeps its height, so the canvas under it does not jump when a widget gets selected
+    val id = state.selectedIds.singleOrNull()
+    val path = id?.let { doc.root.pathTo(it) }.orEmpty()
 
     Column {
         Row(

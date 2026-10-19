@@ -32,6 +32,7 @@ import com.github.demandss.dayz_workbench_tool.layout_editor.state.LayoutEditorS
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.Resolution
 import com.github.demandss.dayz_workbench_tool.layout_editor.updateNode
 import java.util.UUID
+import kotlin.math.round
 import kotlin.math.roundToInt
 
 // ---------------------------------------------------------------------------
@@ -102,11 +103,6 @@ private fun selectInBox(
     for (child in node.children) selectInBox(child, box, layout, out, hidden, locked)
 }
 
-private fun fmt(f: Float): String {
-    val l = f.toLong()
-    return if (f == l.toFloat()) "$l" else "%.4g".format(f)
-}
-
 // ---------------------------------------------------------------------------
 // Drag state
 // ---------------------------------------------------------------------------
@@ -175,7 +171,7 @@ private fun DrawScope.drawEdgeDistances(
                 drawLine(MeasureColor, Offset(end.x - tick, end.y), Offset(end.x + tick, end.y), 1f)
             }
         }
-        val label = textMeasurer.measure(fmt(d.value), TextStyle(color = Color(0xFF1E1F22), fontSize = 10.sp))
+        val label = textMeasurer.measure(formatNumber(d.value), TextStyle(color = Color(0xFF1E1F22), fontSize = 10.sp))
         val chip = Size(label.size.width + pad * 2, label.size.height + pad * 2)
         val topLeft = Offset((a.x + b.x) / 2f - chip.width / 2f, (a.y + b.y) / 2f - chip.height / 2f)
         drawRect(MeasureColor, topLeft, chip)
@@ -494,7 +490,12 @@ fun LayoutCanvas(
                                                                     n.node.copy(
                                                                         properties =
                                                                             LinkedHashMap(n.node.properties).also {
-                                                                                it["position"] = "${fmt(nx)} ${fmt(ny)}"
+                                                                                it["position"] =
+                                                                                    "${formatNumber(
+                                                                                        if (info.hexactpos) round(nx) else nx,
+                                                                                    )} ${formatNumber(
+                                                                                        if (info.vexactpos) round(ny) else ny,
+                                                                                    )}"
                                                                             },
                                                                     ),
                                                             )
