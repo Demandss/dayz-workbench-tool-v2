@@ -32,17 +32,23 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.drawText
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.github.demandss.dayz_workbench_tool.layout.WidgetType
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.LayoutEditorState
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.StylesDocument
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.styleColorOf
-import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.drawSkinTinted
+import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.drawSkinWidget
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.imageset.CommitField
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.imageset.LabelRow
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.imageset.PanelHeader
@@ -509,10 +515,67 @@ private fun StylePreview(
     style: StyleDef,
     stateIndex: Int,
 ) {
-    val stateName = style.states.getOrNull(stateIndex)?.name ?: return
+    // A text style has no states at all: the preview shows it as Normal
+    val tabState = style.states.getOrNull(stateIndex)?.name ?: "Normal"
+    val widgetName =
+        doc.sheet.widgets
+            .getOrNull(doc.widget)
+            ?.widget
+            .orEmpty()
+    val type = WidgetType.entries.firstOrNull { it.className.removeSuffix("Class") == widgetName }
+    val progress = type == WidgetType.PROGRESS_BAR || widgetName == "SimpleProgressBarWidget"
+    val textual = type in TEXT_TYPES || widgetName == "HtmlWidget"
+    val interactive = type == WidgetType.BUTTON || type == WidgetType.CHECKBOX || type == WidgetType.XCOMBO_BOX
+    val measurer = rememberTextMeasurer()
+
+    // The pointer over the preview does what it does over the widget in Live Preview: hover is Highlight, a held button Pushed
+    var hover by remember { mutableStateOf(false) }
+    var pressed by remember { mutableStateOf(false) }
+    val has = { name: String -> style.states.any { it.name == name } }
+    val stateName =
+        when {
+            tabState != "Normal" || !interactive -> tabState
+            pressed && hover && has("Pushed") -> "Pushed"
+            hover && has("Highlight") -> "Highlight"
+            else -> tabState
+        }
     val skin = state.previewSkin(style, stateName, doc.path)
+    val tint = skin?.styleColor?.takeIf { it.alpha > 0f } ?: styleColorOf(style.color).takeIf { it.alpha > 0f } ?: Color.White
+
     Column(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp)) {
-        Canvas(Modifier.fillMaxWidth().height(150.dp).border(1.dp, DarkenedBorder)) {
+        Canvas(
+            Modifier
+                .fillMaxWidth()
+                .height(150.dp)
+                .border(1.dp, DarkenedBorder)
+                .pointerInput(Unit) {
+                    awaitPointerEventScope {
+                        while (true) {
+                            val event = awaitPointerEvent()
+                            when (event.type) {
+                                PointerEventType.Enter, PointerEventType.Move -> {
+                                    hover = true
+                                }
+
+                                PointerEventType.Exit -> {
+                                    hover = false
+                                    pressed = false
+                                }
+
+                                PointerEventType.Press -> {
+                                    pressed = true
+                                }
+
+                                PointerEventType.Release -> {
+                                    pressed = false
+                                }
+
+                                else -> {}
+                            }
+                        }
+                    }
+                },
+        ) {
             val cell = 10f
             var y = 0f
             var row = 0
@@ -531,7 +594,33 @@ private fun StylePreview(
                 y += cell
                 row++
             }
-            if (skin != null) drawStylePreview(skin, skin.styleColor.takeIf { it.alpha > 0f } ?: Color.White)
+            val box = Rect(size.width * 0.2f, size.height * 0.2f, size.width * 0.8f, size.height * 0.8f)
+            if (skin != null) drawSkinWidget(skin, tint, box, 1f, type, progress)
+            // A style with a font carries text: the sample shows its colour and the shape of the box it sits in
+            if (textual || (style.font.isNotEmpty() && skin != null && type != WidgetType.PROGRESS_BAR && type != WidgetType.SLIDER)) {
+                val sample = if (type == WidgetType.MULTILINE_TEXT || type == WidgetType.RICH_TEXT) SAMPLE_LONG else SAMPLE
+                val laidOut =
+                    measurer.measure(
+                        sample,
+                        TextStyle(
+                            color = tint,
+                            fontSize = 18.sp,
+                            // The names of the vanilla fonts say the weight (MetronBook-Bold, MetronBook-Light)
+                            fontWeight =
+                                when {
+                                    style.font.contains("Bold", ignoreCase = true) -> androidx.compose.ui.text.font.FontWeight.Bold
+                                    style.font.contains("Light", ignoreCase = true) -> androidx.compose.ui.text.font.FontWeight.Light
+                                    else -> androidx.compose.ui.text.font.FontWeight.Normal
+                                },
+                        ),
+                        constraints =
+                            androidx.compose.ui.unit
+                                .Constraints(maxWidth = box.width.toInt().coerceAtLeast(1)),
+                    )
+                val at =
+                    if (textual) Offset(box.left, box.top) else Offset(box.left + 8f, box.center.y - laidOut.size.height / 2f)
+                drawText(laidOut, topLeft = at)
+            }
         }
         val hidden =
             skin
@@ -540,23 +629,36 @@ private fun StylePreview(
                 .orEmpty()
                 .filter { it !in PREVIEW_SLOTS }
                 .sorted()
-        if (skin == null) {
-            Text(
-                "Нет картинок для превью: слоты пусты или набор не найден",
-                color = GhostlyText,
-                fontSize = 10.sp,
-                modifier = Modifier.padding(top = 4.dp),
-            )
-        } else if (hidden.isNotEmpty()) {
-            Text(
-                "Не показано превью: ${hidden.joinToString(", ")}",
-                color = GhostlyText,
-                fontSize = 10.sp,
-                modifier = Modifier.padding(top = 4.dp),
-            )
-        }
+        val note =
+            when {
+                textual -> {
+                    "Пример текста: цвет стиля ${styleColorHex(style.color)}, шрифт ${style.font.ifEmpty { "по умолчанию" }} " +
+                        "(в превью системный шрифт, у Workbench свой)"
+                }
+
+                skin == null -> {
+                    "Нет картинок для превью: слоты пусты или набор не найден"
+                }
+
+                hidden.isNotEmpty() -> {
+                    "Не показано превью: ${hidden.joinToString(", ")}"
+                }
+
+                interactive -> {
+                    "Наведите курсор на превью: Highlight, зажмите кнопку мыши: Pushed"
+                }
+
+                else -> {
+                    null
+                }
+            }
+        if (note != null) Text(note, color = GhostlyText, fontSize = 10.sp, modifier = Modifier.padding(top = 4.dp))
     }
 }
+
+private val TEXT_TYPES = setOf(WidgetType.TEXT, WidgetType.MULTILINE_TEXT, WidgetType.RICH_TEXT)
+private const val SAMPLE = "Пример текста Sample 0123"
+private const val SAMPLE_LONG = "Пример текста в несколько строк.\nSample text on several lines, 0123456789."
 
 /** The groups of images in the imageset [setName] that are named after the slots of a style. */
 private fun slotSetsOf(
