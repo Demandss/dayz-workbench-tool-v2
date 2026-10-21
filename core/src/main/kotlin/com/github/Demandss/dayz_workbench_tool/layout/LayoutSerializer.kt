@@ -31,6 +31,14 @@ object LayoutSerializer {
                 append("$innerIndent}\n")
             }
 
+            node.scriptParams?.let { params ->
+                append("$innerIndent{\n")
+                append("$innerIndent\tScriptParamsClass {\n")
+                for ((key, value) in params) append("$innerIndent\t\t$key $value\n")
+                append("$innerIndent\t}\n")
+                append("$innerIndent}\n")
+            }
+
             append("$indent}\n")
         }
 }
