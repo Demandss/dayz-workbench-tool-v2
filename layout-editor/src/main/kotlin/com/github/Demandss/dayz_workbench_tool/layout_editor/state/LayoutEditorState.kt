@@ -1360,7 +1360,8 @@ class LayoutEditorState(
         val set = parsedImageSet(setFile) ?: return null
         val byName = set.all.associateBy { it.name }
 
-        // What a state paints is its own images over those of Normal: a slot the state leaves empty keeps the Normal image
+        // A state with images of its own paints only those (a lone Center fills the whole widget, the frame of Normal is gone,
+        // measured in Workbench). A state with none paints Normal.
         fun imagesOf(name: String) =
             style.states
                 .firstOrNull { it.name == name }
@@ -1369,7 +1370,7 @@ class LayoutEditorState(
                 .filter { it.image.isNotEmpty() }
                 .mapNotNull { item -> byName[item.image]?.let { item.name to it } }
                 .toMap()
-        val images = imagesOf("Normal") + imagesOf(stateName)
+        val images = imagesOf(stateName).ifEmpty { imagesOf("Normal") }
         if (images.isEmpty()) return null
         val texture = set.textures.minByOrNull { it.mpix } ?: return null
         val file = resolveImageSetTexture(setFile.absolutePath, texture.path) ?: return null
