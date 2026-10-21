@@ -298,8 +298,13 @@ internal fun DrawScope.drawWidgetTree(
 
         WidgetType.IMAGE -> {
             val texture = pictureFor(node)
+            val blank = node.prop("image0")?.trim('"').isNullOrEmpty() && node.prop("imageTexture")?.trim('"').isNullOrEmpty()
             if (texture != null && ss.width >= 1f && ss.height >= 1f) {
                 drawImageWidget(node, texture, tl, ss, zoom, inherited)
+            } else if (blank && !showLabels) {
+                // A picture with no image is a white rectangle in the Workbench preview, tinted by its colour
+                val tint = node.prop("color")?.let { parseWidgetColor(it) } ?: Color.White
+                drawRect(tint.copy(alpha = tint.alpha * inherited), tl, ss)
             } else {
                 drawRect(Color(0x22FFFFFF), tl, ss)
                 drawLine(Color(0x55FFFFFF), tl, br, 1f)
