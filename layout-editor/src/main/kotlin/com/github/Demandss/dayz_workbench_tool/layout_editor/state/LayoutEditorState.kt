@@ -22,8 +22,10 @@ import com.github.demandss.dayz_workbench_tool.layout_editor.removeNode
 import com.github.demandss.dayz_workbench_tool.layout_editor.toEditorNode
 import com.github.demandss.dayz_workbench_tool.layout_editor.toWidgetNode
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.AlignMode
+import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.BitmapFont
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.BulkMode
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.EdgeDistance
+import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.GameFont
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.GuideLine
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.NINE_SLICE_SLOTS
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.Reorder
@@ -910,13 +912,66 @@ class LayoutEditorState(
         val key = sdfPath.lowercase() + "|" + workDrivePath
         if (sdfFonts.containsKey(key)) return sdfFonts[key]
         if (sdfFontsLoading.add(key)) {
-            val roots = fileRoots(nearPath)
+            val roots = resourceRoots(nearPath)
             scope.launch(Dispatchers.IO) {
                 val font = runCatching { loadSdfFont(sdfPath, roots) }.getOrNull()
                 withContext(Dispatchers.Main) { sdfFonts[key] = font }
             }
         }
         return null
+    }
+
+    private val bitmapFonts = mutableStateMapOf<String, BitmapFont?>()
+    private val bitmapFontsLoading = HashSet<String>()
+
+    /**
+     * The font a `font` property names, at the size [pixels]: an SDF font as it is, a bitmap font (`gui/fonts/Metron`, `Metron16`,
+     * `Metron-Bold`) as the file of the size that is nearest to [pixels], falling back to the SDF font of its family. Null
+     * while it loads or when no file is found.
+     */
+    internal fun gameFontFor(
+        fontProperty: String,
+        nearPath: String?,
+        pixels: Float,
+    ): GameFont? {
+        val path =
+            fontProperty
+                .trim()
+                .trim('"')
+                .replace('\\', '/')
+        val last = path.substringAfterLast('/')
+        if (last.startsWith("sdf_", ignoreCase = true)) return sdfFontFor(path, nearPath)
+        val directory = path.substringBeforeLast('/', "gui/fonts")
+        val family = last.trimEnd { it.isDigit() }
+        val fixed = last.takeLastWhile { it.isDigit() }.toIntOrNull()
+        val roots = resourceRoots(nearPath)
+        val sizes = BITMAP_FONT_SIZES.filter { size -> roots.any { File(it, "$directory/$family$size.fnt").isFile } }
+        if (sizes.isEmpty()) return sdfFontFor(path, nearPath)
+        val size =
+            when {
+                fixed != null && fixed in sizes -> fixed
+                else -> sizes.minBy { kotlin.math.abs(kotlin.math.ln(it / pixels.coerceAtLeast(1f))) }
+            }
+        val key = "$directory/$family$size".lowercase() + "|" + workDrivePath
+        if (bitmapFonts.containsKey(key)) return bitmapFonts[key]
+        if (bitmapFontsLoading.add(key)) {
+            scope.launch(Dispatchers.IO) {
+                val font = runCatching { loadBitmapFont("$directory/$family$size", roots) }.getOrNull()
+                withContext(Dispatchers.Main) { bitmapFonts[key] = font }
+            }
+        }
+        return null
+    }
+
+    private fun loadBitmapFont(
+        path: String,
+        roots: List<File>,
+    ): BitmapFont? {
+        fun find(extension: String) = roots.map { File(it, "$path.$extension") }.firstOrNull { it.isFile }
+        val fnt = find("fnt") ?: return null
+        val edds = find("edds") ?: return null
+        val (size, glyphs) = BitmapFont.readGlyphs(fnt) ?: return null
+        return BitmapFont(path, size, glyphs, EddsCodec.decode(edds).toBufferedImage())
     }
 
     /** The name of the font of a text widget: `font`, else the font of its style, else the MetronBook of the style `Normal`. */
@@ -949,7 +1004,7 @@ class LayoutEditorState(
     ): androidx.compose.ui.geometry.Size? {
         if (node.node.type !in setOf(WidgetType.TEXT, WidgetType.RICH_TEXT, WidgetType.MULTILINE_TEXT)) return null
         val fontName = fontNameFor(node, nearPath)
-        return measureText(node, sdfFontFor(fontName, nearPath), boxWidth, boxHeight, fontName)
+        return measureText(node, { px -> gameFontFor(fontName, nearPath, px) }, boxWidth, boxHeight, fontName)
     }
 
     /** The work drive and every folder above [nearPath]: where `gui/...` paths are looked for. */
@@ -963,6 +1018,30 @@ class LayoutEditorState(
         }
         return roots
     }
+
+    private val resourceRootsCache = java.util.concurrent.ConcurrentHashMap<String, List<File>>()
+
+    /**
+     * [fileRoots] with the root of the newest vanilla data first. A work drive can keep several extractions of the game's
+     * `gui` folder (one per game build, told apart by `gui/rap.txt`); styles, imagesets, fonts and textures of an old build
+     * draw an old picture, so the newest is tried first.
+     */
+    private fun resourceRoots(nearPath: String?): List<File> =
+        resourceRootsCache.getOrPut("$workDrivePath|${nearPath?.let { File(it).parent }}") {
+            val all = fileRoots(nearPath).distinct()
+            val vanilla = all.filter { File(it, "gui/looknfeel/dayzwidgets.styles").isFile }
+
+            fun build(root: File) =
+                runCatching {
+                    Regex("version=(\\d+)")
+                        .find(File(root, "gui/rap.txt").readText())
+                        ?.groupValues
+                        ?.get(1)
+                        ?.toLong()
+                }.getOrNull() ?: 0L
+            val newest = vanilla.maxByOrNull(::build)
+            if (newest == null) all else listOf(newest) + all.filter { it != newest }
+        }
 
     private fun loadSdfFont(
         path: String,
@@ -1094,13 +1173,16 @@ class LayoutEditorState(
         pictureCache.clear()
         sdfFonts.clear()
         sdfFontsLoading.clear()
+        bitmapFonts.clear()
+        bitmapFontsLoading.clear()
         textureCache.clear()
         texturesLoading.clear()
     }
 
     private fun loadTexture(path: String): ImageBitmap? {
-        val file = File(workDrivePath, path)
-        if (!file.isFile) return null
+        val file =
+            resourceRoots(activeFile?.path).map { File(it, path) }.firstOrNull { it.isFile }
+                ?: return null
         val image =
             if (file.extension.equals("edds", ignoreCase = true)) {
                 EddsCodec.decode(file).toBufferedImage()
@@ -1326,13 +1408,14 @@ class LayoutEditorState(
                 .replace(Regex("^\\{[0-9A-Fa-f]+}"), "")
                 .replace('\\', '/')
         if (clean.isEmpty()) return null
+        // The folders above the imageset come first: a texture belongs to the extraction its imageset is in
         val candidates = mutableListOf<File>()
-        if (workDrivePath.isNotBlank()) candidates += File(workDrivePath, clean)
         var dir = File(imageSetPath).parentFile
         while (dir != null) {
             candidates += File(dir, clean)
             dir = dir.parentFile
         }
+        if (workDrivePath.isNotBlank()) candidates += File(workDrivePath, clean)
         candidates += File(File(imageSetPath).parentFile, clean.substringAfterLast('/'))
         return candidates.firstOrNull { it.isFile }
     }
@@ -1416,14 +1499,7 @@ class LayoutEditorState(
 
     private fun findVanillaStyles(nearPath: String?): File? {
         val relative = "gui/looknfeel/dayzwidgets.styles"
-        val roots = mutableListOf<File>()
-        if (workDrivePath.isNotBlank()) roots += File(workDrivePath)
-        var dir = nearPath?.let { File(it).parentFile }
-        while (dir != null) {
-            roots += dir
-            dir = dir.parentFile
-        }
-        return roots.map { File(it, relative) }.firstOrNull { it.isFile }
+        return resourceRoots(nearPath).map { File(it, relative) }.firstOrNull { it.isFile }
     }
 
     // imageset name -> file, for the folder gui/imagesets next to gui/looknfeel
@@ -1815,3 +1891,6 @@ class LayoutEditorState(
         }
     }
 }
+
+// The sizes the bitmap fonts of the game are made in (gui/fonts/<Family><Size>.fnt)
+private val BITMAP_FONT_SIZES = intArrayOf(12, 14, 16, 22, 28, 48, 58)

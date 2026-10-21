@@ -24,12 +24,38 @@ internal class SdfGlyph(
     val advance: Int,
 )
 
-/** A glyph cut out of the atlas at one size: [left] and [top] are where its bitmap starts, from the pen and the baseline. */
+/**
+ * A glyph cut out of the atlas at one size: [left] and [top] are where its bitmap starts, from the pen and the baseline.
+ * The bitmap is drawn [scale] times as high and [scale] * [xScale] times as wide as it is.
+ */
 internal class GlyphBitmap(
     val image: ImageBitmap,
     val left: Float,
     val top: Float,
+    val scale: Float = 1f,
+    val xScale: Float = 1f,
 )
+
+/** A font of the game, bitmap or distance field: the pen steps and the letters. */
+internal abstract class GameFont {
+    /** Whether every character of [text] has a glyph here. */
+    abstract fun covers(text: String): Boolean
+
+    /** How far the pen moves after [c] at [pixels] size. */
+    abstract fun advance(
+        c: Char,
+        pixels: Float,
+        widthScale: Float = 1f,
+    ): Float
+
+    /** The bitmap of [c] for the font size [pixels], or null for a character without a shape (a space). */
+    abstract fun glyph(
+        c: Char,
+        pixels: Float,
+        look: GlyphLook = GlyphLook(),
+        widthScale: Float = 1f,
+    ): GlyphBitmap?
+}
 
 /** How a glyph is turned from a distance field into a bitmap: letters grown by [grow] pixels and edges softened by [soft]. */
 internal data class GlyphLook(
@@ -52,25 +78,25 @@ internal class SdfFont(
     private val advances: IntArray,
     private val cell: Int,
     private val slope: Float,
-) {
+) : GameFont() {
     private val cache = HashMap<List<Any>, GlyphBitmap?>()
 
     /** Whether every character of [text] has a glyph here (the printable ASCII). */
-    fun covers(text: String) = text.all { it.code in FIRST..LAST || it == '\n' }
+    override fun covers(text: String) = text.all { it.code in FIRST..LAST || it == '\n' }
 
     /** How far the pen moves after [c] at [pixels] size. */
-    fun advance(
+    override fun advance(
         c: Char,
         pixels: Float,
-        widthScale: Float = 1f,
+        widthScale: Float,
     ): Float = advances[(c.code - FIRST).coerceIn(0, advances.lastIndex)] * pixels * widthScale / 1000f
 
     /** The bitmap of [c] for the font size [pixels], or null for a character without a shape (a space). */
-    fun glyph(
+    override fun glyph(
         c: Char,
         pixels: Float,
-        look: GlyphLook = GlyphLook(),
-        widthScale: Float = 1f,
+        look: GlyphLook,
+        widthScale: Float,
     ): GlyphBitmap? {
         if (c.code !in FIRST..LAST) return null
         // Sizes are told apart by a quarter of a pixel, so the cache stays small

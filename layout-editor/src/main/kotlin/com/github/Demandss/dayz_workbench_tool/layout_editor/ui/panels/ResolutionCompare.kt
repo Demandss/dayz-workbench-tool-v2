@@ -67,7 +67,7 @@ fun ResolutionCompare(
                             { _ -> false },
                             { n -> state.pictureFor(n, doc.path) },
                             { n -> state.textColorFor(n, doc.path) },
-                            fontFor = { n -> state.sdfFontFor(state.fontNameFor(n, doc.path), doc.path) },
+                            fontFor = { n, px -> state.gameFontFor(state.fontNameFor(n, doc.path), doc.path, px) },
                             fontNameFor = { n -> state.fontNameFor(n, doc.path) },
                         )
                     }

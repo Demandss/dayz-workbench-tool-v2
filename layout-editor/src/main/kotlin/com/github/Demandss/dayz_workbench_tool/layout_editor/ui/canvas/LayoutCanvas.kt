@@ -259,7 +259,7 @@ internal fun DrawScope.drawWidgetTree(
     // The alpha this widget ends up with: its own colour alpha times that of its parent when it has `inheritalpha 1`
     parentAlpha: Float = 1f,
     // The SDF font a text widget uses, if it has one, and the name of the font it uses
-    fontFor: (EditorWidgetNode) -> SdfFont? = { null },
+    fontFor: (EditorWidgetNode, Float) -> GameFont? = { _, _ -> null },
     fontNameFor: (EditorWidgetNode) -> String = { "" },
 ) {
     if (!node.isVisible() || node.id in hidden) return
@@ -323,7 +323,7 @@ internal fun DrawScope.drawWidgetTree(
                     zoom,
                     textMeasurer,
                     textColorFor(node).let { it.copy(alpha = it.alpha * inherited) },
-                    font = fontFor(node),
+                    fontAt = { px -> fontFor(node, px) },
                     fontName = fontNameFor(node),
                 )
             } else if (showLabels && label.isNotEmpty() && ss.width > 4f && ss.height > 8f) {
@@ -347,7 +347,7 @@ internal fun DrawScope.drawWidgetTree(
                     textMeasurer,
                     textColorFor(node).let { it.copy(alpha = it.alpha * inherited) },
                     centered = true,
-                    font = fontFor(node),
+                    fontAt = { px -> fontFor(node, px) },
                     fontName = fontNameFor(node),
                 )
             } else if (showLabels && label.isNotEmpty() && ss.width > 4f && ss.height > 8f) {
@@ -363,6 +363,21 @@ internal fun DrawScope.drawWidgetTree(
         else -> {
             if (showLabels) drawRect(Color(0x0DFFFFFF), tl, ss)
         }
+    }
+
+    // A button with a skin (or a style that paints nothing) still shows its text
+    if (node.node.type == WidgetType.BUTTON && (skin != null || paintsNothing) && node.shownText().isNotEmpty()) {
+        drawWidgetText(
+            node,
+            tl,
+            ss,
+            zoom,
+            textMeasurer,
+            textColorFor(node).let { it.copy(alpha = it.alpha * inherited) },
+            centered = true,
+            fontAt = { px -> fontFor(node, px) },
+            fontName = fontNameFor(node),
+        )
     }
 
     // Border
@@ -907,7 +922,7 @@ fun LayoutCanvas(
                 { n -> state.styleKnown(n, doc.path) },
                 { n -> state.pictureFor(n, doc.path) },
                 { n -> state.textColorFor(n, doc.path) },
-                fontFor = { n -> state.sdfFontFor(state.fontNameFor(n, doc.path), doc.path) },
+                fontFor = { n, px -> state.gameFontFor(state.fontNameFor(n, doc.path), doc.path, px) },
                 fontNameFor = { n -> state.fontNameFor(n, doc.path) },
             )
         }

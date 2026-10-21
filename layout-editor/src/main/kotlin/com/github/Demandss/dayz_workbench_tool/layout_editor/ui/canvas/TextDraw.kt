@@ -19,10 +19,13 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextGeometricTransform
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.TextUnitType
 import com.github.demandss.dayz_workbench_tool.layout.WidgetType
 import com.github.demandss.dayz_workbench_tool.layout_editor.EditorWidgetNode
+import kotlin.math.roundToInt
 
 /** The text a text widget shows: the `text` property without quotes and without the `#` of a string table key. */
 internal fun EditorWidgetNode.shownText(): String =
@@ -94,15 +97,17 @@ internal fun DrawScope.drawWidgetText(
     color: Color,
     // A button centres its text unless it says otherwise, a text widget starts at the top left
     centered: Boolean = false,
-    // The SDF font the widget uses; the letters are drawn from it when every character is in it
-    font: SdfFont? = null,
+    // The font the widget uses at a size in layout pixels; the letters are drawn from it when every character is in it
+    fontAt: (Float) -> GameFont? = { null },
     // The name of the font the widget uses (its weight and slant are in the name)
     fontName: String = "",
 ) {
     val text = node.shownText()
     if (text.isEmpty() || boxSize.width < 1f || boxSize.height < 1f) return
-    val pixels = node.textPixelSize(boxSize.height / zoom, fontName) * zoom
+    val layoutPixels = node.textPixelSize(boxSize.height / zoom, fontName)
+    val pixels = layoutPixels * zoom
     if (pixels < 2f) return
+    val font = fontAt(layoutPixels)
     val face = fontName.lowercase()
     val bold = node.flagProp("bold text") || "bold" in face
     val italic = node.flagProp("italic text") || "italic" in face
@@ -153,7 +158,7 @@ internal fun DrawScope.drawWidgetText(
                 outlineColor = outlineColor.takeIf { outlineSize > 0f && it.alpha > 0f },
                 outlineSize = outlineSize,
             )
-        drawSdfText(font, text, topLeft, boxSize, pixels, color, look, widthScaleOf(fontName))
+        drawSdfText(font, text, topLeft, boxSize, pixels, color, look, if (font is SdfFont) widthScaleOf(fontName) else 1f)
         return
     }
     val style =
@@ -225,14 +230,15 @@ internal fun DrawScope.drawWidgetText(
 /** The size the text of a widget takes: the longest line by the number of lines, for `size to text`. */
 internal fun measureText(
     node: EditorWidgetNode,
-    font: SdfFont?,
+    fontAt: (Float) -> GameFont?,
     boxWidth: Float,
     boxHeight: Float,
     fontName: String = "",
 ): Size {
     val text = node.shownText()
     val pixels = node.textPixelSize(boxHeight, fontName)
-    val widthScale = widthScaleOf(fontName)
+    val font = fontAt(pixels)
+    val widthScale = if (font is SdfFont) widthScaleOf(fontName) else 1f
     if (text.isEmpty()) return Size(0f, 0f)
     val wrap = node.flagProp("wrap")
     if (font != null && font.covers(text)) {
@@ -276,7 +282,7 @@ private const val BOLD_GROWTH = 0.35f
 
 /** Breaks [text] into lines: at a new line character, and at a space when [wrap] is on and the next word would pass [width]. */
 private fun breakLines(
-    font: SdfFont,
+    font: GameFont,
     text: String,
     pixels: Float,
     width: Float,
@@ -313,7 +319,7 @@ private fun breakLines(
 
 /** Draws [text] from the distance field of [font]: sharp at any size, with the shadow and the outline of the widget. */
 private fun DrawScope.drawSdfText(
-    font: SdfFont,
+    font: GameFont,
     text: String,
     topLeft: Offset,
     boxSize: Size,
@@ -346,16 +352,34 @@ private fun DrawScope.drawSdfText(
             for (c in line) {
                 font.glyph(c, pixels, shape, widthScale)?.let { g ->
                     val at = Offset(pen + g.left, baseline + g.top)
+
+                    fun put() {
+                        val filter = ColorFilter.tint(tint, BlendMode.Modulate)
+                        if (g.scale == 1f && g.xScale == 1f) {
+                            drawImage(g.image, topLeft = at, colorFilter = filter)
+                        } else {
+                            drawImage(
+                                g.image,
+                                srcOffset = IntOffset.Zero,
+                                srcSize = IntSize(g.image.width, g.image.height),
+                                dstOffset = IntOffset(at.x.roundToInt(), at.y.roundToInt()),
+                                dstSize =
+                                    IntSize(
+                                        (g.image.width * g.scale * g.xScale).roundToInt().coerceAtLeast(1),
+                                        (g.image.height * g.scale).roundToInt().coerceAtLeast(1),
+                                    ),
+                                colorFilter = filter,
+                            )
+                        }
+                    }
                     if (look.italic) {
                         // Italics lean the letters by a fifth of their height around the baseline
                         val lean = Matrix()
                         lean[0, 1] = -0.2f
                         lean[0, 3] = 0.2f * baseline
-                        withTransform({ transform(lean) }) {
-                            drawImage(g.image, topLeft = at, colorFilter = ColorFilter.tint(tint, BlendMode.Modulate))
-                        }
+                        withTransform({ transform(lean) }) { put() }
                     } else {
-                        drawImage(g.image, topLeft = at, colorFilter = ColorFilter.tint(tint, BlendMode.Modulate))
+                        put()
                     }
                 }
                 pen += font.advance(c, pixels, widthScale)
