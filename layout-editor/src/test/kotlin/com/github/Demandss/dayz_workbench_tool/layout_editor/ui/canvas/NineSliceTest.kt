@@ -31,4 +31,21 @@ class NineSliceTest {
         assertEquals(setOf("Center"), r.keys)
         assertEquals(Rect(0f, 0f, 10f, 10f), r["Center"])
     }
+
+    @Test
+    fun `a style with no corners has side edges and centre over the whole height`() {
+        val sizes =
+            mapOf(
+                "Left" to Size(4f, 512f),
+                "Right" to Size(4f, 512f),
+                "Top" to Size(512f, 4f),
+                "Bottom" to Size(512f, 4f),
+                "Center" to Size(1f, 1f),
+            )
+        val r = sliceRects(Rect(0f, 0f, 100f, 50f), sizes)
+        assertEquals(Rect(0f, 0f, 4f, 50f), r["Left"])
+        assertEquals(Rect(96f, 0f, 100f, 50f), r["Right"])
+        assertEquals(Rect(4f, 0f, 96f, 50f), r["Center"])
+        assertEquals(Rect(4f, 0f, 96f, 4f), r["Top"])
+    }
 }

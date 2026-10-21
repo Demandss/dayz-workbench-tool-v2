@@ -1002,9 +1002,8 @@ internal fun DrawScope.drawSkinTinted(
         androidx.compose.ui.geometry
             .Rect(tl.x, tl.y, tl.x + ss.width, tl.y + ss.height)
     val rects = sliceRects(dst, skin.native.mapValues { (_, v) -> Size(v.width * zoom, v.height * zoom) })
-    // The Center is painted under the whole widget and the edges and corners over it, as Workbench does (measured on
-    // DayZDefaultButton): where an edge image has holes the centre shows through instead of the background
-    if ("Center" in rects) drawSkinSlot(skin, "Center", dst, tint, zoom)
+    // The Center first: the edges are drawn over it, and where they have holes it shows through
+    rects["Center"]?.let { drawSkinSlot(skin, "Center", it, tint, zoom) }
     for ((slot, r) in rects) if (slot != "Center") drawSkinSlot(skin, slot, r, tint, zoom)
 }
 
@@ -1076,10 +1075,11 @@ internal fun DrawScope.drawSkinSlot(
                 }
             }
         } else {
+            // The piece cut out of the atlas when there is one; a sub-rectangle of the whole atlas is a slow draw
             drawImage(
-                image = skin.atlas,
-                srcOffset = IntOffset(src.left, src.top),
-                srcSize = IntSize(src.width, src.height),
+                image = tile ?: skin.atlas,
+                srcOffset = if (tile != null) IntOffset.Zero else IntOffset(src.left, src.top),
+                srcSize = if (tile != null) IntSize(tile.width, tile.height) else IntSize(src.width, src.height),
                 dstOffset = IntOffset(r.left.toInt(), r.top.toInt()),
                 dstSize = IntSize(r.width.toInt().coerceAtLeast(1), r.height.toInt().coerceAtLeast(1)),
                 colorFilter = skinFilter(skin, tint),

@@ -35,12 +35,19 @@ fun sliceRects(
     }
     val xs = floatArrayOf(dst.left, dst.left + left, max(dst.left + left, dst.right - right), dst.right)
     val ys = floatArrayOf(dst.top, dst.top + top, max(dst.top + top, dst.bottom - bottom), dst.bottom)
-    val out = HashMap<String, Rect>()
+    val out = LinkedHashMap<String, Rect>()
     NINE_SLICE_SLOTS.forEachIndexed { index, slot ->
         if (slot !in native) return@forEachIndexed
         val c = index % 3
         val r = index / 3
         out[slot] = Rect(xs[c], ys[r], xs[c + 1], ys[r + 1])
     }
+    // A style with no corner images has its side edges run the whole height (and the Center too, between them): the
+    // corners are covered by the sides, as Workbench draws DayZDefaultButton
+    val cornersLeft = "LeftTop" in native || "LeftBottom" in native
+    val cornersRight = "RightTop" in native || "RightBottom" in native
+    if (!cornersLeft && "Left" in out) out["Left"] = Rect(xs[0], dst.top, xs[1], dst.bottom)
+    if (!cornersRight && "Right" in out) out["Right"] = Rect(xs[2], dst.top, xs[3], dst.bottom)
+    if (!cornersLeft && !cornersRight && "Center" in out) out["Center"] = Rect(xs[1], dst.top, xs[2], dst.bottom)
     return out
 }

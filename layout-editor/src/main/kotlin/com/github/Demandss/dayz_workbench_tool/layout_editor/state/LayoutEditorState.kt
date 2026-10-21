@@ -1076,6 +1076,7 @@ class LayoutEditorState(
         vanillaSheet = null
         skinPlans.clear()
         tileCache.clear()
+        skinCache.clear()
         parsedImageSets.clear()
         imageSetIndexFor = null
     }
@@ -1212,6 +1213,12 @@ class LayoutEditorState(
     private var imageSetIndexFor: String? = null
     private val skinPlans = HashMap<String, SkinPlan?>()
     private val tileCache = HashMap<String, ImageBitmap?>()
+    private val skinCache = HashMap<String, WidgetSkin>()
+    private val awtOfAtlas = java.util.WeakHashMap<ImageBitmap, java.awt.image.BufferedImage>()
+
+    // The atlas as an AWT image, converted once: every piece of a skin is cut from it
+    private fun awtOf(atlas: ImageBitmap): java.awt.image.BufferedImage = awtOfAtlas.getOrPut(atlas) { atlas.toAwtImage() }
+
     private val parsedImageSets = HashMap<String, com.github.demandss.dayz_workbench_tool.imageset.ImageSet?>()
 
     /**
@@ -1264,6 +1271,9 @@ class LayoutEditorState(
         lift: Float = 0f,
     ): WidgetSkin? {
         val atlas = imageSetBitmap(plan.textureFile) ?: return null
+        // The same skin is asked for on every frame, so it is built once
+        val cacheKey = "$key|$lift"
+        skinCache[cacheKey]?.let { return it }
         val kx = atlas.width.toFloat() / plan.refWidth
         val ky = atlas.height.toFloat() / plan.refHeight
         val source = HashMap<String, androidx.compose.ui.unit.IntRect>()
@@ -1276,25 +1286,24 @@ class LayoutEditorState(
                     ((d.x + d.width) * kx).toInt(),
                     ((d.y + d.height) * ky).toInt(),
                 )
-            native[slot] = Size(d.width.toFloat(), d.height.toFloat())
+            // In texture pixels: Workbench draws an edge of the @2x texture four pixels wide, not the two of the reference size
+            native[slot] = Size((source.getValue(slot).width).toFloat(), (source.getValue(slot).height).toFloat())
         }
         val flags = plan.images.mapValues { it.value.flags }
+        // Every slot is cut out of the atlas once: drawing a piece of a 2048 px atlas on every frame is very slow
         val tiles =
-            source.filterKeys { (flags[it] ?: 0) != 0 }.mapValues { (slot, r) ->
-                tileCache.getOrPut("$key|$slot|${atlas.width}") {
-                    runCatching {
-                        atlas
-                            .toAwtImage()
-                            .getSubimage(
-                                r.left,
-                                r.top,
-                                r.width.coerceAtLeast(1),
-                                r.height.coerceAtLeast(1),
-                            ).toComposeImageBitmap()
-                    }.getOrNull()
-                } ?: atlas
-            }
-        return WidgetSkin(atlas, source, native, plan.styleColor, flags, tiles, lift)
+            source
+                .mapNotNull { (slot, r) ->
+                    tileCache
+                        .getOrPut("$key|$slot|${atlas.width}") {
+                            runCatching {
+                                awtOf(atlas)
+                                    .getSubimage(r.left, r.top, r.width.coerceAtLeast(1), r.height.coerceAtLeast(1))
+                                    .toComposeImageBitmap()
+                            }.getOrNull()
+                        }?.let { slot to it }
+                }.toMap()
+        return WidgetSkin(atlas, source, native, plan.styleColor, flags, tiles, lift).also { skinCache[cacheKey] = it }
     }
 
     private fun buildSkinPlan(
@@ -1388,6 +1397,8 @@ class LayoutEditorState(
     }
 
     fun reloadImageSetTextures() {
+        skinCache.clear()
+        tileCache.clear()
         imageSetBitmaps.clear()
         imageSetBitmapsLoading.clear()
     }
