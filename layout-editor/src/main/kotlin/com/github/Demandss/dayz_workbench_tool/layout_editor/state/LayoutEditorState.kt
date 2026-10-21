@@ -4,6 +4,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.toAwtImage
 import androidx.compose.ui.graphics.toComposeImageBitmap
@@ -37,6 +38,7 @@ import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.layoutTre
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.movedBy
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.parentOf
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.parseClipboard
+import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.parseWidgetColor
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.reanchored
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.reordered
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.sanitizeWidgetName
@@ -875,7 +877,93 @@ class LayoutEditorState(
         return null
     }
 
+    private val pictureCache = HashMap<String, ImageBitmap?>()
+
+    /** The colour of the letters of a text widget: the colour of its style times its own `color`. */
+    fun textColorFor(
+        node: EditorWidgetNode,
+        nearPath: String?,
+    ): Color {
+        val styleName =
+            node.node.properties["style"]
+                ?.trim()
+                ?.trim('"')
+                .orEmpty()
+        val className = node.node.originalClassName.ifEmpty { node.node.type.className }
+        val base =
+            styleName
+                .takeIf { it.isNotEmpty() }
+                ?.let { name -> vanillaStylesFor(className, nearPath).firstOrNull { it.name == name } }
+                ?.let { styleColorOf(it.color) }
+                ?: Color.White
+        val own = node.node.properties["color"]?.let { parseWidgetColor(it) } ?: return base
+        return Color(base.red * own.red, base.green * own.green, base.blue * own.blue, base.alpha * own.alpha)
+    }
+
+    /**
+     * The picture an image widget shows: `image0` is either `set:NAME image:IMAGE` (a piece of an imageset, cut out once)
+     * or the path of a texture; `imageTexture` is the fallback of widgets that have no `image0`. Null while the file loads
+     * or when nothing is found.
+     */
+    fun pictureFor(
+        node: EditorWidgetNode,
+        nearPath: String?,
+    ): ImageBitmap? {
+        val picture = rawPictureFor(node, nearPath) ?: return null
+        // Without `src alpha 1` Workbench ignores the alpha of the texture and shows its colours (a black icon on white)
+        val useAlpha = node.node.properties["src alpha"]?.trim() == "1"
+        return if (useAlpha) picture else opaqueCache.getOrPut(picture) { picture.withoutAlpha() }
+    }
+
+    private val opaqueCache = java.util.WeakHashMap<ImageBitmap, ImageBitmap>()
+
+    private fun ImageBitmap.withoutAlpha(): ImageBitmap {
+        val source = toAwtImage()
+        val copy = java.awt.image.BufferedImage(source.width, source.height, java.awt.image.BufferedImage.TYPE_INT_ARGB)
+        for (y in 0 until source.height) {
+            for (x in 0 until source.width) copy.setRGB(x, y, source.getRGB(x, y) or (0xFF shl 24))
+        }
+        return copy.toComposeImageBitmap()
+    }
+
+    private fun rawPictureFor(
+        node: EditorWidgetNode,
+        nearPath: String?,
+    ): ImageBitmap? {
+        val image0 =
+            node.node.properties["image0"]
+                ?.trim()
+                ?.trim('"')
+                .orEmpty()
+        val setMatch = Regex("^set:(\\S+)\\s+image:(\\S+)").find(image0)
+        if (setMatch != null) {
+            val (setName, imageName) = setMatch.destructured
+            val key = "$setName|$imageName|$workDrivePath|$nearPath"
+            if (pictureCache.containsKey(key)) return pictureCache[key]
+            val set = imageSetOf(setName, nearPath)
+            val def = set?.all?.firstOrNull { it.name == imageName }
+            val texture = imageSetTextureOf(setName, nearPath)
+            if (set == null || def == null || texture == null) {
+                pictureCache[key] = null
+                return null
+            }
+            val atlas = imageSetBitmap(texture) ?: return null
+            val kx = atlas.width.toFloat() / set.refWidth
+            val ky = atlas.height.toFloat() / set.refHeight
+            val x = (def.x * kx).toInt().coerceIn(0, atlas.width - 1)
+            val y = (def.y * ky).toInt().coerceIn(0, atlas.height - 1)
+            val w = (def.width * kx).toInt().coerceIn(1, atlas.width - x)
+            val h = (def.height * ky).toInt().coerceIn(1, atlas.height - y)
+            val piece = runCatching { awtOf(atlas).getSubimage(x, y, w, h).toComposeImageBitmap() }.getOrNull()
+            pictureCache[key] = piece
+            return piece
+        }
+        val path = image0.takeIf { it.isNotEmpty() } ?: node.node.properties["imageTexture"]
+        return path?.let(::textureFor)
+    }
+
     fun reloadTextures() {
+        pictureCache.clear()
         textureCache.clear()
         texturesLoading.clear()
     }
@@ -1421,6 +1509,7 @@ class LayoutEditorState(
     fun reloadImageSetTextures() {
         skinCache.clear()
         tileCache.clear()
+        pictureCache.clear()
         imageSetBitmaps.clear()
         imageSetBitmapsLoading.clear()
     }

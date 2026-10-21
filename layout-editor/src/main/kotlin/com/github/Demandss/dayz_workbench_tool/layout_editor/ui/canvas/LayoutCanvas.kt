@@ -64,7 +64,7 @@ private fun textureAspect(
     state: LayoutEditorState,
     node: EditorWidgetNode,
 ): Float? {
-    val texture = node.prop("imageTexture")?.let(state::textureFor) ?: return null
+    val texture = state.pictureFor(node, state.activeFile?.path) ?: return null
     return if (texture.height > 0) texture.width.toFloat() / texture.height else null
 }
 
@@ -251,6 +251,8 @@ internal fun DrawScope.drawWidgetTree(
     textureFor: (String) -> ImageBitmap?,
     skinFor: (EditorWidgetNode) -> WidgetSkin? = { null },
     styleKnown: (EditorWidgetNode) -> Boolean = { false },
+    pictureFor: (EditorWidgetNode) -> ImageBitmap? = { null },
+    textColorFor: (EditorWidgetNode) -> Color = { Color.White },
 ) {
     if (!node.isVisible() || node.id in hidden) return
     val wRect = layout.rects[node.id] ?: return
@@ -285,17 +287,9 @@ internal fun DrawScope.drawWidgetTree(
         }
 
         WidgetType.IMAGE -> {
-            val texture = node.node.properties["imageTexture"]?.let(textureFor)
+            val texture = pictureFor(node)
             if (texture != null && ss.width >= 1f && ss.height >= 1f) {
-                val tint = node.node.properties["color"]?.let { parseWidgetColor(it) }
-                drawImage(
-                    image = texture,
-                    srcOffset = IntOffset.Zero,
-                    srcSize = IntSize(texture.width, texture.height),
-                    dstOffset = IntOffset(tl.x.toInt(), tl.y.toInt()),
-                    dstSize = IntSize(ss.width.toInt().coerceAtLeast(1), ss.height.toInt().coerceAtLeast(1)),
-                    colorFilter = tint?.let { ColorFilter.tint(it, BlendMode.Modulate) },
-                )
+                drawImageWidget(node, texture, tl, ss, zoom)
             } else {
                 drawRect(Color(0x22FFFFFF), tl, ss)
                 drawLine(Color(0x55FFFFFF), tl, br, 1f)
@@ -306,7 +300,9 @@ internal fun DrawScope.drawWidgetTree(
         WidgetType.TEXT, WidgetType.MULTILINE_TEXT, WidgetType.RICH_TEXT -> {
             if (showLabels) drawRect(Color(0x15FFFFFF), tl, ss)
             val label = node.node.properties["text"] ?: node.node.name
-            if (showLabels && label.isNotEmpty() && ss.width > 4f && ss.height > 8f) {
+            if (node.shownText().isNotEmpty()) {
+                drawWidgetText(node, tl, ss, zoom, textMeasurer, textColorFor(node))
+            } else if (showLabels && label.isNotEmpty() && ss.width > 4f && ss.height > 8f) {
                 val measured =
                     textMeasurer.measure(
                         label,
@@ -318,7 +314,9 @@ internal fun DrawScope.drawWidgetTree(
 
         WidgetType.BUTTON -> {
             val label = node.node.properties["text"] ?: node.node.name
-            if (showLabels && label.isNotEmpty() && ss.width > 4f && ss.height > 8f) {
+            if (node.shownText().isNotEmpty()) {
+                drawWidgetText(node, tl, ss, zoom, textMeasurer, textColorFor(node), centered = true)
+            } else if (showLabels && label.isNotEmpty() && ss.width > 4f && ss.height > 8f) {
                 val measured =
                     textMeasurer.measure(
                         label,
@@ -374,6 +372,8 @@ internal fun DrawScope.drawWidgetTree(
                     textureFor,
                     skinFor,
                     styleKnown,
+                    pictureFor,
+                    textColorFor,
                 )
             }
         }
@@ -393,6 +393,8 @@ internal fun DrawScope.drawWidgetTree(
                 textureFor,
                 skinFor,
                 styleKnown,
+                pictureFor,
+                textColorFor,
             )
         }
     }
@@ -845,7 +847,8 @@ fun LayoutCanvas(
         val atl = worldToScreen(Offset.Zero, zoom, pan)
         val abr = worldToScreen(Offset(refW, refH), zoom, pan)
         val aSize = Size(abr.x - atl.x, abr.y - atl.y)
-        drawRect(Color(0xFF232528), atl, aSize)
+        // Live Preview is painted on the grey of the Workbench preview, so that translucent pictures look the same
+        drawRect(if (state.livePreview) Color(0xFF808080) else Color(0xFF232528), atl, aSize)
         drawRect(Color(0xFF555860), atl, aSize, style = Stroke(1f))
 
         // 5. Widgets
@@ -865,6 +868,8 @@ fun LayoutCanvas(
                 state::textureFor,
                 { n -> state.skinFor(n, doc.path, state.previewStateOf(n)) },
                 { n -> state.styleKnown(n, doc.path) },
+                { n -> state.pictureFor(n, doc.path) },
+                { n -> state.textColorFor(n, doc.path) },
             )
         }
 

@@ -173,6 +173,11 @@ private fun layoutGrid(
     val gap = node.intProp("Padding", DEFAULT_GAP).coerceAtLeast(0).toFloat()
     val margin = node.intProp("Margin", DEFAULT_GAP).coerceAtLeast(0).toFloat()
     val columns = node.intProp("Columns", 3).coerceAtLeast(1)
+    // "Size To Content" makes the grid as big as what is in it: as many rows as the children need, each as high as its tallest
+    // child, each column as wide as its widest child (measured on the vanilla HUD, where a grid of five 350 x 40 rows asks for 166)
+    val sizeToV = node.boolProp("Size To Content V", false)
+    val sizeToH = node.boolProp("Size To Content H", false)
+    if (sizeToV || sizeToH) return layoutGridToContent(node, rect, gap, margin, columns, sizeToH, sizeToV)
     val rowCount = node.intProp("Rows", 3).coerceAtLeast(1)
     val cellW = ((rect.width - 2 * margin - (columns - 1) * gap) / columns).coerceAtLeast(0f)
     val cellH = ((rect.height - 2 * margin - (rowCount - 1) * gap) / rowCount).coerceAtLeast(0f)
@@ -192,4 +197,52 @@ private fun layoutGrid(
         placed[child.id] = Rect(left, top, left + size.width, top + size.height)
     }
     return SpacerLayout(rect, placed)
+}
+
+private fun layoutGridToContent(
+    node: EditorWidgetNode,
+    rect: Rect,
+    gap: Float,
+    margin: Float,
+    columns: Int,
+    toWidth: Boolean,
+    toHeight: Boolean,
+): SpacerLayout {
+    val kids = node.spacerChildren()
+    val rowCount = ((kids.size + columns - 1) / columns).coerceAtLeast(1)
+    val availW = (rect.width - 2 * margin - (columns - 1) * gap).coerceAtLeast(0f)
+    val availH = (rect.height - 2 * margin - (rowCount - 1) * gap).coerceAtLeast(0f)
+    val asked = kids.map { childSize(it, availW / columns, availH / rowCount) }
+    val colW =
+        FloatArray(columns) { c ->
+            if (toWidth) {
+                kids.indices.filter { it % columns == c }.maxOfOrNull { asked[it].width } ?: 0f
+            } else {
+                availW /
+                    columns
+            }
+        }
+    val rowH =
+        FloatArray(rowCount) { r ->
+            if (toHeight) {
+                kids.indices.filter { it / columns == r }.maxOfOrNull { asked[it].height } ?: 0f
+            } else {
+                availH /
+                    rowCount
+            }
+        }
+    val width = if (toWidth) 2 * margin + colW.sum() + (columns - 1) * gap else rect.width
+    val height = if (toHeight) 2 * margin + rowH.sum() + (rowCount - 1) * gap else rect.height
+    val own = Rect(rect.left, rect.top, rect.left + width, rect.top + height)
+    val placed = HashMap<UUID, Rect>()
+    kids.forEachIndexed { i, child ->
+        val c = i % columns
+        val r = i / columns
+        val left = own.left + margin + (0 until c).sumOf { colW[it].toDouble() }.toFloat() + c * gap
+        val top = own.top + margin + (0 until r).sumOf { rowH[it].toDouble() }.toFloat() + r * gap
+        val w = if (child.prop("hexactsize") == "1") asked[i].width else colW[c]
+        val h = if (child.prop("vexactsize") == "1") asked[i].height else rowH[r]
+        placed[child.id] = Rect(left, top, left + w, top + h)
+    }
+    return SpacerLayout(own, placed)
 }

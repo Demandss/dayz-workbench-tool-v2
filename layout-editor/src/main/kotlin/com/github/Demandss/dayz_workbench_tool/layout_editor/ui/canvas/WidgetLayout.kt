@@ -10,7 +10,7 @@ internal data class TreeLayout(
     val parentRects: Map<UUID, Rect>,
 )
 
-/** Places every widget of the tree on the [screen]. The root takes the whole screen. [textureAspect] gives the ratio of a picture's texture. */
+/** Places every widget of the tree on the [screen]. The root takes the whole screen unless it sets a size. [textureAspect] gives the ratio of a picture's texture. */
 internal fun layoutTree(
     root: EditorWidgetNode,
     screen: Rect,
@@ -25,7 +25,13 @@ internal fun layoutTree(
         parent: Rect,
     ) {
         // A spacer places its children itself and may change its own size to fit them
-        val spacer = layoutSpacer(node, rect)
+        var spacer = layoutSpacer(node, rect)
+        // A spacer that grew or shrank to fit its content keeps the edge its alignment is tied to (a `bottom_ref` list grows
+        // upwards, measured on the vanilla HUD), so it is placed again with the size it ended up with
+        if (spacer != null && node !== root && (spacer.rect.width != rect.width || spacer.rect.height != rect.height)) {
+            val anchored = computeRect(node, parent, spacer.rect.size)
+            spacer = layoutSpacer(node, Rect(anchored.left, anchored.top, anchored.left + rect.width, anchored.top + rect.height))
+        }
         val own = spacer?.rect ?: rect
         rects[node.id] = own
         parents[node.id] = parent
@@ -34,7 +40,15 @@ internal fun layoutTree(
             visit(child, placed, own)
         }
     }
-    visit(root, screen, screen)
+    // The root is placed like any other widget inside the preview window, so a root with `size 0.9 0.9` and `center_ref`
+    // leaves a margin (measured on the vanilla HUD). A root that sets no size takes the whole screen.
+    val rootRect =
+        if (root.node.properties.containsKey("size")) {
+            fixAspect(root, computeRect(root, screen), screen, textureAspect(root))
+        } else {
+            screen
+        }
+    visit(root, rootRect, screen)
     return TreeLayout(rects, parents)
 }
 
@@ -42,6 +56,8 @@ internal fun layoutTree(
 internal fun computeRect(
     node: EditorWidgetNode,
     parentRect: Rect,
+    // The size to use in place of the one the widget writes down (a spacer that sizes itself to its content)
+    exactSize: androidx.compose.ui.geometry.Size? = null,
 ): Rect {
     val props = node.node.properties
     val pp = (props["position"] ?: "0 0").trim().split(Regex("\\s+"))
@@ -56,8 +72,8 @@ internal fun computeRect(
     val vys = props["vexactsize"] == "1"
     val ax = if (hxp) px else px * parentRect.width
     val ay = if (vyp) py else py * parentRect.height
-    val aw = if (hxs) sw else sw * parentRect.width
-    val ah = if (vys) sh else sh * parentRect.height
+    val aw = exactSize?.width ?: if (hxs) sw else sw * parentRect.width
+    val ah = exactSize?.height ?: if (vys) sh else sh * parentRect.height
     val bx =
         when (props["halign"]) {
             "right_ref", "right" -> parentRect.right - aw - ax

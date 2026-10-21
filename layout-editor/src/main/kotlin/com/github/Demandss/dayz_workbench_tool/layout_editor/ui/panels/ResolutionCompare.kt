@@ -64,6 +64,9 @@ fun ResolutionCompare(
                             Offset.Zero,
                             state::textureFor,
                             { n -> state.skinFor(n, doc.path) },
+                            { _ -> false },
+                            { n -> state.pictureFor(n, doc.path) },
+                            { n -> state.textColorFor(n, doc.path) },
                         )
                     }
                 }
