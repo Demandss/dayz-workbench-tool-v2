@@ -1337,13 +1337,13 @@ class LayoutEditorState(
         nearPath: String?,
     ) = imageSetFiles(nearPath)[setName]?.let(::parsedImageSet)
 
-    /** The texture file of the imageset called [setName] (the smallest one it lists), or null when it is not found. */
+    /** The texture file of the imageset called [setName] (the sharpest one it lists, which is what Workbench draws), or null when it is not found. */
     fun imageSetTextureOf(
         setName: String,
         nearPath: String?,
     ): File? {
         val file = imageSetFiles(nearPath)[setName] ?: return null
-        val texture = parsedImageSet(file)?.textures?.minByOrNull { it.mpix } ?: return null
+        val texture = parsedImageSet(file)?.textures?.maxByOrNull { it.mpix } ?: return null
         return resolveImageSetTexture(file.absolutePath, texture.path)
     }
 
@@ -1382,7 +1382,7 @@ class LayoutEditorState(
                 .toMap()
         val images = imagesOf(stateName).ifEmpty { imagesOf("Normal") }
         if (images.isEmpty()) return null
-        val texture = set.textures.minByOrNull { it.mpix } ?: return null
+        val texture = set.textures.maxByOrNull { it.mpix } ?: return null
         val file = resolveImageSetTexture(setFile.absolutePath, texture.path) ?: return null
         return SkinPlan(file, set.refWidth, set.refHeight, images, styleColorOf(style.color), imagesOf("Highlight").isEmpty())
     }
