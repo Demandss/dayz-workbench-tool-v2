@@ -117,10 +117,7 @@ fun buildCommands(
             },
         )
         add(
-            Command("Масштаб 100%", AppIcon.UI_ZOOMIN, enabled = hasDoc) {
-                state.zoom = 1f
-                state.centerView()
-            },
+            Command("Масштаб 100%", AppIcon.UI_ZOOMIN, "Ctrl+0", hasDoc) { state.zoomActual() },
         )
         add(toggle("Live Preview", AppIcon.UI_PLAY, state.livePreview) { state.livePreview = !state.livePreview })
         add(toggle("привязку к сетке", AppIcon.UI_MAGNET, state.snapToGrid) { state.snapToGrid = !state.snapToGrid })

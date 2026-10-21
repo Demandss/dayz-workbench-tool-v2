@@ -54,10 +54,7 @@ fun Toolbar(
             state.zoom = (state.zoom * 1.1f).coerceIn(0.1f, 8f)
         })
         DarkIconButton(AppIcon.UI_FIT, "Вписать в окно", onClick = { state.centerView() })
-        DarkButton("100%", onClick = {
-            state.zoom = 1f
-            state.centerView()
-        }, tooltip = "Масштаб 100%")
+        DarkButton("100%", onClick = { state.zoomActual() }, tooltip = "Масштаб 100%")
 
         Divider()
 

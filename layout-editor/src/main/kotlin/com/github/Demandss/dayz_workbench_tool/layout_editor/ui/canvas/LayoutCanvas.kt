@@ -309,7 +309,6 @@ internal fun DrawScope.drawWidgetTree(
         }
 
         WidgetType.BUTTON -> {
-            drawRect(Color(0x22AAAAFF), tl, ss)
             val label = node.node.properties["text"] ?: node.node.name
             if (showLabels && label.isNotEmpty() && ss.width > 4f && ss.height > 8f) {
                 val measured =
@@ -1003,7 +1002,10 @@ internal fun DrawScope.drawSkinTinted(
         androidx.compose.ui.geometry
             .Rect(tl.x, tl.y, tl.x + ss.width, tl.y + ss.height)
     val rects = sliceRects(dst, skin.native.mapValues { (_, v) -> Size(v.width * zoom, v.height * zoom) })
-    for ((slot, r) in rects) drawSkinSlot(skin, slot, r, tint, zoom)
+    // The Center is painted under the whole widget and the edges and corners over it, as Workbench does (measured on
+    // DayZDefaultButton): where an edge image has holes the centre shows through instead of the background
+    if ("Center" in rects) drawSkinSlot(skin, "Center", dst, tint, zoom)
+    for ((slot, r) in rects) if (slot != "Center") drawSkinSlot(skin, slot, r, tint, zoom)
 }
 
 /** The tint of a skin as a colour filter: a multiplication by [tint], plus white when the skin is lifted. */

@@ -57,8 +57,7 @@ internal fun handleCanvasKey(
         }
 
         ctrl && (ev.key == Key.Zero || ev.key == Key.NumPad0) -> {
-            state.zoom = 1f
-            state.centerView()
+            state.zoomActual()
             true
         }
 

@@ -755,6 +755,16 @@ class LayoutEditorState(
         openFiles[idx] = doc.copy(root = newRoot, isModified = true)
     }
 
+    /** 100%: one layout pixel on one screen pixel, the screen in the middle of the view. */
+    fun zoomActual() {
+        val cs = lastCanvasSize
+        if (cs == Size.Zero) return
+        val refW = if (selectedResolution == Resolution.FIT) screenSize.width else selectedResolution.width.toFloat()
+        val refH = if (selectedResolution == Resolution.FIT) screenSize.height else selectedResolution.height.toFloat()
+        zoom = 1f
+        panOffset = Offset((cs.width - refW) / 2f, (cs.height - refH) / 2f)
+    }
+
     fun centerView() {
         val cs = lastCanvasSize
         if (cs == Size.Zero) return
