@@ -56,7 +56,7 @@ fun DarkButton(
                 color =
                     when {
                         !enabled -> GhostlyText.copy(alpha = 0.5f)
-                        muted -> GhostlyText
+                        muted -> TextForeground.copy(alpha = 0.85f)
                         else -> TextForeground
                     },
                 fontSize = 10.sp,
