@@ -122,7 +122,7 @@ private fun previewPointer(
     world: Offset,
 ) {
     val doc = state.activeFile ?: return
-    val layout = layoutTree(doc.root, screenRect(state)) { n -> textureAspect(state, n) }
+    val layout = layoutOf(state, doc.root, screenRect(state))
     val target = buttonAt(doc.root, world, layout)?.id
     when (type) {
         PointerEventType.Press -> {
@@ -256,9 +256,16 @@ internal fun DrawScope.drawWidgetTree(
     styleKnown: (EditorWidgetNode) -> Boolean = { false },
     pictureFor: (EditorWidgetNode) -> ImageBitmap? = { null },
     textColorFor: (EditorWidgetNode) -> Color = { Color.White },
+    // The alpha this widget ends up with: its own colour alpha times that of its parent when it has `inheritalpha 1`
+    parentAlpha: Float = 1f,
+    // The SDF font a text widget uses, if it has one, and the name of the font it uses
+    fontFor: (EditorWidgetNode) -> SdfFont? = { null },
+    fontNameFor: (EditorWidgetNode) -> String = { "" },
 ) {
     if (!node.isVisible() || node.id in hidden) return
     val wRect = layout.rects[node.id] ?: return
+    val inherited = if (node.prop("inheritalpha") == "1") parentAlpha else 1f
+    val ownAlpha = (node.prop("color")?.let { parseWidgetColor(it).alpha } ?: 1f) * inherited
     val tl = worldToScreen(Offset(wRect.left, wRect.top), zoom, pan)
     val br = worldToScreen(Offset(wRect.right, wRect.bottom), zoom, pan)
     val ss = Size((br.x - tl.x).coerceAtLeast(0f), (br.y - tl.y).coerceAtLeast(0f))
@@ -269,7 +276,7 @@ internal fun DrawScope.drawWidgetTree(
     val skin = if (skinned) skinFor(node) else null
     // A vanilla style that paints nothing is not a reason to guess a fill
     val paintsNothing = skin == null && skinned && styleKnown(node)
-    if (skin != null) drawSkin(skin, node, tl, ss, zoom)
+    if (skin != null) drawSkin(skin, node, tl, ss, zoom, inherited)
 
     // Fill by type
     when (if (skin != null || paintsNothing) null else node.node.type) {
@@ -277,7 +284,7 @@ internal fun DrawScope.drawWidgetTree(
 
         WidgetType.PANEL, WidgetType.SMART_PANEL, WidgetType.WRAP_SPACER, WidgetType.GRID_SPACER, WidgetType.SCROLL, WidgetType.WINDOW -> {
             // What the style paints; a widget that paints nothing still gets a faint tint so it can be found
-            val fill = node.fillColor()
+            val fill = node.fillColor()?.let { it.copy(alpha = it.alpha * inherited) }
             if (fill != null) {
                 drawRect(fill, tl, ss)
             } else if (showLabels) {
@@ -292,7 +299,7 @@ internal fun DrawScope.drawWidgetTree(
         WidgetType.IMAGE -> {
             val texture = pictureFor(node)
             if (texture != null && ss.width >= 1f && ss.height >= 1f) {
-                drawImageWidget(node, texture, tl, ss, zoom)
+                drawImageWidget(node, texture, tl, ss, zoom, inherited)
             } else {
                 drawRect(Color(0x22FFFFFF), tl, ss)
                 drawLine(Color(0x55FFFFFF), tl, br, 1f)
@@ -304,7 +311,16 @@ internal fun DrawScope.drawWidgetTree(
             if (showLabels) drawRect(Color(0x15FFFFFF), tl, ss)
             val label = node.node.properties["text"] ?: node.node.name
             if (node.shownText().isNotEmpty()) {
-                drawWidgetText(node, tl, ss, zoom, textMeasurer, textColorFor(node))
+                drawWidgetText(
+                    node,
+                    tl,
+                    ss,
+                    zoom,
+                    textMeasurer,
+                    textColorFor(node).let { it.copy(alpha = it.alpha * inherited) },
+                    font = fontFor(node),
+                    fontName = fontNameFor(node),
+                )
             } else if (showLabels && label.isNotEmpty() && ss.width > 4f && ss.height > 8f) {
                 val measured =
                     textMeasurer.measure(
@@ -318,7 +334,17 @@ internal fun DrawScope.drawWidgetTree(
         WidgetType.BUTTON -> {
             val label = node.node.properties["text"] ?: node.node.name
             if (node.shownText().isNotEmpty()) {
-                drawWidgetText(node, tl, ss, zoom, textMeasurer, textColorFor(node), centered = true)
+                drawWidgetText(
+                    node,
+                    tl,
+                    ss,
+                    zoom,
+                    textMeasurer,
+                    textColorFor(node).let { it.copy(alpha = it.alpha * inherited) },
+                    centered = true,
+                    font = fontFor(node),
+                    fontName = fontNameFor(node),
+                )
             } else if (showLabels && label.isNotEmpty() && ss.width > 4f && ss.height > 8f) {
                 val measured =
                     textMeasurer.measure(
@@ -377,6 +403,9 @@ internal fun DrawScope.drawWidgetTree(
                     styleKnown,
                     pictureFor,
                     textColorFor,
+                    ownAlpha,
+                    fontFor,
+                    fontNameFor,
                 )
             }
         }
@@ -398,6 +427,9 @@ internal fun DrawScope.drawWidgetTree(
                 styleKnown,
                 pictureFor,
                 textColorFor,
+                ownAlpha,
+                fontFor,
+                fontNameFor,
             )
         }
     }
@@ -563,7 +595,7 @@ fun LayoutCanvas(
                                             val worldPos = screenToWorld(pos, zoom, pan)
                                             val doc = state.activeFile
                                             val refRect = screenRect(state)
-                                            val layout = doc?.let { layoutTree(it.root, refRect) { n -> textureAspect(state, n) } }
+                                            val layout = doc?.let { layoutOf(state, it.root, refRect) }
                                             val hit =
                                                 if (doc != null &&
                                                     layout != null
@@ -591,7 +623,7 @@ fun LayoutCanvas(
                                                 if (event.keyboardModifiers.isAltPressed) {
                                                     state.duplicateSelected(0f)
                                                     dragDoc = state.activeFile ?: doc
-                                                    dragLayout = layoutTree(dragDoc.root, refRect) { n -> textureAspect(state, n) }
+                                                    dragLayout = layoutOf(state, dragDoc.root, refRect)
                                                 }
                                                 val parentRects = dragLayout?.parentRects.orEmpty()
                                                 dragInfos =
@@ -801,7 +833,7 @@ fun LayoutCanvas(
                                             selectInBox(
                                                 doc.root,
                                                 box,
-                                                layoutTree(doc.root, screenRect(state)) { n -> textureAspect(state, n) },
+                                                layoutOf(state, doc.root, screenRect(state)),
                                                 hits,
                                                 state.hiddenIds.toSet(),
                                                 state.lockedIds.toSet(),
@@ -850,7 +882,7 @@ fun LayoutCanvas(
         val atl = worldToScreen(Offset.Zero, zoom, pan)
         val abr = worldToScreen(Offset(refW, refH), zoom, pan)
         val aSize = Size(abr.x - atl.x, abr.y - atl.y)
-        val layout = doc?.let { layoutTree(it.root, Rect(0f, 0f, refW, refH)) { n -> textureAspect(state, n) } }
+        val layout = doc?.let { layoutOf(state, it.root, Rect(0f, 0f, refW, refH)) }
 
         fun DrawScope.widgets(pan: Offset) {
             if (doc == null || layout == null) return
@@ -870,6 +902,8 @@ fun LayoutCanvas(
                 { n -> state.styleKnown(n, doc.path) },
                 { n -> state.pictureFor(n, doc.path) },
                 { n -> state.textColorFor(n, doc.path) },
+                fontFor = { n -> state.sdfFontFor(state.fontNameFor(n, doc.path), doc.path) },
+                fontNameFor = { n -> state.fontNameFor(n, doc.path) },
             )
         }
         if (state.livePreview) {
@@ -987,7 +1021,7 @@ private fun resizeTargetFor(state: LayoutEditorState): ResizeTarget? {
     val doc = state.activeFile ?: return null
     val id = state.selectedIds.singleOrNull() ?: return null
     if (id == doc.root.id || id in state.lockedIds || id in state.hiddenIds || state.livePreview) return null
-    val layout = layoutTree(doc.root, screenRect(state)) { n -> textureAspect(state, n) }
+    val layout = layoutOf(state, doc.root, screenRect(state))
     val rect = layout.rects[id] ?: return null
     val parent = layout.parentRects[id] ?: return null
     val own =
@@ -1022,6 +1056,8 @@ private val SKINNED_TYPES =
     setOf(
         WidgetType.PANEL,
         WidgetType.SMART_PANEL,
+        WidgetType.WRAP_SPACER,
+        WidgetType.GRID_SPACER,
         WidgetType.BUTTON,
         WidgetType.WINDOW,
         WidgetType.EDIT_BOX,
@@ -1047,9 +1083,11 @@ private fun DrawScope.drawSkin(
     tl: Offset,
     ss: Size,
     zoom: Float,
+    alphaFactor: Float = 1f,
 ) {
     if (ss.width < 1f || ss.height < 1f) return
-    val tint = node.node.properties["color"]?.let { parseWidgetColor(it) } ?: skin.styleColor
+    val baseTint = node.node.properties["color"]?.let { parseWidgetColor(it) } ?: skin.styleColor
+    val tint = baseTint.copy(alpha = baseTint.alpha * alphaFactor)
     drawSkinWidget(
         skin,
         tint,
@@ -1198,3 +1236,16 @@ private fun DrawScope.drawLinear(
     }
     drawImage(bitmap, topLeft = Offset(topLeft.x.roundToInt().toFloat(), topLeft.y.roundToInt().toFloat()))
 }
+
+/** The layout of a tree on the screen [rect], with the sizes of the pictures and of the texts that follow their text. */
+private fun layoutOf(
+    state: LayoutEditorState,
+    root: EditorWidgetNode,
+    rect: Rect,
+): TreeLayout =
+    layoutTree(
+        root,
+        rect,
+        { n -> textureAspect(state, n) },
+        { n, w, h -> state.textSizeFor(n, state.activeFile?.path, w, h) },
+    )

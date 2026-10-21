@@ -4,6 +4,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.drawscope.DrawScope
@@ -26,8 +27,10 @@ internal fun DrawScope.drawImageWidget(
     topLeft: Offset,
     boxSize: Size,
     zoom: Float,
+    alphaFactor: Float = 1f,
 ) {
-    val tint = node.prop("color")?.let { parseWidgetColor(it) }
+    val tint =
+        (node.prop("color")?.let { parseWidgetColor(it) } ?: Color.White).let { it.copy(alpha = it.alpha * alphaFactor) }
     val flipU = node.prop("flip u") == "1"
     val flipV = node.prop("flip v") == "1"
     val angle =
@@ -53,7 +56,7 @@ internal fun DrawScope.drawImageWidget(
             srcSize = IntSize(image.width, image.height),
             dstOffset = IntOffset(topLeft.x.roundToInt(), topLeft.y.roundToInt()),
             dstSize = IntSize(boxSize.width.roundToInt().coerceAtLeast(1), boxSize.height.roundToInt().coerceAtLeast(1)),
-            colorFilter = tint?.let { ColorFilter.tint(it, BlendMode.Modulate) },
+            colorFilter = ColorFilter.tint(tint, BlendMode.Modulate),
             blendMode = if (additive) BlendMode.Plus else BlendMode.SrcOver,
         )
     }

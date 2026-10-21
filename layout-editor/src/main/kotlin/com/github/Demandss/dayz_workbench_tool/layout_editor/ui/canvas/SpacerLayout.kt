@@ -38,6 +38,15 @@ internal fun layoutSpacer(
 
 private const val DEFAULT_GAP = 2
 
+/**
+ * The size the text of a widget needs for the box it is given, for `size to text h` and `size to text v`; set by [layoutTree]
+ * while it lays a tree out. The editor draws on one thread, so one slot is enough.
+ */
+internal var textSizeProvider: ((EditorWidgetNode, Float, Float) -> Size?)? = null
+
+/** Whether a text follows the size of its text on the horizontal and on the vertical axis. */
+internal fun EditorWidgetNode.sizeToText(): Pair<Boolean, Boolean> = (prop("size to text h") == "1") to (prop("size to text v") == "1")
+
 private fun EditorWidgetNode.intProp(
     name: String,
     default: Int,
@@ -60,10 +69,15 @@ private fun childSize(
     val parts = (child.prop("size") ?: "0.1 0.1").split(Regex("\\s+"))
     val w = parts.getOrNull(0)?.toFloatOrNull() ?: 0.1f
     val h = parts.getOrNull(1)?.toFloatOrNull() ?: 0.1f
-    return Size(
-        if (child.prop("hexactsize") == "1") w else w * width,
-        if (child.prop("vexactsize") == "1") h else h * height,
-    )
+    val asked =
+        Size(
+            if (child.prop("hexactsize") == "1") w else w * width,
+            if (child.prop("vexactsize") == "1") h else h * height,
+        )
+    val (toWidth, toHeight) = child.sizeToText()
+    if (!toWidth && !toHeight) return asked
+    val text = textSizeProvider?.invoke(child, asked.width, asked.height) ?: return asked
+    return Size(if (toWidth) text.width else asked.width, if (toHeight) text.height else asked.height)
 }
 
 private fun EditorWidgetNode.isSpacer(): Boolean = node.type == WidgetType.WRAP_SPACER || node.type == WidgetType.GRID_SPACER

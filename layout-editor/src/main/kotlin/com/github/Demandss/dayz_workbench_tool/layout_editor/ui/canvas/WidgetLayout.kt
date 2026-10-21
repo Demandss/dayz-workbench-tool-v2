@@ -15,6 +15,22 @@ internal fun layoutTree(
     root: EditorWidgetNode,
     screen: Rect,
     textureAspect: (EditorWidgetNode) -> Float? = { null },
+    // The size the text of a widget needs for a box of the given width and height (`size to text h` and `v`)
+    textSize: ((EditorWidgetNode, Float, Float) -> androidx.compose.ui.geometry.Size?)? = null,
+): TreeLayout {
+    val previousProvider = textSizeProvider
+    textSizeProvider = textSize
+    try {
+        return layoutTreeWith(root, screen, textureAspect)
+    } finally {
+        textSizeProvider = previousProvider
+    }
+}
+
+private fun layoutTreeWith(
+    root: EditorWidgetNode,
+    screen: Rect,
+    textureAspect: (EditorWidgetNode) -> Float?,
 ): TreeLayout {
     val rects = HashMap<UUID, Rect>()
     val parents = HashMap<UUID, Rect>()
@@ -40,7 +56,7 @@ internal fun layoutTree(
             val given = spacer?.children?.get(child.id)
             // A spacer places the children it uses; one that does not fit in the cells of a grid is not drawn at all
             if (spacer != null && given == null) continue
-            val placed = given ?: fixAspect(child, computeRect(child, own), own, textureAspect(child))
+            val placed = given ?: fixAspect(child, followText(child, computeRect(child, own), own), own, textureAspect(child))
             visit(child, placed, own, given != null)
         }
     }
@@ -91,4 +107,21 @@ internal fun computeRect(
             else -> parentRect.top + ay
         }
     return Rect(bx, posY, bx + aw, posY + ah)
+}
+
+/** A text that sizes itself to its text takes the size of the text, anchored by its alignment like any other size. */
+private fun followText(
+    node: EditorWidgetNode,
+    rect: Rect,
+    parent: Rect,
+): Rect {
+    val (toWidth, toHeight) = node.sizeToText()
+    if (!toWidth && !toHeight) return rect
+    val text = textSizeProvider?.invoke(node, rect.width, rect.height) ?: return rect
+    return computeRect(
+        node,
+        parent,
+        androidx.compose.ui.geometry
+            .Size(if (toWidth) text.width else rect.width, if (toHeight) text.height else rect.height),
+    )
 }

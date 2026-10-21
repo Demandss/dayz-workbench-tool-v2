@@ -28,6 +28,7 @@ import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.GuideLine
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.NINE_SLICE_SLOTS
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.Reorder
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.ResizeHandle
+import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.SdfFont
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.alignedRoot
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.allNames
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.appearance
@@ -35,6 +36,7 @@ import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.bulkRepla
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.clipboardText
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.distributed
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.layoutTree
+import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.measureText
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.movedBy
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.parentOf
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.parseClipboard
@@ -879,6 +881,132 @@ class LayoutEditorState(
 
     private val pictureCache = HashMap<String, ImageBitmap?>()
 
+    private val sdfFonts = mutableStateMapOf<String, SdfFont?>()
+    private val sdfFontsLoading = HashSet<String>()
+
+    /**
+     * The SDF font a `font` property names (`gui/fonts/sdf_MetronBook24`), or null while it loads, when it is not an SDF font
+     * or when its files are not found. Reading it from a draw scope redraws once it is there.
+     */
+    internal fun sdfFontFor(
+        fontProperty: String,
+        nearPath: String?,
+    ): SdfFont? {
+        val path =
+            fontProperty
+                .trim()
+                .trim('"')
+                .replace('\\', '/')
+        // The bitmap Metron fonts (`gui/fonts/Metron16`, `Metron-Bold`...) are drawn from the SDF font of their family: the same
+        // letters at the size the widget asks for
+        val last = path.substringAfterLast('/')
+        val sdfPath =
+            when {
+                last.startsWith("sdf_", ignoreCase = true) -> path
+                last.startsWith("metron", ignoreCase = true) && last.contains("light", ignoreCase = true) -> "gui/fonts/sdf_MetronLight24"
+                last.startsWith("metron", ignoreCase = true) -> "gui/fonts/sdf_MetronBook24"
+                else -> return null
+            }
+        val key = sdfPath.lowercase() + "|" + workDrivePath
+        if (sdfFonts.containsKey(key)) return sdfFonts[key]
+        if (sdfFontsLoading.add(key)) {
+            val roots = fileRoots(nearPath)
+            scope.launch(Dispatchers.IO) {
+                val font = runCatching { loadSdfFont(sdfPath, roots) }.getOrNull()
+                withContext(Dispatchers.Main) { sdfFonts[key] = font }
+            }
+        }
+        return null
+    }
+
+    /** The name of the font of a text widget: `font`, else the font of its style, else the MetronBook of the style `Normal`. */
+    fun fontNameFor(
+        node: EditorWidgetNode,
+        nearPath: String?,
+    ): String {
+        node.node.properties["font"]
+            ?.trim()
+            ?.trim('"')
+            ?.takeIf { it.isNotEmpty() }
+            ?.let { return it }
+        val styleName =
+            node.node.properties["style"]
+                ?.trim()
+                ?.trim('"')
+                .orEmpty()
+        val className = node.node.originalClassName.ifEmpty { node.node.type.className }
+        val styles = vanillaStylesFor(className, nearPath)
+        val style = styles.firstOrNull { it.name == styleName } ?: styles.firstOrNull { it.name == "Normal" || it.name == "DayZNormal" }
+        return style?.font?.takeIf { it.isNotEmpty() } ?: "gui/fonts/MetronBook"
+    }
+
+    /** The size the text of [node] takes for a box of [boxWidth] by [boxHeight] pixels, for `size to text h` and `v`. */
+    internal fun textSizeFor(
+        node: EditorWidgetNode,
+        nearPath: String?,
+        boxWidth: Float,
+        boxHeight: Float,
+    ): androidx.compose.ui.geometry.Size? {
+        if (node.node.type !in setOf(WidgetType.TEXT, WidgetType.RICH_TEXT, WidgetType.MULTILINE_TEXT)) return null
+        val fontName = fontNameFor(node, nearPath)
+        return measureText(node, sdfFontFor(fontName, nearPath), boxWidth, boxHeight, fontName)
+    }
+
+    /** The work drive and every folder above [nearPath]: where `gui/...` paths are looked for. */
+    private fun fileRoots(nearPath: String?): List<File> {
+        val roots = mutableListOf<File>()
+        if (workDrivePath.isNotBlank()) roots += File(workDrivePath)
+        var dir = nearPath?.let { File(it).parentFile }
+        while (dir != null) {
+            roots += dir
+            dir = dir.parentFile
+        }
+        return roots
+    }
+
+    private fun loadSdfFont(
+        path: String,
+        roots: List<File>,
+    ): SdfFont? {
+        fun find(
+            relative: String,
+            extension: String,
+        ) = roots.map { File(it, "$relative.$extension") }.firstOrNull { it.isFile }
+        val fnt = find(path, "fnt") ?: return null
+        val edds = find(path, "edds") ?: return null
+        val (size, glyphs) = SdfFont.readGlyphs(fnt) ?: return null
+        val atlas = EddsCodec.decode(edds).toBufferedImage()
+        val cell = (glyphs[1].x - glyphs[0].x - 2).coerceAtLeast(8)
+        // Advances in thousandths of an em: the biggest size of the family has the finest ones (a size 72 font tells them to
+        // 1/72), the 24 px MetronBook has them exactly in its text description
+        val family = path.replace(Regex("\\d+$"), "")
+        val fine = find(family + "72", "fnt")?.let { SdfFont.readGlyphs(it) }
+        val exact = find(path, "fsdf")?.let { runCatching { it.readText() }.getOrNull() }?.let(::fsdfAdvances)
+        val advances =
+            IntArray(SdfFont.LAST - SdfFont.FIRST + 1) { i ->
+                exact?.get(i) ?: fine?.let { (fineSize, records) -> records[i].advance * 1000 / fineSize }
+                    ?: (glyphs[i].advance * 1000 / size)
+            }
+        return SdfFont(path, size, glyphs, atlas, advances, cell, SdfFont.estimateSlope(atlas, glyphs['I'.code - SdfFont.FIRST], cell))
+    }
+
+    /** The `Advances` of the ASCII characters from the text description of an SDF font. */
+    private fun fsdfAdvances(text: String): IntArray? {
+        fun numbers(name: String) =
+            Regex(name + "\\s*\\{([^}]*)}")
+                .find(text)
+                ?.groupValues
+                ?.get(1)
+                ?.trim()
+                ?.split(Regex("\\s+"))
+                ?.mapNotNull { it.toIntOrNull() }
+        val characters = numbers("Characters") ?: return null
+        val advances = numbers("Advances") ?: return null
+        val byChar = characters.zip(advances).toMap()
+        if (!(SdfFont.FIRST..SdfFont.LAST).all { it in byChar }) return null
+        return IntArray(SdfFont.LAST - SdfFont.FIRST + 1) { byChar.getValue(SdfFont.FIRST + it) }
+    }
+
     /** The colour of the letters of a text widget: the colour of its style times its own `color`. */
     fun textColorFor(
         node: EditorWidgetNode,
@@ -964,6 +1092,8 @@ class LayoutEditorState(
 
     fun reloadTextures() {
         pictureCache.clear()
+        sdfFonts.clear()
+        sdfFontsLoading.clear()
         textureCache.clear()
         texturesLoading.clear()
     }
