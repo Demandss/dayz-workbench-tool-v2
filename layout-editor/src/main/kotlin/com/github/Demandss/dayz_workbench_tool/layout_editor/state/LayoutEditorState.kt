@@ -1236,17 +1236,30 @@ class LayoutEditorState(
                 ?.trim('"')
                 .orEmpty()
         if (styleName.isEmpty()) return null
-        val key = "${node.node.type.className}|$styleName|$stateName|$workDrivePath|$nearPath"
+        val className = node.node.originalClassName.ifEmpty { node.node.type.className }
+        val key = "$className|$styleName|$stateName|$workDrivePath|$nearPath"
         val plan =
             if (skinPlans.containsKey(key)) {
                 skinPlans[key]
             } else {
-                buildSkinPlan(node.node.type.className, styleName, stateName, nearPath).also { skinPlans[key] = it }
+                buildSkinPlan(className, styleName, stateName, nearPath).also { skinPlans[key] = it }
             } ?: return null
-        // A style with no frame slots (a check mark, a bar only) is left to the flat approximation
-        if (plan.images.keys.none { it in NINE_SLICE_SLOTS }) return null
         val lifted = stateName == "Highlight" && plan.highlightEmpty && node.node.type == WidgetType.BUTTON
         return skinFromPlan(plan, key, if (lifted) HIGHLIGHT_LIFT else 0f)
+    }
+
+    /** True when the style of [node] is one of the vanilla styles of its type: whatever it paints, it is not a guess. */
+    fun styleKnown(
+        node: EditorWidgetNode,
+        nearPath: String?,
+    ): Boolean {
+        val name =
+            node.node.properties["style"]
+                ?.trim()
+                ?.trim('"')
+                .orEmpty()
+        return name.isNotEmpty() &&
+            vanillaStylesFor(node.node.originalClassName.ifEmpty { node.node.type.className }, nearPath).any { it.name == name }
     }
 
     /** What [style] paints in the state [stateName], for the preview of the style editor. Null while the atlas loads. */
@@ -1389,7 +1402,9 @@ class LayoutEditorState(
                 .filter { it.image.isNotEmpty() }
                 .mapNotNull { item -> byName[item.image]?.let { item.name to it } }
                 .toMap()
-        val images = imagesOf(stateName).ifEmpty { imagesOf("Normal") }
+        // A three state check box has no Normal: its resting look is Empty
+        val resting = if (style.states.none { it.name == "Normal" } && style.states.any { it.name == "Empty" }) "Empty" else "Normal"
+        val images = imagesOf(stateName).ifEmpty { imagesOf(resting) }
         if (images.isEmpty()) return null
         val texture = set.textures.maxByOrNull { it.mpix } ?: return null
         val file = resolveImageSetTexture(setFile.absolutePath, texture.path) ?: return null

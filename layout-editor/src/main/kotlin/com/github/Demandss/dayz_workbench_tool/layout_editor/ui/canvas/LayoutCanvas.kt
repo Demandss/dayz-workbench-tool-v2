@@ -250,6 +250,7 @@ internal fun DrawScope.drawWidgetTree(
     pan: Offset,
     textureFor: (String) -> ImageBitmap?,
     skinFor: (EditorWidgetNode) -> WidgetSkin? = { null },
+    styleKnown: (EditorWidgetNode) -> Boolean = { false },
 ) {
     if (!node.isVisible() || node.id in hidden) return
     val wRect = layout.rects[node.id] ?: return
@@ -259,21 +260,28 @@ internal fun DrawScope.drawWidgetTree(
     val isSelected = selectedIds.contains(node.id)
 
     // A vanilla style with images is drawn from them; everything else falls back to the flat approximation below
-    val skin = if (node.node.type in SKINNED_TYPES) skinFor(node) else null
+    val skinned = node.node.type in SKINNED_TYPES || node.node.originalClassName == "SimpleProgressBarWidgetClass"
+    val skin = if (skinned) skinFor(node) else null
+    // A vanilla style that paints nothing is not a reason to guess a fill
+    val paintsNothing = skin == null && skinned && styleKnown(node)
     if (skin != null) drawSkin(skin, node, tl, ss, zoom)
 
     // Fill by type
-    when (if (skin != null) null else node.node.type) {
+    when (if (skin != null || paintsNothing) null else node.node.type) {
         null -> {}
 
         WidgetType.PANEL, WidgetType.SMART_PANEL, WidgetType.WRAP_SPACER, WidgetType.GRID_SPACER, WidgetType.SCROLL, WidgetType.WINDOW -> {
             // What the style paints; a widget that paints nothing still gets a faint tint so it can be found
             val fill = node.fillColor()
-            drawRect(fill ?: Color(0x0AFFFFFF), tl, ss)
+            if (fill != null) {
+                drawRect(fill, tl, ss)
+            } else if (showLabels) {
+                drawRect(Color(0x0AFFFFFF), tl, ss)
+            }
         }
 
         WidgetType.FRAME -> {
-            drawRect(Color(0x0AFFFFFF), tl, ss)
+            if (showLabels) drawRect(Color(0x0AFFFFFF), tl, ss)
         }
 
         WidgetType.IMAGE -> {
@@ -296,7 +304,7 @@ internal fun DrawScope.drawWidgetTree(
         }
 
         WidgetType.TEXT, WidgetType.MULTILINE_TEXT, WidgetType.RICH_TEXT -> {
-            drawRect(Color(0x15FFFFFF), tl, ss)
+            if (showLabels) drawRect(Color(0x15FFFFFF), tl, ss)
             val label = node.node.properties["text"] ?: node.node.name
             if (showLabels && label.isNotEmpty() && ss.width > 4f && ss.height > 8f) {
                 val measured =
@@ -321,7 +329,7 @@ internal fun DrawScope.drawWidgetTree(
         }
 
         else -> {
-            drawRect(Color(0x0DFFFFFF), tl, ss)
+            if (showLabels) drawRect(Color(0x0DFFFFFF), tl, ss)
         }
     }
 
@@ -365,12 +373,27 @@ internal fun DrawScope.drawWidgetTree(
                     pan,
                     textureFor,
                     skinFor,
+                    styleKnown,
                 )
             }
         }
     } else {
         for (child in children) {
-            drawWidgetTree(child, layout, false, selectedIds, hidden, showBorders, showLabels, textMeasurer, zoom, pan, textureFor, skinFor)
+            drawWidgetTree(
+                child,
+                layout,
+                false,
+                selectedIds,
+                hidden,
+                showBorders,
+                showLabels,
+                textMeasurer,
+                zoom,
+                pan,
+                textureFor,
+                skinFor,
+                styleKnown,
+            )
         }
     }
 
@@ -841,6 +864,7 @@ fun LayoutCanvas(
                 pan,
                 state::textureFor,
                 { n -> state.skinFor(n, doc.path, state.previewStateOf(n)) },
+                { n -> state.styleKnown(n, doc.path) },
             )
         }
 
@@ -975,7 +999,24 @@ internal fun resizeCursor(handle: ResizeHandle?): PointerIcon =
         ResizeHandle.SW -> PointerIcon(Cursor(Cursor.SW_RESIZE_CURSOR))
     }
 
-private val SKINNED_TYPES = setOf(WidgetType.PANEL, WidgetType.SMART_PANEL, WidgetType.BUTTON, WidgetType.WINDOW)
+private val SKINNED_TYPES =
+    setOf(
+        WidgetType.PANEL,
+        WidgetType.SMART_PANEL,
+        WidgetType.BUTTON,
+        WidgetType.WINDOW,
+        WidgetType.EDIT_BOX,
+        WidgetType.PASSWORD_EDIT_BOX,
+        WidgetType.MULTILINE_EDIT_BOX,
+        WidgetType.SLIDER,
+        WidgetType.PROGRESS_BAR,
+        WidgetType.CHECKBOX,
+        WidgetType.THREE_STATE_CHECKBOX,
+        WidgetType.XCOMBO_BOX,
+        WidgetType.TEXT_LISTBOX,
+        WidgetType.SERVER_BROWSER,
+        WidgetType.SCROLL,
+    )
 
 /**
  * Draws the pieces of a style as a 9-slice: corners at their size, edges and centre stretched. The widget's own `color`
@@ -987,7 +1028,19 @@ private fun DrawScope.drawSkin(
     tl: Offset,
     ss: Size,
     zoom: Float,
-) = drawSkinTinted(skin, node.node.properties["color"]?.let { parseWidgetColor(it) } ?: skin.styleColor, tl, ss, zoom)
+) {
+    if (ss.width < 1f || ss.height < 1f) return
+    val tint = node.node.properties["color"]?.let { parseWidgetColor(it) } ?: skin.styleColor
+    drawSkinWidget(
+        skin,
+        tint,
+        androidx.compose.ui.geometry
+            .Rect(tl.x, tl.y, tl.x + ss.width, tl.y + ss.height),
+        zoom,
+        node.node.type,
+        progress = node.node.type == WidgetType.PROGRESS_BAR || node.node.originalClassName == "SimpleProgressBarWidgetClass",
+    )
+}
 
 /** [drawSkin] with the colour given: the style editor draws a style without a widget. */
 internal fun DrawScope.drawSkinTinted(

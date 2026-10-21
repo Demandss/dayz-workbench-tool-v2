@@ -48,6 +48,15 @@ fun sliceRects(
     val cornersRight = "RightTop" in native || "RightBottom" in native
     if (!cornersLeft && "Left" in out) out["Left"] = Rect(xs[0], dst.top, xs[1], dst.bottom)
     if (!cornersRight && "Right" in out) out["Right"] = Rect(xs[2], dst.top, xs[3], dst.bottom)
-    if (!cornersLeft && !cornersRight && "Center" in out) out["Center"] = Rect(xs[1], dst.top, xs[2], dst.bottom)
+    // The Center runs to the edge of the widget on a side where there is no edge image of its own, and over the whole height
+    // when no corner images cut it short (a list box that only has a scroll bar column, measured on the Editor style)
+    if ("Center" in out) {
+        val fullHeight = (!cornersLeft && !cornersRight) || ("Top" !in native && "Bottom" !in native)
+        val top = if (fullHeight || "Top" !in native) dst.top else ys[1]
+        val bottom = if (fullHeight || "Bottom" !in native) dst.bottom else ys[2]
+        val leftEdge = if ("Left" in native || cornersLeft) xs[1] else dst.left
+        val rightEdge = if ("Right" in native || cornersRight) xs[2] else dst.right
+        out["Center"] = Rect(leftEdge, top, rightEdge, bottom)
+    }
     return out
 }

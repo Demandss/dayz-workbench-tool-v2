@@ -48,4 +48,12 @@ class NineSliceTest {
         assertEquals(Rect(4f, 0f, 96f, 50f), r["Center"])
         assertEquals(Rect(4f, 0f, 96f, 4f), r["Top"])
     }
+
+    @Test
+    fun `a list box with only a scroll bar column keeps its Center over the whole widget`() {
+        val sizes = mapOf("RightTop" to Size(24f, 4f), "Right" to Size(24f, 5f), "RightBottom" to Size(24f, 4f), "Center" to Size(1f, 5f))
+        val r = sliceRects(Rect(0f, 0f, 140f, 64f), sizes)
+        assertEquals(Rect(0f, 0f, 116f, 64f), r["Center"])
+        assertEquals(Rect(116f, 4f, 140f, 60f), r["Right"])
+    }
 }
