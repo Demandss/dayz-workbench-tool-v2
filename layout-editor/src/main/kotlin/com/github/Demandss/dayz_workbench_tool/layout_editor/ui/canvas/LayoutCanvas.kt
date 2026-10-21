@@ -380,6 +380,23 @@ internal fun DrawScope.drawWidgetTree(
         )
     }
 
+    // The label of a check box starts after its box (measured: the box is 22 px wide, the text begins 6 px after it)
+    if ((node.node.type == WidgetType.CHECKBOX || node.node.type == WidgetType.THREE_STATE_CHECKBOX) && node.shownText().isNotEmpty()) {
+        val boxWidth = ((skin?.native?.get("CheckBox")?.width ?: 22f) + 6f) * zoom
+        drawWidgetText(
+            node,
+            Offset(tl.x + boxWidth, tl.y),
+            Size((ss.width - boxWidth).coerceAtLeast(0f), ss.height),
+            zoom,
+            textMeasurer,
+            textColorFor(node).let { it.copy(alpha = it.alpha * inherited) },
+            centered = false,
+            fontAt = { px -> fontFor(node, px) },
+            fontName = fontNameFor(node),
+            verticalCenter = true,
+        )
+    }
+
     // Border
     val showBorder = showBorders || isSelected
     if (showBorder && ss.width > 0f && ss.height > 0f) {

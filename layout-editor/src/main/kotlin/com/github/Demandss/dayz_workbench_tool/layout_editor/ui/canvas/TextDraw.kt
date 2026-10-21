@@ -63,13 +63,21 @@ internal fun EditorWidgetNode.textPixelSize(
     }
     // A button ignores `exact text`: its text follows the height of the button (measured: 70 px high, 24 asked, 68 drawn)
     if (exact && set != null && node.type != WidgetType.BUTTON) return set
+    // A rich or multiline text takes the exact size even when `exact text` is off (a 30 px box with `exact text size 22`: 22 drawn)
+    if (set != null && (node.type == WidgetType.RICH_TEXT || node.type == WidgetType.MULTILINE_TEXT)) return set
     // `text_proportion` is the share of the widget height the letters take. A text widget fills it by default, the rich and
     // multiline ones take half of it (measured in Workbench on 16, 24 and 40 px high widgets)
     val given = prop("text_proportion")?.toFloatOrNull()
     // A rich text without `text_proportion` has two sizes only: 13.4 px letters up to a 32 px high box, 24 px from there on
     // (measured with 16, 24, 36 and 40 px boxes)
     if (given == null && node.type == WidgetType.RICH_TEXT) return if (boxHeight >= 32f) 24f else 13.4f
-    val proportion = given ?: if (node.type == WidgetType.TEXT || node.type == WidgetType.BUTTON) 1f else 0.5f
+    val proportion =
+        given
+            ?: when (node.type) {
+                WidgetType.TEXT, WidgetType.BUTTON, WidgetType.CHECKBOX, WidgetType.THREE_STATE_CHECKBOX -> 1f
+                WidgetType.MULTILINE_TEXT -> 0.39f
+                else -> 0.5f
+            }
     return boxHeight * proportion
 }
 
@@ -103,6 +111,8 @@ internal fun DrawScope.drawWidgetText(
     fontAt: (Float) -> GameFont? = { null },
     // The name of the font the widget uses (its weight and slant are in the name)
     fontName: String = "",
+    // The text sits in the middle of the box whatever `text valign` says (the label of a check box)
+    verticalCenter: Boolean = false,
 ) {
     val text = node.shownText()
     if (text.isEmpty() || boxSize.width < 1f || boxSize.height < 1f) return
@@ -121,7 +131,7 @@ internal fun DrawScope.drawWidgetText(
             else -> TextAlign.Left
         }
     // Only `center` is a vertical alignment of the text: `bottom` leaves it at the top (measured)
-    val valign = node.prop("text valign")?.trim('"') ?: if (centered) "center" else "top"
+    val valign = if (verticalCenter) "center" else node.prop("text valign")?.trim('"') ?: if (centered) "center" else "top"
     val offsetParts = node.prop("text offset")?.trim()?.split(Regex("\\s+"))
     val offset =
         Offset(
@@ -160,7 +170,9 @@ internal fun DrawScope.drawWidgetText(
                 outlineColor = outlineColor.takeIf { outlineSize > 0f && it.alpha > 0f },
                 outlineSize = outlineSize,
             )
-        drawSdfText(font, text, topLeft, boxSize, pixels, color, look, if (font is SdfFont) widthScaleOf(fontName) else 1f)
+        // The letters of a bold SDF text are wider: the pen steps 1.09 times as far (measured on 24 px letters)
+        val scale = (if (font is SdfFont) widthScaleOf(fontName) else 1f) * (if (bold && font is SdfFont) BOLD_ADVANCE else 1f)
+        drawSdfText(font, text, topLeft, boxSize, pixels, color, look, scale)
         return
     }
     val style =
@@ -240,7 +252,9 @@ internal fun measureText(
     val text = node.shownText()
     val pixels = node.textPixelSize(boxHeight, fontName)
     val font = fontAt(pixels)
-    val widthScale = if (font is SdfFont) widthScaleOf(fontName) else 1f
+    val widthScale =
+        (if (font is SdfFont) widthScaleOf(fontName) else 1f) *
+            (if (font is SdfFont && (node.flagProp("bold text") || "bold" in fontName.lowercase())) BOLD_ADVANCE else 1f)
     if (text.isEmpty()) return Size(0f, 0f)
     val wrap = node.flagProp("wrap")
     if (font != null && font.covers(text)) {
@@ -281,6 +295,7 @@ private class SdfLook(
 // Measured in Workbench on 24 px letters: a line is as high as the letters are and the baseline lies 22 px under its top
 private const val BASELINE = 0.92f
 private const val BOLD_GROWTH = 0.35f
+private const val BOLD_ADVANCE = 1.09f
 
 /** Breaks [text] into lines: at a new line character, and at a space when [wrap] is on and the next word would pass [width]. */
 private fun breakLines(

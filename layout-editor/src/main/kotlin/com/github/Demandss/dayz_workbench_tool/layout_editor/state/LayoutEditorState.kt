@@ -1104,7 +1104,11 @@ class LayoutEditorState(
                 ?.let { styleColorOf(it.color) }
                 ?: Color.White
         // The `color` of a button tints its skin; the letters keep the colour of the style (measured: a red button, white text)
-        if (node.node.type == WidgetType.BUTTON) return base
+        if (node.node.type == WidgetType.BUTTON || node.node.type == WidgetType.CHECKBOX ||
+            node.node.type == WidgetType.THREE_STATE_CHECKBOX
+        ) {
+            return base
+        }
         val own = node.node.properties["color"]?.let { parseWidgetColor(it) } ?: return base
         return Color(base.red * own.red, base.green * own.green, base.blue * own.blue, base.alpha * own.alpha)
     }
@@ -1531,7 +1535,8 @@ class LayoutEditorState(
                 ?.trim()
                 ?.trim('"')
                 .orEmpty()
-        if (styleName.isEmpty()) return null
+                // A widget without `style` has the style `Default` of its class (a check box draws its box, a panel nothing)
+                .ifEmpty { "Default" }
         val className = node.node.originalClassName.ifEmpty { node.node.type.className }
         val key = "$className|$styleName|$stateName|$workDrivePath|$nearPath"
         val plan =
