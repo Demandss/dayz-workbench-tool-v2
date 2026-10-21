@@ -699,7 +699,7 @@ private suspend fun androidx.compose.ui.input.pointer.PointerInputScope.imageSet
     }
 }
 
-private val CHEQUER_BRUSH: androidx.compose.ui.graphics.ShaderBrush by lazy {
+internal val CHEQUER_BRUSH: androidx.compose.ui.graphics.ShaderBrush by lazy {
     val cell = 8
     val image = java.awt.image.BufferedImage(cell * 2, cell * 2, java.awt.image.BufferedImage.TYPE_INT_ARGB)
     for (y in 0 until cell * 2) {

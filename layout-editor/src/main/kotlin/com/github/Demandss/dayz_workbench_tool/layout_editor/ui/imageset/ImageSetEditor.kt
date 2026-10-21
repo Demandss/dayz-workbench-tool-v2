@@ -774,7 +774,7 @@ private fun ProblemsSection(
 private val awtOfAtlas = java.util.WeakHashMap<androidx.compose.ui.graphics.ImageBitmap, java.awt.image.BufferedImage>()
 
 /** The part of the atlas an image covers, at most 64 px on a side. Null when the image is empty or outside the texture. */
-private fun thumbnailOf(
+internal fun thumbnailOf(
     atlas: androidx.compose.ui.graphics.ImageBitmap,
     def: com.github.demandss.dayz_workbench_tool.imageset.ImageDef,
     refWidth: Int,

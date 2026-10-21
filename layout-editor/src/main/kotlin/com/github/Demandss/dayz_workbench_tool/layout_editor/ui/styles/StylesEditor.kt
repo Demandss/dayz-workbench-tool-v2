@@ -47,11 +47,12 @@ import com.github.demandss.dayz_workbench_tool.layout_editor.ui.imageset.CommitF
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.imageset.LabelRow
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.imageset.PanelHeader
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.DropdownField
-import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.DropdownPopup
 import com.github.demandss.dayz_workbench_tool.styles.STYLE_SLOTS
 import com.github.demandss.dayz_workbench_tool.styles.STYLE_STATES
+import com.github.demandss.dayz_workbench_tool.styles.SlotSet
 import com.github.demandss.dayz_workbench_tool.styles.StyleDef
 import com.github.demandss.dayz_workbench_tool.styles.WidgetStyles
+import com.github.demandss.dayz_workbench_tool.styles.findSlotSets
 import com.github.demandss.dayz_workbench_tool.styles.styleColorFromHex
 import com.github.demandss.dayz_workbench_tool.styles.styleColorHex
 import com.github.demandss.dayz_workbench_tool.styles.withAddedState
@@ -80,19 +81,31 @@ fun StylesEditor(
     doc: StylesDocument,
     modifier: Modifier = Modifier,
 ) {
-    Row(modifier.fillMaxSize()) {
-        Column(Modifier.width(280.dp).fillMaxHeight().background(FrameBackground)) {
-            StylesToolbar(state, doc)
-            StyleTree(doc)
-        }
-        Box(Modifier.width(1.dp).fillMaxHeight().background(DarkenedBorder))
-        val style = doc.selectedStyle
-        if (style == null) {
-            Box(Modifier.weight(1f).fillMaxHeight(), contentAlignment = Alignment.Center) {
-                Text("Выберите стиль слева", color = GhostlyText, fontSize = 12.sp)
+    // The picture being chosen: the slot, the current image, and what to do with the name picked
+    var picking by remember(doc) { mutableStateOf<Triple<String, String, (String) -> Unit>?>(null) }
+    Box(modifier.fillMaxSize()) {
+        Row(Modifier.fillMaxSize()) {
+            Column(Modifier.width(280.dp).fillMaxHeight().background(FrameBackground)) {
+                StylesToolbar(state, doc)
+                StyleTree(doc)
             }
-        } else {
-            StyleDetail(state, doc, style, Modifier.weight(1f).fillMaxHeight())
+            Box(Modifier.width(1.dp).fillMaxHeight().background(DarkenedBorder))
+            val style = doc.selectedStyle
+            if (style == null) {
+                Box(Modifier.weight(1f).fillMaxHeight(), contentAlignment = Alignment.Center) {
+                    Text("Выберите стиль слева", color = GhostlyText, fontSize = 12.sp)
+                }
+            } else {
+                StyleDetail(state, doc, style, Modifier.weight(1f).fillMaxHeight()) { slot, image, apply ->
+                    picking =
+                        Triple(slot, image, apply)
+                }
+            }
+        }
+        val request = picking
+        val setName = doc.selectedStyle?.imageSet
+        if (request != null && setName != null) {
+            ImagePickerDialog(state, setName, doc.path, request.first, request.second, request.third) { picking = null }
         }
     }
 }
@@ -281,6 +294,7 @@ private fun StyleDetail(
     doc: StylesDocument,
     style: StyleDef,
     modifier: Modifier,
+    onPickImage: (slot: String, image: String, apply: (String) -> Unit) -> Unit,
 ) {
     val w = doc.widget
     val s = doc.style
@@ -386,11 +400,33 @@ private fun StyleDetail(
             }
         }
         val current = style.states.getOrNull(stateIndex)
+        val slotSets = remember(style.imageSet, state.workDrivePath) { slotSetsOf(state, style.imageSet, doc.path) }
+        if (current != null && slotSets.isNotEmpty()) {
+            Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text("Из набора", color = GhostlyText, fontSize = 10.sp, modifier = Modifier.width(86.dp))
+                DropdownField(
+                    SlotSet("Заполнить слоты по именам…", emptyMap()),
+                    slotSets,
+                    { if (it.images.isEmpty()) it.label else "${it.label}  (${it.images.size})" },
+                    Modifier.weight(1f),
+                    tooltip = "Картинки с именами вида Frame + LeftTop, Top, Center… раскладываются по слотам этого состояния",
+                ) { set ->
+                    change { st -> set.images.entries.fold(st) { acc, (slot, image) -> acc.withItem(stateIndex, slot, image) } }
+                }
+            }
+        }
         if (current != null) {
             val slots = (STYLE_SLOTS.filter { slot -> current.items.any { it.name == slot } } + current.items.map { it.name }).distinct()
             for (slot in slots) {
                 val image = current.items.first { it.name == slot }.image
-                ItemRow(slot, image, imageNames, onChange = { v -> change { it.withItem(stateIndex, slot, v) } }) {
+                ItemRow(
+                    style.imageSet,
+                    slot,
+                    image,
+                    imageNames,
+                    onPick = { onPickImage(slot, image) { v -> change { it.withItem(stateIndex, slot, v) } } },
+                    onChange = { v -> change { it.withItem(stateIndex, slot, v) } },
+                ) {
                     change { it.withoutItem(stateIndex, slot) }
                 }
             }
@@ -408,26 +444,19 @@ private fun StyleDetail(
 
 @Composable
 private fun ItemRow(
+    setName: String,
     slot: String,
     image: String,
     imageNames: List<String>,
+    onPick: () -> Unit,
     onChange: (String) -> Unit,
     onRemove: () -> Unit,
 ) {
-    var picking by remember { mutableStateOf(false) }
     val known = image.isEmpty() || image in imageNames || imageNames.isEmpty()
     Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
         Text(slot, color = GhostlyText, fontSize = 10.sp, modifier = Modifier.width(86.dp), maxLines = 1)
         CommitField(image, Modifier.weight(1f), mono = true) { v -> onChange(v.trim()) }
-        Box {
-            DarkIconButton(AppIcon.UI_DOWN, "Выбрать картинку из набора", onClick = { picking = true }, enabled = imageNames.isNotEmpty())
-            if (picking) {
-                DropdownPopup(image, listOf("") + imageNames, { it.ifEmpty { "— нет —" } }, 0, { picking = false }) {
-                    picking = false
-                    onChange(it)
-                }
-            }
-        }
+        DarkIconButton(AppIcon.UI_SEARCH, "Выбрать картинку на атласе", onClick = onPick, enabled = setName.isNotEmpty())
         DarkIconButton(AppIcon.UI_TRASH, "Убрать слот", onClick = onRemove)
         if (!known) AppIconView(AppIcon.UI_WARN, size = 14.dp)
     }
@@ -488,4 +517,14 @@ private fun StylePreview(
             )
         }
     }
+}
+
+/** The groups of images in the imageset [setName] that are named after the slots of a style. */
+private fun slotSetsOf(
+    state: LayoutEditorState,
+    setName: String,
+    nearPath: String,
+): List<SlotSet> {
+    val set = state.imageSetOf(setName, nearPath) ?: return emptyList()
+    return findSlotSets(set.all.map { it.name }, set.groups.associate { g -> g.name to g.images.map { it.name } })
 }

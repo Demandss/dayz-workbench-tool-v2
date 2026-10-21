@@ -1297,6 +1297,22 @@ class LayoutEditorState(
     private fun parsedImageSet(file: File) =
         parsedImageSets.getOrPut(file.absolutePath) { runCatching { ImageSetFormat.parse(file.readText()) }.getOrNull() }
 
+    /** The imageset called [setName] next to the looknfeel folder, or null. */
+    fun imageSetOf(
+        setName: String,
+        nearPath: String?,
+    ) = imageSetFiles(nearPath)[setName]?.let(::parsedImageSet)
+
+    /** The texture file of the imageset called [setName] (the smallest one it lists), or null when it is not found. */
+    fun imageSetTextureOf(
+        setName: String,
+        nearPath: String?,
+    ): File? {
+        val file = imageSetFiles(nearPath)[setName] ?: return null
+        val texture = parsedImageSet(file)?.textures?.minByOrNull { it.mpix } ?: return null
+        return resolveImageSetTexture(file.absolutePath, texture.path)
+    }
+
     /** The names of the imagesets a style can use, for the drop-down of the style editor. */
     fun imageSetNames(nearPath: String?): List<String> = imageSetFiles(nearPath).keys.sorted()
 
