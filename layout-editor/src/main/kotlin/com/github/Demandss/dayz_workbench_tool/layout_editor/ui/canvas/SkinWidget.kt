@@ -53,6 +53,7 @@ internal fun DrawScope.drawSkinWidget(
     progress: Boolean = type == WidgetType.PROGRESS_BAR,
 ): Set<String> {
     val used = HashSet<String>()
+    skin.under?.let { used += drawSkinWidget(it, tint, box, zoom, type, progress) }
 
     fun group(
         names: Map<String, List<String>>,

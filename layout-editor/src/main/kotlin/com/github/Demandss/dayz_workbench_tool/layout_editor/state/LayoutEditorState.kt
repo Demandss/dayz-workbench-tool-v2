@@ -1287,6 +1287,7 @@ class LayoutEditorState(
         // The same skin is asked for on every frame, so it is built once
         val cacheKey = "$key|$lift"
         skinCache[cacheKey]?.let { return it }
+        val under = plan.base?.let { skinFromPlan(it, "$key|base") ?: return null }
         val kx = atlas.width.toFloat() / plan.refWidth
         val ky = atlas.height.toFloat() / plan.refHeight
         val source = HashMap<String, androidx.compose.ui.unit.IntRect>()
@@ -1316,7 +1317,7 @@ class LayoutEditorState(
                             }.getOrNull()
                         }?.let { slot to it }
                 }.toMap()
-        return WidgetSkin(atlas, source, native, plan.styleColor, flags, tiles, lift).also { skinCache[cacheKey] = it }
+        return WidgetSkin(atlas, source, native, plan.styleColor, flags, tiles, lift, under).also { skinCache[cacheKey] = it }
     }
 
     private fun buildSkinPlan(
@@ -1392,8 +1393,8 @@ class LayoutEditorState(
         val set = parsedImageSet(setFile) ?: return null
         val byName = set.all.associateBy { it.name }
 
-        // A state with images of its own paints only those (a lone Center fills the whole widget, the frame of Normal is gone,
-        // measured in Workbench). A state with none paints Normal.
+        // A state with images of its own is painted over the resting state (a lone Center fills the whole widget and covers
+        // the frame of Normal when it is opaque). A state with none paints Normal.
         fun imagesOf(name: String) =
             style.states
                 .firstOrNull { it.name == name }
@@ -1404,11 +1405,17 @@ class LayoutEditorState(
                 .toMap()
         // A three state check box has no Normal: its resting look is Empty
         val resting = if (style.states.none { it.name == "Normal" } && style.states.any { it.name == "Empty" }) "Empty" else "Normal"
-        val images = imagesOf(stateName).ifEmpty { imagesOf(resting) }
+        val own = imagesOf(stateName)
+        val images = own.ifEmpty { imagesOf(resting) }
         if (images.isEmpty()) return null
         val texture = set.textures.maxByOrNull { it.mpix } ?: return null
         val file = resolveImageSetTexture(setFile.absolutePath, texture.path) ?: return null
-        return SkinPlan(file, set.refWidth, set.refHeight, images, styleColorOf(style.color), imagesOf("Highlight").isEmpty())
+        val color = styleColorOf(style.color)
+        val base =
+            imagesOf(resting).takeIf { own.isNotEmpty() && stateName != resting && it.isNotEmpty() }?.let {
+                SkinPlan(file, set.refWidth, set.refHeight, it, color)
+            }
+        return SkinPlan(file, set.refWidth, set.refHeight, images, color, imagesOf("Highlight").isEmpty(), base)
     }
 
     fun reloadImageSetTextures() {

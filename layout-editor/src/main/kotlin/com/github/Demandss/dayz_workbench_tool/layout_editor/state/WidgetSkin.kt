@@ -20,6 +20,8 @@ class WidgetSkin(
     val tiles: Map<String, ImageBitmap> = emptyMap(),
     // How much white is added on top: a hovered button whose style has no Highlight images is lightened (measured in Workbench)
     val lift: Float = 0f,
+    // What the resting state paints: a state with images of its own is drawn over it, not instead of it
+    val under: WidgetSkin? = null,
 )
 
 /**
@@ -47,6 +49,8 @@ internal class SkinPlan(
     val styleColor: Color,
     // True when the Highlight state has no image of its own
     val highlightEmpty: Boolean = false,
+    // The resting look the images of a state are laid over
+    val base: SkinPlan? = null,
 )
 
 /** The style colour is an ARGB number written as a decimal (`4294967295` is opaque white). */
