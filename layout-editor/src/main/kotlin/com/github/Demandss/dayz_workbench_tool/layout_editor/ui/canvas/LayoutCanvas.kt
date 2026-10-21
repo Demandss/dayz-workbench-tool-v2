@@ -15,9 +15,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.ImageBitmapConfig
 import androidx.compose.ui.graphics.ImageShader
 import androidx.compose.ui.graphics.ShaderBrush
 import androidx.compose.ui.graphics.TileMode
+import androidx.compose.ui.graphics.colorspace.ColorSpaces
+import androidx.compose.ui.graphics.drawscope.CanvasDrawScope
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipRect
@@ -847,13 +850,10 @@ fun LayoutCanvas(
         val atl = worldToScreen(Offset.Zero, zoom, pan)
         val abr = worldToScreen(Offset(refW, refH), zoom, pan)
         val aSize = Size(abr.x - atl.x, abr.y - atl.y)
-        // Live Preview is painted on the grey of the Workbench preview, so that translucent pictures look the same
-        drawRect(if (state.livePreview) Color(0xFF808080) else Color(0xFF232528), atl, aSize)
-        drawRect(Color(0xFF555860), atl, aSize, style = Stroke(1f))
-
-        // 5. Widgets
         val layout = doc?.let { layoutTree(it.root, Rect(0f, 0f, refW, refH)) { n -> textureAspect(state, n) } }
-        if (doc != null && layout != null) {
+
+        fun DrawScope.widgets(pan: Offset) {
+            if (doc == null || layout == null) return
             drawWidgetTree(
                 doc.root,
                 layout,
@@ -871,6 +871,20 @@ fun LayoutCanvas(
                 { n -> state.pictureFor(n, doc.path) },
                 { n -> state.textColorFor(n, doc.path) },
             )
+        }
+        if (state.livePreview) {
+            // Workbench blends in linear light, so Live Preview is painted into a linear buffer and shown from it: a black
+            // image with the alpha of a vignette comes out as dark as in the Workbench preview
+            drawLinear(atl, aSize) {
+                drawRect(PREVIEW_GREY)
+                widgets(Offset.Zero)
+            }
+            drawRect(Color(0xFF555860), atl, aSize, style = Stroke(1f))
+        } else {
+            drawRect(Color(0xFF232528), atl, aSize)
+            drawRect(Color(0xFF555860), atl, aSize, style = Stroke(1f))
+            // 5. Widgets
+            widgets(pan)
         }
 
         // 6. Safe frame overlay
@@ -1044,6 +1058,9 @@ private fun DrawScope.drawSkin(
         zoom,
         node.node.type,
         progress = node.node.type == WidgetType.PROGRESS_BAR || node.node.originalClassName == "SimpleProgressBarWidgetClass",
+        share = (node.prop("current")?.toFloatOrNull()?.div(100f) ?: 0.5f).coerceIn(0f, 1f),
+        vertical = node.prop("vertical") == "1",
+        flipped = node.prop("flipped") == "1",
     )
 }
 
@@ -1144,4 +1161,40 @@ internal fun DrawScope.drawSkinSlot(
             )
         }
     }
+}
+
+/** The grey the Workbench preview clears its window with. */
+private val PREVIEW_GREY = Color(0xFF828282)
+
+private object LinearSurface {
+    var bitmap: ImageBitmap? = null
+}
+
+/**
+ * Draws [content] into a buffer in linear light and puts it at [topLeft]: Skia blends in the colour space of the buffer, so
+ * translucent widgets mix the way Workbench (which has an sRGB back buffer) mixes them. The coordinates of [content] start at
+ * the top left of the buffer.
+ */
+private fun DrawScope.drawLinear(
+    topLeft: Offset,
+    size: Size,
+    content: DrawScope.() -> Unit,
+) {
+    val w = size.width.roundToInt().coerceAtLeast(1)
+    val h = size.height.roundToInt().coerceAtLeast(1)
+    val current = LinearSurface.bitmap
+    val bitmap =
+        if (current != null && current.width == w && current.height == h) {
+            current
+        } else {
+            ImageBitmap(w, h, ImageBitmapConfig.F16, true, ColorSpaces.LinearSrgb).also { LinearSurface.bitmap = it }
+        }
+    val canvas =
+        androidx.compose.ui.graphics
+            .Canvas(bitmap)
+    CanvasDrawScope().draw(this, layoutDirection, canvas, Size(w.toFloat(), h.toFloat())) {
+        drawRect(Color.Transparent, blendMode = BlendMode.Clear)
+        content()
+    }
+    drawImage(bitmap, topLeft = Offset(topLeft.x.roundToInt().toFloat(), topLeft.y.roundToInt().toFloat()))
 }

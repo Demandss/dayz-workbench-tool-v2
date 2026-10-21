@@ -23,12 +23,13 @@ internal fun layoutTree(
         node: EditorWidgetNode,
         rect: Rect,
         parent: Rect,
+        bySpacer: Boolean = false,
     ) {
         // A spacer places its children itself and may change its own size to fit them
         var spacer = layoutSpacer(node, rect)
         // A spacer that grew or shrank to fit its content keeps the edge its alignment is tied to (a `bottom_ref` list grows
         // upwards, measured on the vanilla HUD), so it is placed again with the size it ended up with
-        if (spacer != null && node !== root && (spacer.rect.width != rect.width || spacer.rect.height != rect.height)) {
+        if (spacer != null && !bySpacer && node !== root && (spacer.rect.width != rect.width || spacer.rect.height != rect.height)) {
             val anchored = computeRect(node, parent, spacer.rect.size)
             spacer = layoutSpacer(node, Rect(anchored.left, anchored.top, anchored.left + rect.width, anchored.top + rect.height))
         }
@@ -36,8 +37,11 @@ internal fun layoutTree(
         rects[node.id] = own
         parents[node.id] = parent
         for (child in node.children) {
-            val placed = spacer?.children?.get(child.id) ?: fixAspect(child, computeRect(child, own), own, textureAspect(child))
-            visit(child, placed, own)
+            val given = spacer?.children?.get(child.id)
+            // A spacer places the children it uses; one that does not fit in the cells of a grid is not drawn at all
+            if (spacer != null && given == null) continue
+            val placed = given ?: fixAspect(child, computeRect(child, own), own, textureAspect(child))
+            visit(child, placed, own, given != null)
         }
     }
     // The root is placed like any other widget inside the preview window, so a root with `size 0.9 0.9` and `center_ref`

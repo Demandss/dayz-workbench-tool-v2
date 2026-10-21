@@ -38,11 +38,13 @@ private fun EditorWidgetNode.flagProp(name: String): Boolean =
 internal fun EditorWidgetNode.textPixelSize(boxHeight: Float): Float {
     val exact = flagProp("exact text")
     val set = prop("exact text size")?.toFloatOrNull()
-    if (exact && set != null) return set
+    // A button ignores `exact text`: its text follows the height of the button (measured: 70 px high, 24 asked, 68 drawn)
+    if (exact && set != null && node.type != WidgetType.BUTTON) return set
     // `text_proportion` is the share of the widget height the letters take. A text widget fills it by default, the rich and
     // multiline ones take half of it (measured in Workbench on 16, 24 and 40 px high widgets)
     val proportion =
-        prop("text_proportion")?.toFloatOrNull() ?: if (node.type == WidgetType.TEXT) 1f else 0.5f
+        prop("text_proportion")?.toFloatOrNull()
+            ?: if (node.type == WidgetType.TEXT || node.type == WidgetType.BUTTON) 1f else 0.5f
     return boxHeight * proportion
 }
 
@@ -79,15 +81,30 @@ internal fun DrawScope.drawWidgetText(
             "right" -> TextAlign.Right
             else -> TextAlign.Left
         }
+    // Only `center` is a vertical alignment of the text: `bottom` leaves it at the top (measured)
     val valign = node.prop("text valign")?.trim('"') ?: if (centered) "center" else "top"
+    val offsetParts = node.prop("text offset")?.trim()?.split(Regex("\\s+"))
+    val offset =
+        Offset(
+            (offsetParts?.getOrNull(0)?.toFloatOrNull() ?: 0f) * zoom,
+            (offsetParts?.getOrNull(1)?.toFloatOrNull() ?: 0f) * zoom,
+        )
     val shadowSize = node.prop("shadow size")?.toFloatOrNull() ?: 0f
     val shadowColor = node.prop("shadow color")?.let { parseWidgetColor(it) } ?: Color.Black
+    val shadowParts = node.prop("shadow offset")?.trim()?.split(Regex("\\s+"))
+    val shadowOffset =
+        Offset(
+            (shadowParts?.getOrNull(0)?.toFloatOrNull() ?: 1f) * zoom,
+            (shadowParts?.getOrNull(1)?.toFloatOrNull() ?: 1f) * zoom,
+        )
     val shadow =
         if (shadowSize > 0f) {
-            Shadow(shadowColor.copy(alpha = shadowColor.alpha * 0.8f), Offset(0f, 0f), shadowSize * zoom)
+            Shadow(shadowColor.copy(alpha = shadowColor.alpha * 0.8f), shadowOffset, shadowSize * zoom)
         } else {
             null
         }
+    val outlineSize = (node.prop("outline size")?.toFloatOrNull() ?: 0f) * zoom
+    val outlineColor = node.prop("outline color")?.let { parseWidgetColor(it) } ?: Color.Black
     val style =
         TextStyle(
             color = color,
@@ -125,15 +142,31 @@ internal fun DrawScope.drawWidgetText(
             TextAlign.Center -> topLeft.x + (boxSize.width - textW) / 2f
             TextAlign.Right -> topLeft.x + boxSize.width - textW
             else -> topLeft.x
-        }
+        } + offset.x
     val y =
         when (valign) {
             "center" -> topLeft.y + (boxSize.height - textH) / 2f
-            "bottom" -> topLeft.y + boxSize.height - textH
             else -> topLeft.y
+        } + offset.y
+    // The text is cut at the left and right edge of its widget; it may reach beyond the top and bottom (an underscore does)
+    clipRect(topLeft.x, topLeft.y - boxSize.height, topLeft.x + boxSize.width, topLeft.y + 2 * boxSize.height) {
+        if (outlineSize > 0f) {
+            // The outline is the text drawn around the letters in its own colour
+            val outlined = layout.layoutInput.style.copy(color = outlineColor, shadow = null)
+            val ring =
+                measurer.measure(
+                    text,
+                    outlined,
+                    overflow = TextOverflow.Clip,
+                    softWrap = wrap,
+                    constraints = layout.layoutInput.constraints,
+                )
+            for (dx in -1..1) {
+                for (dy in -1..1) {
+                    if (dx != 0 || dy != 0) drawText(ring, topLeft = Offset(x + dx * outlineSize, y + dy * outlineSize))
+                }
+            }
         }
-    // The text is cut at the edge of its widget
-    clipRect(topLeft.x, topLeft.y, topLeft.x + boxSize.width, topLeft.y + boxSize.height) {
         drawText(layout, topLeft = Offset(x, y))
     }
 }

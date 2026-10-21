@@ -269,8 +269,9 @@ class SpacerLayoutTest {
         assertEquals(Rect(0f, 133.33333f, 150f, 200f), twoByThree[4])
     }
 
+    // Measured in Workbench 1.30 (grid2_probe, 100 x 40 children in a 2 x 2 grid of 300 x 240): the children fill their cells
     @Test
-    fun `a pixel sized child keeps its size in the corner of its cell`() {
+    fun `a pixel sized child fills its cell`() {
         val child = square("child", 30)
         val container =
             widget(
@@ -291,7 +292,7 @@ class SpacerLayoutTest {
 
         val layout = layoutOf(container)
 
-        assertEquals(Rect(100f, 0f, 130f, 30f), layout.of(child))
+        assertEquals(Rect(100f, 0f, 200f, 100f), layout.of(child))
     }
 
     // Measured in Workbench 1.30 (nested_probe): a 260 x 300 wrap with Margin 4 and Padding 8
