@@ -443,7 +443,7 @@ private fun StylePreview(
 ) {
     val stateName = style.states.getOrNull(stateIndex)?.name ?: return
     val skin = state.previewSkin(style, stateName, doc.path)
-    Box(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp)) {
+    Column(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp)) {
         Canvas(Modifier.fillMaxWidth().height(150.dp).border(1.dp, DarkenedBorder)) {
             val cell = 10f
             var y = 0f
@@ -463,19 +463,29 @@ private fun StylePreview(
                 y += cell
                 row++
             }
-            if (skin != null) {
-                val box = Size(size.width * 0.6f, size.height * 0.6f)
-                drawSkinTinted(
-                    skin,
-                    skin.styleColor.takeIf { it.alpha > 0f } ?: Color.White,
-                    Offset(
-                        (size.width - box.width) / 2f,
-                        (size.height - box.height) / 2f,
-                    ),
-                    box,
-                    1f,
-                )
-            }
+            if (skin != null) drawStylePreview(skin, skin.styleColor.takeIf { it.alpha > 0f } ?: Color.White)
+        }
+        val hidden =
+            skin
+                ?.source
+                ?.keys
+                .orEmpty()
+                .filter { it !in PREVIEW_SLOTS }
+                .sorted()
+        if (skin == null) {
+            Text(
+                "Нет картинок для превью: слоты пусты или набор не найден",
+                color = GhostlyText,
+                fontSize = 10.sp,
+                modifier = Modifier.padding(top = 4.dp),
+            )
+        } else if (hidden.isNotEmpty()) {
+            Text(
+                "Не показано превью: ${hidden.joinToString(", ")}",
+                color = GhostlyText,
+                fontSize = 10.sp,
+                modifier = Modifier.padding(top = 4.dp),
+            )
         }
     }
 }

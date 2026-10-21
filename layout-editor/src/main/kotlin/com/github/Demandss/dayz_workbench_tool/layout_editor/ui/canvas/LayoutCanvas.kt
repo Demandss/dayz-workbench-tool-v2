@@ -945,11 +945,22 @@ internal fun DrawScope.drawSkinTinted(
         androidx.compose.ui.geometry
             .Rect(tl.x, tl.y, tl.x + ss.width, tl.y + ss.height)
     val rects = sliceRects(dst, skin.native.mapValues { (_, v) -> Size(v.width * zoom, v.height * zoom) })
-    for ((slot, r) in rects) {
-        val src = skin.source[slot] ?: continue
-        if (r.width < 0.5f || r.height < 0.5f) continue
+    for ((slot, r) in rects) drawSkinSlot(skin, slot, r, tint, zoom)
+}
+
+/** One piece of a skin into [r]: stretched, or repeated at its own size along the axes its flags tile. */
+internal fun DrawScope.drawSkinSlot(
+    skin: WidgetSkin,
+    slot: String,
+    r: androidx.compose.ui.geometry.Rect,
+    tint: Color,
+    zoom: Float,
+) {
+    run {
+        val src = skin.source[slot] ?: return
+        if (r.width < 0.5f || r.height < 0.5f) return
         val bits = skin.flags[slot] ?: 0
-        val nat = skin.native[slot] ?: continue
+        val nat = skin.native[slot] ?: return
         val tile = skin.tiles[slot]
         if (bits != 0 && tile != null) {
             // One draw with a repeating shader; a loop of drawImage calls is far too slow for a 2 px dash

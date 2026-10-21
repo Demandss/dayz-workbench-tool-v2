@@ -20,6 +20,22 @@ class WidgetSkin(
     val tiles: Map<String, ImageBitmap> = emptyMap(),
 )
 
+/**
+ * The same atlas with the slots renamed: [names] maps a new slot to the slots it may come from, the first one that exists
+ * wins. `mapOf("Left" to listOf("LeftCenter"))` makes a skin whose `Left` is the `LeftCenter` of this one.
+ */
+fun WidgetSkin.renamed(names: Map<String, List<String>>): WidgetSkin {
+    val from = names.mapNotNull { (to, options) -> options.firstOrNull { it in source }?.let { to to it } }.toMap()
+    return WidgetSkin(
+        atlas,
+        from.mapValues { source.getValue(it.value) },
+        from.mapValues { native.getValue(it.value) },
+        styleColor,
+        from.mapValues { flags[it.value] ?: 0 },
+        from.mapNotNull { (to, source) -> tiles[source]?.let { to to it } }.toMap(),
+    )
+}
+
 /** Resolved parts of a skin that do not depend on the bitmap being loaded yet. */
 internal class SkinPlan(
     val textureFile: java.io.File,

@@ -71,7 +71,8 @@ class StylesDocument(
     ) {
         this.widget = widget
         this.style = style
-        stateIndex = 0
+        // Normal is what a widget looks like most of the time, so it is shown first whatever the order in the file is
+        stateIndex = selectedStyle?.states?.indexOfFirst { it.name == "Normal" }?.takeIf { it >= 0 } ?: 0
     }
 
     private fun clampSelection() {

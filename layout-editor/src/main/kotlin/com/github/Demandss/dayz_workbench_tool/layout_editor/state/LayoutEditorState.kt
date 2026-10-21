@@ -24,6 +24,7 @@ import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.AlignMode
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.BulkMode
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.EdgeDistance
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.GuideLine
+import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.NINE_SLICE_SLOTS
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.Reorder
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.ResizeHandle
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.alignedRoot
@@ -1204,6 +1205,8 @@ class LayoutEditorState(
             } else {
                 buildSkinPlan(node.node.type.className, styleName, nearPath).also { skinPlans[key] = it }
             } ?: return null
+        // A style with no frame slots (a check mark, a bar only) is left to the flat approximation
+        if (plan.images.keys.none { it in NINE_SLICE_SLOTS }) return null
         return skinFromPlan(plan, key)
     }
 
@@ -1319,10 +1322,8 @@ class LayoutEditorState(
         val byName = set.all.associateBy { it.name }
         val images =
             state.items
-                .filter {
-                    it.name in com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.NINE_SLICE_SLOTS &&
-                        it.image.isNotEmpty()
-                }.mapNotNull { item -> byName[item.image]?.let { item.name to it } }
+                .filter { it.image.isNotEmpty() }
+                .mapNotNull { item -> byName[item.image]?.let { item.name to it } }
                 .toMap()
         if (images.isEmpty()) return null
         val texture = set.textures.minByOrNull { it.mpix } ?: return null
