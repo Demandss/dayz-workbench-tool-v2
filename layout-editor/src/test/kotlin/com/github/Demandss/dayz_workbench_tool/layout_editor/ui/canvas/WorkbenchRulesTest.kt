@@ -176,7 +176,9 @@ class WorkbenchRulesTest {
     fun `the size of the letters follows the height unless the text is exact`() {
         assertEquals(24f, text(WidgetType.TEXT).textPixelSize(24f))
         assertEquals(12f, text(WidgetType.TEXT, "text_proportion" to "0.5").textPixelSize(24f))
-        assertEquals(12f, text(WidgetType.RICH_TEXT).textPixelSize(24f))
+        assertEquals(13.4f, text(WidgetType.RICH_TEXT).textPixelSize(24f))
+        assertEquals(24f, text(WidgetType.RICH_TEXT).textPixelSize(36f))
+        assertEquals(10f, text(WidgetType.RICH_TEXT, "text_proportion" to "0.5").textPixelSize(20f))
         assertEquals(18f, text(WidgetType.TEXT, "exact text" to "1", "exact text size" to "18").textPixelSize(70f))
         // a button ignores the exact size
         assertEquals(70f, text(WidgetType.BUTTON, "exact text" to "1", "exact text size" to "24").textPixelSize(70f))

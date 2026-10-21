@@ -209,28 +209,20 @@ private fun layoutGrid(
     // relative size asks for nothing and fills what the grid gives it.
     fun asked(child: EditorWidgetNode): Pair<Float?, Float?> {
         val inner = layoutSpacer(child, cell)
-        val size = childSize(child, cell.width, cell.height)
+        // A relative size is a share of what the grid has inside its margins (a 0.015 high separator in a grid that sizes to its
+        // content is a few pixels, measured on the vanilla connection dialogue)
+        val size = childSize(child, availW, availH)
         val w =
-            if (inner !=
-                null
-            ) {
+            if (inner != null) {
                 inner.rect.width.takeIf { child.boolProp("Size To Content H", false) }
             } else {
-                size.width.takeIf {
-                    child.prop("hexactsize") ==
-                        "1"
-                }
+                size.width.takeIf { child.prop("hexactsize") == "1" || toWidth }
             }
         val h =
-            if (inner !=
-                null
-            ) {
+            if (inner != null) {
                 inner.rect.height.takeIf { child.boolProp("Size To Content V", false) }
             } else {
-                size.height.takeIf {
-                    child.prop("vexactsize") ==
-                        "1"
-                }
+                size.height.takeIf { child.prop("vexactsize") == "1" || toHeight }
             }
         return w to h
     }

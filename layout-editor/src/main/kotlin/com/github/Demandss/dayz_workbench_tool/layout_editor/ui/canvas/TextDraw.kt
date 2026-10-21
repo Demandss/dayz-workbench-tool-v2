@@ -65,9 +65,11 @@ internal fun EditorWidgetNode.textPixelSize(
     if (exact && set != null && node.type != WidgetType.BUTTON) return set
     // `text_proportion` is the share of the widget height the letters take. A text widget fills it by default, the rich and
     // multiline ones take half of it (measured in Workbench on 16, 24 and 40 px high widgets)
-    val proportion =
-        prop("text_proportion")?.toFloatOrNull()
-            ?: if (node.type == WidgetType.TEXT || node.type == WidgetType.BUTTON) 1f else 0.5f
+    val given = prop("text_proportion")?.toFloatOrNull()
+    // A rich text without `text_proportion` has two sizes only: 13.4 px letters up to a 32 px high box, 24 px from there on
+    // (measured with 16, 24, 36 and 40 px boxes)
+    if (given == null && node.type == WidgetType.RICH_TEXT) return if (boxHeight >= 32f) 24f else 13.4f
+    val proportion = given ?: if (node.type == WidgetType.TEXT || node.type == WidgetType.BUTTON) 1f else 0.5f
     return boxHeight * proportion
 }
 

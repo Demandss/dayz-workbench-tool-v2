@@ -1103,6 +1103,8 @@ class LayoutEditorState(
                 ?.let { name -> vanillaStylesFor(className, nearPath).firstOrNull { it.name == name } }
                 ?.let { styleColorOf(it.color) }
                 ?: Color.White
+        // The `color` of a button tints its skin; the letters keep the colour of the style (measured: a red button, white text)
+        if (node.node.type == WidgetType.BUTTON) return base
         val own = node.node.properties["color"]?.let { parseWidgetColor(it) } ?: return base
         return Color(base.red * own.red, base.green * own.green, base.blue * own.blue, base.alpha * own.alpha)
     }
