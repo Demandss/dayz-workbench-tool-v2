@@ -28,6 +28,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.Offset
@@ -54,6 +55,7 @@ import com.github.demandss.dayz_workbench_tool.layout_editor.ui.imageset.CHEQUER
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.imageset.ImageSetView
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.imageset.thumbnailOf
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.FlatDialog
+import com.github.demandss.dayz_workbench_tool.styles.SlotSet
 import com.github.demandss.dayz_workbench_tool.ui.components.DarkButton
 import com.github.demandss.dayz_workbench_tool.ui.theme.DarkenedBorder
 import com.github.demandss.dayz_workbench_tool.ui.theme.ElementsBackground
@@ -83,13 +85,18 @@ fun ImagePickerDialog(
     nearPath: String?,
     slot: String,
     current: String,
+    sets: List<SlotSet>,
     onPick: (String) -> Unit,
+    onPickSet: (SlotSet) -> Unit,
     onDismiss: () -> Unit,
 ) {
     val set: ImageSet? = remember(setName, nearPath) { state.imageSetOf(setName, nearPath) }
     val bitmap = state.imageSetBitmap(remember(setName, nearPath) { state.imageSetTextureOf(setName, nearPath) })
     val view = remember { ImageSetView() }
     var picked by remember { mutableStateOf(current) }
+
+    // A set of images for all the slots at once, chosen from the list; while it is chosen no single image is
+    var pickedSet by remember { mutableStateOf<SlotSet?>(null) }
     var hover by remember { mutableStateOf<String?>(null) }
     var query by remember { mutableStateOf("") }
     val entries =
@@ -104,7 +111,7 @@ fun ImagePickerDialog(
     LaunchedEffect(Unit) { runCatching { search.requestFocus() } }
 
     fun confirm() {
-        onPick(picked)
+        pickedSet?.let { onPickSet(it) } ?: onPick(picked)
         onDismiss()
     }
 
@@ -153,7 +160,45 @@ fun ImagePickerDialog(
                 Spacer(Modifier.height(6.dp))
                 val shown = entries.filter { query.isBlank() || it.def.name.contains(query.trim(), ignoreCase = true) }
                 val rows = shown.groupBy { it.group }.toList().sortedBy { it.first ?: "" }
+                val shownSets = sets.filter { query.isBlank() || it.label.contains(query.trim(), ignoreCase = true) }
                 LazyColumn(Modifier.fillMaxSize().background(FrameBackground)) {
+                    if (shownSets.isNotEmpty()) {
+                        item(key = "sets") {
+                            Text(
+                                "НАБОРЫ ДЛЯ ВСЕХ СЛОТОВ",
+                                color = GhostlyText,
+                                fontSize = 10.sp,
+                                modifier =
+                                    Modifier
+                                        .fillMaxWidth()
+                                        .background(
+                                            ElementsBackground,
+                                        ).padding(horizontal = 8.dp, vertical = 3.dp),
+                            )
+                        }
+                        items(shownSets, key = { "s:${it.label}" }) { set ->
+                            Row(
+                                Modifier
+                                    .fillMaxWidth()
+                                    .height(26.dp)
+                                    .background(if (pickedSet == set) SelectColor else Color.Transparent)
+                                    .clickable(remember { MutableInteractionSource() }, null) {
+                                        if (pickedSet == set) confirm() else pickedSet = set
+                                    }.padding(horizontal = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Text(
+                                    set.label,
+                                    color = TextForeground,
+                                    fontSize = 11.sp,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.weight(1f),
+                                )
+                                Text("${set.images.size} слотов", color = GhostlyText, fontSize = 10.sp)
+                            }
+                        }
+                    }
                     rows.forEach { (group, list) ->
                         if (group != null) {
                             item(key = "g:$group") {
@@ -171,18 +216,21 @@ fun ImagePickerDialog(
                             }
                         }
                         items(list, key = { "i:$group:${it.def.name}" }) { entry ->
-                            PickerRow(entry.def, set, bitmap, entry.def.name == picked) {
-                                if (picked == entry.def.name) {
+                            PickerRow(entry.def, set, bitmap, pickedSet == null && entry.def.name == picked) {
+                                if (pickedSet == null && picked == entry.def.name) {
                                     confirm()
                                 } else {
+                                    pickedSet = null
                                     picked = entry.def.name
-                                    view.zoomTo(
+                                    view.showQuad(
                                         Rect(
                                             entry.def.x.toFloat(),
                                             entry.def.y.toFloat(),
                                             entry.def.right.toFloat(),
                                             entry.def.bottom.toFloat(),
                                         ),
+                                        set.refWidth,
+                                        set.refHeight,
                                     )
                                 }
                             }
@@ -191,12 +239,35 @@ fun ImagePickerDialog(
                 }
             }
             Spacer(Modifier.width(8.dp))
-            Box(Modifier.weight(1f).fillMaxHeight().border(1.dp, DarkenedBorder)) {
-                PickerAtlas(set, bitmap, view, picked, hover, { hover = it }) { name ->
-                    if (picked == name) confirm() else picked = name
+            Box(
+                Modifier
+                    .weight(1f)
+                    .fillMaxHeight()
+                    .border(1.dp, DarkenedBorder)
+                    .clipToBounds(),
+            ) {
+                PickerAtlas(
+                    set,
+                    bitmap,
+                    view,
+                    picked,
+                    pickedSet
+                        ?.images
+                        ?.values
+                        ?.toSet()
+                        .orEmpty(),
+                    hover,
+                    { hover = it },
+                ) { name ->
+                    if (pickedSet == null && picked == name) {
+                        confirm()
+                    } else {
+                        pickedSet = null
+                        picked = name
+                    }
                 }
                 Text(
-                    hover ?: picked.ifEmpty { "ничего не выбрано" },
+                    hover ?: pickedSet?.label ?: picked.ifEmpty { "ничего не выбрано" },
                     color = TextForeground,
                     fontSize = 11.sp,
                     modifier =
@@ -261,6 +332,7 @@ private fun PickerAtlas(
     bitmap: androidx.compose.ui.graphics.ImageBitmap?,
     view: ImageSetView,
     picked: String,
+    pickedGroup: Set<String>,
     hover: String?,
     onHover: (String?) -> Unit,
     onPick: (String) -> Unit,
@@ -268,12 +340,7 @@ private fun PickerAtlas(
     val images = remember(set) { set.all }
     LaunchedEffect(view.canvas, set) {
         if (!view.fitted && view.canvas != Size.Zero) {
-            val current = images.firstOrNull { it.name == picked }
-            if (current != null) {
-                view.zoomTo(Rect(current.x.toFloat(), current.y.toFloat(), current.right.toFloat(), current.bottom.toFloat()))
-            } else {
-                view.fit(set.refWidth, set.refHeight)
-            }
+            view.fit(set.refWidth, set.refHeight)
             view.fitted = true
         }
     }
@@ -350,7 +417,7 @@ private fun PickerAtlas(
             val tl = Offset(origin.x + def.x * zoom, origin.y + def.y * zoom)
             val sz = Size(def.width * zoom, def.height * zoom)
             if (tl.x + sz.width < 0f || tl.y + sz.height < 0f || tl.x > size.width || tl.y > size.height) continue
-            val isPicked = def.name == picked
+            val isPicked = def.name == picked || def.name in pickedGroup
             val isHover = def.name == hover
             if (isPicked) drawRect(PickedColor.copy(alpha = 0.25f), tl, sz)
             drawRect(
@@ -365,4 +432,17 @@ private fun PickerAtlas(
             )
         }
     }
+}
+
+/** Brings a quad into the middle of the view, large enough to see but never closer than 6 times or further than the whole atlas. */
+private fun ImageSetView.showQuad(
+    rect: Rect,
+    refWidth: Int,
+    refHeight: Int,
+) {
+    if (canvas == Size.Zero) return
+    val fitZoom = minOf(canvas.width * 0.9f / refWidth, canvas.height * 0.9f / refHeight)
+    val z = minOf(canvas.width * 0.35f / maxOf(rect.width, 1f), canvas.height * 0.35f / maxOf(rect.height, 1f)).coerceIn(fitZoom, 6f)
+    zoom = z
+    pan = Offset(canvas.width / 2f - rect.center.x * z, canvas.height / 2f - rect.center.y * z)
 }

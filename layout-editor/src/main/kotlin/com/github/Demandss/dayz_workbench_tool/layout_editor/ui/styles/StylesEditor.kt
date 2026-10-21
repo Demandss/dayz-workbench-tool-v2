@@ -65,6 +65,7 @@ import com.github.demandss.dayz_workbench_tool.styles.withoutState
 import com.github.demandss.dayz_workbench_tool.styles.withoutStyle
 import com.github.demandss.dayz_workbench_tool.ui.components.DarkIconButton
 import com.github.demandss.dayz_workbench_tool.ui.components.DarkToolButton
+import com.github.demandss.dayz_workbench_tool.ui.components.Tip
 import com.github.demandss.dayz_workbench_tool.ui.icons.AppIcon
 import com.github.demandss.dayz_workbench_tool.ui.icons.AppIconView
 import com.github.demandss.dayz_workbench_tool.ui.theme.DarkenedBorder
@@ -81,8 +82,8 @@ fun StylesEditor(
     doc: StylesDocument,
     modifier: Modifier = Modifier,
 ) {
-    // The picture being chosen: the slot, the current image, and what to do with the name picked
-    var picking by remember(doc) { mutableStateOf<Triple<String, String, (String) -> Unit>?>(null) }
+    // The picture being chosen: the slot, the current image, and what to do with the choice
+    var picking by remember(doc) { mutableStateOf<PickRequest?>(null) }
     Box(modifier.fillMaxSize()) {
         Row(Modifier.fillMaxSize()) {
             Column(Modifier.width(280.dp).fillMaxHeight().background(FrameBackground)) {
@@ -96,16 +97,23 @@ fun StylesEditor(
                     Text("Выберите стиль слева", color = GhostlyText, fontSize = 12.sp)
                 }
             } else {
-                StyleDetail(state, doc, style, Modifier.weight(1f).fillMaxHeight()) { slot, image, apply ->
-                    picking =
-                        Triple(slot, image, apply)
-                }
+                StyleDetail(state, doc, style, Modifier.weight(1f).fillMaxHeight()) { request -> picking = request }
             }
         }
         val request = picking
         val setName = doc.selectedStyle?.imageSet
         if (request != null && setName != null) {
-            ImagePickerDialog(state, setName, doc.path, request.first, request.second, request.third) { picking = null }
+            val sets = remember(setName, state.workDrivePath) { slotSetsOf(state, setName, doc.path) }
+            ImagePickerDialog(
+                state,
+                setName,
+                doc.path,
+                request.slot,
+                request.image,
+                sets,
+                request.apply,
+                request.applySet,
+            ) { picking = null }
         }
     }
 }
@@ -294,7 +302,7 @@ private fun StyleDetail(
     doc: StylesDocument,
     style: StyleDef,
     modifier: Modifier,
-    onPickImage: (slot: String, image: String, apply: (String) -> Unit) -> Unit,
+    onPickImage: (PickRequest) -> Unit,
 ) {
     val w = doc.widget
     val s = doc.style
@@ -424,8 +432,18 @@ private fun StyleDetail(
                     slot,
                     image,
                     imageNames,
-                    onPick = { onPickImage(slot, image) { v -> change { it.withItem(stateIndex, slot, v) } } },
-                    onChange = { v -> change { it.withItem(stateIndex, slot, v) } },
+                    onPick = {
+                        onPickImage(
+                            PickRequest(
+                                slot,
+                                image,
+                                apply = { v -> change { it.withItem(stateIndex, slot, v) } },
+                                applySet = { set ->
+                                    change { st -> set.images.entries.fold(st) { acc, (s, name) -> acc.withItem(stateIndex, s, name) } }
+                                },
+                            ),
+                        )
+                    },
                 ) {
                     change { it.withoutItem(stateIndex, slot) }
                 }
@@ -449,13 +467,34 @@ private fun ItemRow(
     image: String,
     imageNames: List<String>,
     onPick: () -> Unit,
-    onChange: (String) -> Unit,
     onRemove: () -> Unit,
 ) {
     val known = image.isEmpty() || image in imageNames || imageNames.isEmpty()
     Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
         Text(slot, color = GhostlyText, fontSize = 10.sp, modifier = Modifier.width(86.dp), maxLines = 1)
-        CommitField(image, Modifier.weight(1f), mono = true) { v -> onChange(v.trim()) }
+        // The image is chosen on the atlas, not typed: the field opens the picker
+        Box(Modifier.weight(1f)) {
+            Tip("Выбрать картинку на атласе, из списка или набором для всех слотов") {
+                Box(
+                    Modifier
+                        .fillMaxWidth()
+                        .height(24.dp)
+                        .background(DarkenedBorder)
+                        .border(1.dp, if (known) Color(0xFF3A3C40) else Color(0xFFFF5555))
+                        .clickable(remember { MutableInteractionSource() }, null, enabled = setName.isNotEmpty(), onClick = onPick)
+                        .padding(horizontal = 6.dp),
+                    contentAlignment = Alignment.CenterStart,
+                ) {
+                    Text(
+                        image.ifEmpty { "— нет картинки —" },
+                        color = if (image.isEmpty()) GhostlyText else TextForeground,
+                        fontSize = 11.sp,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
+        }
         DarkIconButton(AppIcon.UI_SEARCH, "Выбрать картинку на атласе", onClick = onPick, enabled = setName.isNotEmpty())
         DarkIconButton(AppIcon.UI_TRASH, "Убрать слот", onClick = onRemove)
         if (!known) AppIconView(AppIcon.UI_WARN, size = 14.dp)
@@ -528,3 +567,11 @@ private fun slotSetsOf(
     val set = state.imageSetOf(setName, nearPath) ?: return emptyList()
     return findSlotSets(set.all.map { it.name }, set.groups.associate { g -> g.name to g.images.map { it.name } })
 }
+
+/** What the picker needs to know: the slot, its image now, and what to do with an image or a set of images chosen. */
+private class PickRequest(
+    val slot: String,
+    val image: String,
+    val apply: (String) -> Unit,
+    val applySet: (SlotSet) -> Unit,
+)

@@ -53,7 +53,16 @@ fun findSlotSets(
         }
         for ((prefix, slots) in byPrefix) {
             if (slots.size < MIN_SLOTS || !seen.add(slots)) continue
-            out += SlotSet(if (prefix.isEmpty()) label else "$label$prefix", slots)
+            // A group is named once; the prefix is added only when it says something the group name does not
+            val shown =
+                if (label.isEmpty() || prefix.isEmpty() ||
+                    prefix == label.removePrefix("Группа ")
+                ) {
+                    label.ifEmpty { prefix }
+                } else {
+                    "$label · $prefix"
+                }
+            out += SlotSet(shown, slots)
         }
     }
 
