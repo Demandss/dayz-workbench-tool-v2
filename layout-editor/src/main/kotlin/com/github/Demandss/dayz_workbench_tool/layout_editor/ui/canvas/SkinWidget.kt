@@ -9,6 +9,7 @@ import androidx.compose.ui.graphics.drawscope.clipRect
 import com.github.demandss.dayz_workbench_tool.layout.WidgetType
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.WidgetSkin
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.renamed
+import kotlin.math.roundToInt
 
 // Widgets other than panels name their slots differently; each group below is drawn as the part of a widget it belongs to.
 // The frame of a list box has no corners at the bottom and calls its edges `...Center`.
@@ -46,14 +47,23 @@ private const val PROGRESS_SHARE = 0.5f
 internal fun DrawScope.drawSkinWidget(
     skin: WidgetSkin,
     tint: Color,
-    box: Rect,
+    rawBox: Rect,
     zoom: Float,
     type: WidgetType? = null,
     // SimpleProgressBarWidget has no type of its own in the model
     progress: Boolean = type == WidgetType.PROGRESS_BAR,
 ): Set<String> {
+    // Workbench lays pixels on the pixel grid. Edges that fall inside a pixel would leave the resting look showing through
+    // the rim of an image drawn over it, as thin lines
+    val box =
+        Rect(
+            rawBox.left.roundToInt().toFloat(),
+            rawBox.top.roundToInt().toFloat(),
+            rawBox.right.roundToInt().toFloat(),
+            rawBox.bottom.roundToInt().toFloat(),
+        )
     val used = HashSet<String>()
-    skin.under?.let { used += drawSkinWidget(it, tint, box, zoom, type, progress) }
+    skin.under?.let { used += drawSkinWidget(it, tint, rawBox, zoom, type, progress) }
 
     fun group(
         names: Map<String, List<String>>,
