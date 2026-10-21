@@ -96,6 +96,56 @@ private fun hitTest(
     return if (inside && node.id !in locked) node else null
 }
 
+/** The button under [worldPos] that takes the pointer, the topmost one; null when there is none. */
+private fun buttonAt(
+    node: EditorWidgetNode,
+    worldPos: Offset,
+    layout: TreeLayout,
+): EditorWidgetNode? {
+    if (!node.isVisible()) return null
+    val rect = layout.rects[node.id] ?: return null
+    val inside = rect.contains(worldPos)
+    if (!inside && node.clipsChildren()) return null
+    for (child in node.drawOrder().asReversed()) buttonAt(child, worldPos, layout)?.let { return it }
+    val takes = node.node.type == WidgetType.BUTTON && node.node.properties["ignorepointer"]?.trim() != "1"
+    return if (inside && takes) node else null
+}
+
+/** Pointer events of Live Preview: hover gives Highlight, a held button Pushed, a click leaves the button focused. */
+private fun previewPointer(
+    state: LayoutEditorState,
+    type: PointerEventType,
+    primaryDown: Boolean,
+    world: Offset,
+) {
+    val doc = state.activeFile ?: return
+    val layout = layoutTree(doc.root, screenRect(state)) { n -> textureAspect(state, n) }
+    val target = buttonAt(doc.root, world, layout)?.id
+    when (type) {
+        PointerEventType.Press -> {
+            if (primaryDown) {
+                state.previewHover = target
+                state.previewPressed = target
+                state.previewFocus = target
+            }
+        }
+
+        PointerEventType.Release -> {
+            state.previewPressed = null
+            state.previewHover = target
+        }
+
+        PointerEventType.Exit -> {
+            state.previewHover = null
+            state.previewPressed = null
+        }
+
+        else -> {
+            state.previewHover = target
+        }
+    }
+}
+
 private fun selectInBox(
     node: EditorWidgetNode,
     box: Rect,
@@ -413,6 +463,14 @@ fun LayoutCanvas(
                             val pos = event.changes.firstOrNull()?.position ?: continue
                             val zoom = state.zoom
                             val pan = state.panOffset
+
+                            // Live Preview: the pointer only drives the widgets, the wheel and the middle button still move the view
+                            if (state.livePreview && event.type != PointerEventType.Scroll && !isPanning &&
+                                !event.buttons.isTertiaryPressed && !spacePressed
+                            ) {
+                                previewPointer(state, event.type, event.buttons.isPrimaryPressed, screenToWorld(pos, zoom, pan))
+                                continue
+                            }
 
                             when (event.type) {
                                 PointerEventType.Scroll -> {
@@ -783,7 +841,7 @@ fun LayoutCanvas(
                 zoom,
                 pan,
                 state::textureFor,
-                { n -> state.skinFor(n, doc.path) },
+                { n -> state.skinFor(n, doc.path, state.previewStateOf(n)) },
             )
         }
 
@@ -948,6 +1006,41 @@ internal fun DrawScope.drawSkinTinted(
     for ((slot, r) in rects) drawSkinSlot(skin, slot, r, tint, zoom)
 }
 
+/** The tint of a skin as a colour filter: a multiplication by [tint], plus white when the skin is lifted. */
+private fun skinFilter(
+    skin: WidgetSkin,
+    tint: Color,
+): ColorFilter {
+    if (skin.lift <= 0f) return ColorFilter.tint(tint, BlendMode.Modulate)
+    val add = skin.lift * 255f
+    return ColorFilter.colorMatrix(
+        androidx.compose.ui.graphics.ColorMatrix(
+            floatArrayOf(
+                tint.red,
+                0f,
+                0f,
+                0f,
+                add,
+                0f,
+                tint.green,
+                0f,
+                0f,
+                add,
+                0f,
+                0f,
+                tint.blue,
+                0f,
+                add,
+                0f,
+                0f,
+                0f,
+                tint.alpha,
+                0f,
+            ),
+        ),
+    )
+}
+
 /** One piece of a skin into [r]: stretched, or repeated at its own size along the axes its flags tile. */
 internal fun DrawScope.drawSkinSlot(
     skin: WidgetSkin,
@@ -976,7 +1069,7 @@ internal fun DrawScope.drawSkinSlot(
                         brush,
                         Offset.Zero,
                         Size(r.width / sx, r.height / sy),
-                        colorFilter = ColorFilter.tint(tint, BlendMode.Modulate),
+                        colorFilter = skinFilter(skin, tint),
                     )
                 }
             }
@@ -987,7 +1080,7 @@ internal fun DrawScope.drawSkinSlot(
                 srcSize = IntSize(src.width, src.height),
                 dstOffset = IntOffset(r.left.toInt(), r.top.toInt()),
                 dstSize = IntSize(r.width.toInt().coerceAtLeast(1), r.height.toInt().coerceAtLeast(1)),
-                colorFilter = ColorFilter.tint(tint, BlendMode.Modulate),
+                colorFilter = skinFilter(skin, tint),
             )
         }
     }

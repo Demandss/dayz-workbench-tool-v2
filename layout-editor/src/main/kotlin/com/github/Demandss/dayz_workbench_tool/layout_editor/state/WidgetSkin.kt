@@ -18,6 +18,8 @@ class WidgetSkin(
     val flags: Map<String, Int> = emptyMap(),
     // The pieces of tiled slots cut out of the atlas, drawn with a repeating shader
     val tiles: Map<String, ImageBitmap> = emptyMap(),
+    // How much white is added on top: a hovered button whose style has no Highlight images is lightened (measured in Workbench)
+    val lift: Float = 0f,
 )
 
 /**
@@ -43,6 +45,8 @@ internal class SkinPlan(
     val refHeight: Int,
     val images: Map<String, com.github.demandss.dayz_workbench_tool.imageset.ImageDef>,
     val styleColor: Color,
+    // True when the Highlight state has no image of its own
+    val highlightEmpty: Boolean = false,
 )
 
 /** The style colour is an ARGB number written as a decimal (`4294967295` is opaque white). */

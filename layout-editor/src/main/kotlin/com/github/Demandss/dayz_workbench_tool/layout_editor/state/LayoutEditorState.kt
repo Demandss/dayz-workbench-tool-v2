@@ -94,6 +94,9 @@ data class PendingAdd(
 
 private const val MAX_RECENT = 8
 
+// A hovered button without Highlight images gets this much white added, as measured on the Editor style in Workbench
+private const val HIGHLIGHT_LIFT = 0.27f
+
 enum class PaletteMode { COMMANDS, FILES, WIDGETS }
 
 class LayoutEditorState(
@@ -163,6 +166,23 @@ class LayoutEditorState(
 
     /** F3: frame counter in the corner. */
     var debugOverlay by mutableStateOf(false)
+
+    // Live Preview: the button under the pointer, the one held down and the one that was clicked last
+    var previewHover by mutableStateOf<UUID?>(null)
+    var previewPressed by mutableStateOf<UUID?>(null)
+    var previewFocus by mutableStateOf<UUID?>(null)
+
+    /** The state a widget is in while Live Preview runs: Disabled, Pushed, Highlight (the pointer is over it), Focus or Normal. */
+    fun previewStateOf(node: EditorWidgetNode): String {
+        if (!livePreview) return "Normal"
+        return when {
+            node.node.properties["disabled"]?.trim() == "1" -> "Disabled"
+            node.id == previewPressed && node.id == previewHover -> "Pushed"
+            node.id == previewHover -> "Highlight"
+            node.id == previewFocus -> "Focus"
+            else -> "Normal"
+        }
+    }
 
     // Files opened last, newest first
     val recentFiles = mutableStateListOf<String>()
@@ -1191,6 +1211,7 @@ class LayoutEditorState(
     fun skinFor(
         node: EditorWidgetNode,
         nearPath: String?,
+        stateName: String = "Normal",
     ): WidgetSkin? {
         val styleName =
             node.node.properties["style"]
@@ -1198,16 +1219,17 @@ class LayoutEditorState(
                 ?.trim('"')
                 .orEmpty()
         if (styleName.isEmpty()) return null
-        val key = "${node.node.type.className}|$styleName|$workDrivePath|$nearPath"
+        val key = "${node.node.type.className}|$styleName|$stateName|$workDrivePath|$nearPath"
         val plan =
             if (skinPlans.containsKey(key)) {
                 skinPlans[key]
             } else {
-                buildSkinPlan(node.node.type.className, styleName, nearPath).also { skinPlans[key] = it }
+                buildSkinPlan(node.node.type.className, styleName, stateName, nearPath).also { skinPlans[key] = it }
             } ?: return null
         // A style with no frame slots (a check mark, a bar only) is left to the flat approximation
         if (plan.images.keys.none { it in NINE_SLICE_SLOTS }) return null
-        return skinFromPlan(plan, key)
+        val lifted = stateName == "Highlight" && plan.highlightEmpty && node.node.type == WidgetType.BUTTON
+        return skinFromPlan(plan, key, if (lifted) HIGHLIGHT_LIFT else 0f)
     }
 
     /** What [style] paints in the state [stateName], for the preview of the style editor. Null while the atlas loads. */
@@ -1216,19 +1238,20 @@ class LayoutEditorState(
         stateName: String,
         nearPath: String?,
     ): WidgetSkin? {
-        val key = "preview|${style.imageSet}|$stateName|${style.color}|${style.states.firstOrNull { it.name == stateName }}|$nearPath"
+        val key = "preview|$stateName|${style.hashCode()}|$nearPath"
         val plan =
             if (skinPlans.containsKey(key)) {
                 skinPlans[key]
             } else {
                 planFor(style, stateName, nearPath).also { skinPlans[key] = it }
             } ?: return null
-        return skinFromPlan(plan, key)
+        return skinFromPlan(plan, key, if (stateName == "Highlight" && plan.highlightEmpty) HIGHLIGHT_LIFT else 0f)
     }
 
     private fun skinFromPlan(
         plan: SkinPlan,
         key: String,
+        lift: Float = 0f,
     ): WidgetSkin? {
         val atlas = imageSetBitmap(plan.textureFile) ?: return null
         val kx = atlas.width.toFloat() / plan.refWidth
@@ -1261,16 +1284,17 @@ class LayoutEditorState(
                     }.getOrNull()
                 } ?: atlas
             }
-        return WidgetSkin(atlas, source, native, plan.styleColor, flags, tiles)
+        return WidgetSkin(atlas, source, native, plan.styleColor, flags, tiles, lift)
     }
 
     private fun buildSkinPlan(
         widgetClass: String,
         styleName: String,
+        stateName: String,
         nearPath: String?,
     ): SkinPlan? {
         val style = vanillaStylesFor(widgetClass, nearPath).firstOrNull { it.name == styleName } ?: return null
-        return planFor(style, "Normal", nearPath)
+        return planFor(style, stateName, nearPath)
     }
 
     /** The imagesets of gui/imagesets next to the looknfeel folder, by the name written inside them. */
@@ -1334,17 +1358,22 @@ class LayoutEditorState(
     ): SkinPlan? {
         val setFile = imageSetFiles(nearPath)[style.imageSet] ?: return null
         val set = parsedImageSet(setFile) ?: return null
-        val state = style.states.firstOrNull { it.name == stateName } ?: return null
         val byName = set.all.associateBy { it.name }
-        val images =
-            state.items
+
+        // What a state paints is its own images over those of Normal: a slot the state leaves empty keeps the Normal image
+        fun imagesOf(name: String) =
+            style.states
+                .firstOrNull { it.name == name }
+                ?.items
+                .orEmpty()
                 .filter { it.image.isNotEmpty() }
                 .mapNotNull { item -> byName[item.image]?.let { item.name to it } }
                 .toMap()
+        val images = imagesOf("Normal") + imagesOf(stateName)
         if (images.isEmpty()) return null
         val texture = set.textures.minByOrNull { it.mpix } ?: return null
         val file = resolveImageSetTexture(setFile.absolutePath, texture.path) ?: return null
-        return SkinPlan(file, set.refWidth, set.refHeight, images, styleColorOf(style.color))
+        return SkinPlan(file, set.refWidth, set.refHeight, images, styleColorOf(style.color), imagesOf("Highlight").isEmpty())
     }
 
     fun reloadImageSetTextures() {
