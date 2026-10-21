@@ -168,7 +168,7 @@ internal class SdfFont(
     companion object {
         const val FIRST = 32
         const val LAST = 126
-        private const val MAX_SIDE = 600
+        private const val MAX_SIDE = 2400
 
         /** Reads the glyph table of a `.fnt` file: the records of the TCRD chunk, seven 16 bit numbers each. */
         fun readGlyphs(file: File): Pair<Int, List<SdfGlyph>>? {

@@ -1627,7 +1627,10 @@ class LayoutEditorState(
         stateName: String,
         nearPath: String?,
     ): SkinPlan? {
-        val style = vanillaStylesFor(widgetClass, nearPath).firstOrNull { it.name == styleName } ?: return null
+        val styles = vanillaStylesFor(widgetClass, nearPath)
+        // A class with no style called Default (the three state check box) uses its first one
+        val style =
+            styles.firstOrNull { it.name == styleName } ?: (if (styleName == "Default") styles.firstOrNull() else null) ?: return null
         return planFor(style, stateName, nearPath)
     }
 

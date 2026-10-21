@@ -1136,6 +1136,10 @@ private fun DrawScope.drawSkin(
         share = (node.prop("current")?.toFloatOrNull()?.div(100f) ?: 0.5f).coerceIn(0f, 1f),
         vertical = node.prop("vertical") == "1",
         flipped = node.prop("flipped") == "1",
+        sliderShare = sliderShare(node),
+        sliderFill = node.prop("fill in") == "1",
+        sliderMarker = node.prop("draw marker") == "1",
+        markerThickness = node.prop("marker thickness")?.toFloatOrNull() ?: 0f,
     )
 }
 
@@ -1286,3 +1290,11 @@ private fun layoutOf(
         { n -> textureAspect(state, n) },
         { n, w, h -> state.textSizeFor(n, state.activeFile?.path, w, h) },
     )
+
+/** How far the value of a slider is between its `minimum` and `maximum`, from 0 to 1. */
+private fun sliderShare(node: EditorWidgetNode): Float {
+    val minimum = node.prop("minimum")?.toFloatOrNull() ?: 0f
+    val maximum = node.prop("maximum")?.toFloatOrNull() ?: 1f
+    val current = node.prop("current")?.toFloatOrNull() ?: minimum
+    return if (maximum > minimum) ((current - minimum) / (maximum - minimum)).coerceIn(0f, 1f) else 0f
+}

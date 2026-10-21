@@ -56,6 +56,12 @@ internal fun DrawScope.drawSkinWidget(
     share: Float = PROGRESS_SHARE,
     vertical: Boolean = false,
     flipped: Boolean = false,
+    // A slider: how far its value is, whether it fills up to it (`fill in`) and draws a marker there (`draw marker`) of
+    // `marker thickness` times the length of the slider
+    sliderShare: Float = 0f,
+    sliderFill: Boolean = false,
+    sliderMarker: Boolean = false,
+    markerThickness: Float = 0f,
 ): Set<String> {
     // Workbench lays pixels on the pixel grid. Edges that fall inside a pixel would leave the resting look showing through
     // the rim of an image drawn over it, as thin lines
@@ -67,7 +73,24 @@ internal fun DrawScope.drawSkinWidget(
             rawBox.bottom.roundToInt().toFloat(),
         )
     val used = HashSet<String>()
-    skin.under?.let { used += drawSkinWidget(it, tint, rawBox, zoom, type, progress, share, vertical, flipped) }
+    skin.under?.let {
+        used +=
+            drawSkinWidget(
+                it,
+                tint,
+                rawBox,
+                zoom,
+                type,
+                progress,
+                share,
+                vertical,
+                flipped,
+                sliderShare,
+                sliderFill,
+                sliderMarker,
+                markerThickness,
+            )
+    }
 
     fun group(
         names: Map<String, List<String>>,
@@ -105,6 +128,32 @@ internal fun DrawScope.drawSkinWidget(
             val h = maxOf(14f * zoom, listOf("BarTop", "BarCenter").mapNotNull { sizeOf(it)?.height }.sum())
             val y = box.center.y - h / 2f
             group(BAR_SLOTS, Rect(box.left + 8f * zoom, y, box.left + 8f * zoom + (box.width - 16f * zoom) * 0.6f, y + h))
+        }
+    }
+
+    // The bar of a slider is its thumb: it shows only when the slider fills up to its value or draws a marker (measured)
+    if (type == WidgetType.SLIDER && BAR_SLOTS.values.any { it.single() in skin.source }) {
+        val along = if (vertical) box.height else box.width
+        val at = if (flipped) 1f - sliderShare else sliderShare
+        if (sliderFill) {
+            val filled =
+                if (vertical) {
+                    Rect(box.left, box.top, box.right, box.top + box.height * at)
+                } else {
+                    Rect(box.left, box.top, box.left + box.width * at, box.bottom)
+                }
+            clipRect(filled.left, filled.top, filled.right, filled.bottom) { group(BAR_SLOTS, box) }
+        }
+        if (sliderMarker) {
+            val thick = (markerThickness * along).coerceAtLeast(1f)
+            val centre = along * at
+            val marker =
+                if (vertical) {
+                    Rect(box.left, box.top + centre - thick / 2f, box.right, box.top + centre + thick / 2f)
+                } else {
+                    Rect(box.left + centre - thick / 2f, box.top, box.left + centre + thick / 2f, box.bottom)
+                }
+            group(BAR_SLOTS, marker)
         }
     }
 

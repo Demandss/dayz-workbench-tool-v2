@@ -64,7 +64,7 @@ private fun layoutTreeWith(
     // leaves a margin (measured on the vanilla HUD). A root that sets no size takes the whole screen.
     val rootRect =
         if (root.node.properties.containsKey("size")) {
-            fixAspect(root, computeRect(root, screen), screen, textureAspect(root))
+            computeRect(root, screen)
         } else {
             screen
         }
