@@ -70,6 +70,7 @@ import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.Shortcuts
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.StatusBar
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.ToastHost
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.ViewportChips
+import com.github.demandss.dayz_workbench_tool.layout_editor.ui.styles.StylesEditor
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.toolbar.Toolbar
 import com.github.demandss.dayz_workbench_tool.ui.components.DarkButton
 import com.github.demandss.dayz_workbench_tool.ui.components.DarkTabRow
@@ -107,7 +108,9 @@ fun LayoutEditorWindow(
     val windowTitle =
         buildString {
             append("DayZ Layout Editor")
-            val shownName = state.activeImageSet?.fileName ?: state.activeTexture?.fileName ?: state.activeFile?.fileName
+            val shownName =
+                state.activeStyles?.fileName ?: state.activeImageSet?.fileName ?: state.activeTexture?.fileName
+                    ?: state.activeFile?.fileName
             shownName?.let { append(" — $it") }
         }
 
@@ -137,6 +140,34 @@ fun LayoutEditorWindow(
                             return@onPreviewKeyEvent true
                         }
                         if (handleGlobalKey(state, event)) return@onPreviewKeyEvent true
+                        val styles = state.activeStyles
+                        if (styles != null && !state.commandPaletteOpen) {
+                            return@onPreviewKeyEvent when {
+                                event.isCtrlPressed && event.key == Key.S -> {
+                                    state.saveActiveStyles()
+                                    true
+                                }
+
+                                event.isCtrlPressed && event.key == Key.Z -> {
+                                    styles.undo()
+                                    true
+                                }
+
+                                event.isCtrlPressed && event.key == Key.Y -> {
+                                    styles.redo()
+                                    true
+                                }
+
+                                event.isCtrlPressed && event.key == Key.W -> {
+                                    state.closeStyles(state.activeStylesIndex)
+                                    true
+                                }
+
+                                else -> {
+                                    false
+                                }
+                            }
+                        }
                         val imageSet = state.activeImageSet
                         if (imageSet != null && !state.commandPaletteOpen) {
                             return@onPreviewKeyEvent when {
@@ -259,12 +290,17 @@ fun LayoutEditorWindow(
 
                             val texture = state.activeTexture
                             val imageSet = state.activeImageSet
-                            if (state.openFiles.isEmpty() && state.openTextures.isEmpty() && state.openImageSets.isEmpty()) {
+                            val styles = state.activeStyles
+                            if (state.openFiles.isEmpty() && state.openTextures.isEmpty() && state.openImageSets.isEmpty() &&
+                                state.openStyles.isEmpty()
+                            ) {
                                 EmptyState(state, Modifier.weight(1f).fillMaxWidth()) {
                                     scope.launch {
                                         pickFile("Открыть файл", "*", state.workDrivePath.ifBlank { null })?.let { state.openAny(it) }
                                     }
                                 }
+                            } else if (styles != null) {
+                                StylesEditor(state, styles, Modifier.weight(1f).fillMaxWidth())
                             } else if (imageSet != null) {
                                 ImageSetEditor(state, imageSet, Modifier.weight(1f).fillMaxWidth())
                             } else if (texture != null) {
@@ -505,7 +541,7 @@ private fun NameDialog(
 
 @Composable
 private fun FileTabBar(state: LayoutEditorState) {
-    if (state.openFiles.isEmpty() && state.openTextures.isEmpty() && state.openImageSets.isEmpty()) return
+    if (state.openFiles.isEmpty() && state.openTextures.isEmpty() && state.openImageSets.isEmpty() && state.openStyles.isEmpty()) return
     val scroll = rememberScrollState()
     val scope = rememberCoroutineScope()
     Row(
@@ -537,7 +573,9 @@ private fun FileTabBar(state: LayoutEditorState) {
                 label = doc.fileName,
                 modified = doc.isModified,
                 hint = doc.path,
-                isActive = state.activeTextureIndex < 0 && state.activeImageSetIndex < 0 && index == state.activeFileIndex,
+                isActive =
+                    state.activeTextureIndex < 0 && state.activeImageSetIndex < 0 && state.activeStylesIndex < 0 &&
+                        index == state.activeFileIndex,
                 onClick = { state.selectLayout(index) },
                 onClose = { state.closeFile(index) },
             )
@@ -546,7 +584,7 @@ private fun FileTabBar(state: LayoutEditorState) {
             FileTab(
                 icon = fileIcon(doc.fileName),
                 label = doc.fileName,
-                isActive = index == state.activeTextureIndex && state.activeImageSetIndex < 0,
+                isActive = index == state.activeTextureIndex && state.activeImageSetIndex < 0 && state.activeStylesIndex < 0,
                 onClick = { state.selectTexture(index) },
                 onClose = { state.closeTexture(index) },
             )
@@ -557,9 +595,20 @@ private fun FileTabBar(state: LayoutEditorState) {
                 label = doc.fileName,
                 modified = doc.isModified,
                 hint = doc.path,
-                isActive = index == state.activeImageSetIndex,
+                isActive = index == state.activeImageSetIndex && state.activeStylesIndex < 0,
                 onClick = { state.selectImageSet(index) },
                 onClose = { state.closeImageSet(index) },
+            )
+        }
+        state.openStyles.forEachIndexed { index, doc ->
+            FileTab(
+                icon = fileIcon(doc.fileName),
+                label = doc.fileName,
+                modified = doc.isModified,
+                hint = doc.path,
+                isActive = index == state.activeStylesIndex,
+                onClick = { state.selectStyles(index) },
+                onClose = { state.closeStyles(index) },
             )
         }
     }
@@ -761,14 +810,21 @@ private fun handleGlobalKey(
 
         event.key == Key.F && !shift -> {
             when {
-                state.activeImageSet != null -> state.imageSetSearchTick++
-                state.activeFile != null && state.activeTexture == null -> state.openPalette(PaletteMode.WIDGETS)
+                state.activeImageSet != null -> {
+                    state.imageSetSearchTick++
+                }
+
+                state.activeStyles != null -> {}
+
+                state.activeFile != null && state.activeTexture == null -> {
+                    state.openPalette(PaletteMode.WIDGETS)
+                }
             }
             true
         }
 
         event.key == Key.Z && shift -> {
-            state.activeImageSet?.redo() ?: state.redo(state.activeFileIndex)
+            state.activeStyles?.redo() ?: state.activeImageSet?.redo() ?: state.redo(state.activeFileIndex)
             true
         }
 

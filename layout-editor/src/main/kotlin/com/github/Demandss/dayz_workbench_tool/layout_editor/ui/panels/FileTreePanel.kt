@@ -369,6 +369,8 @@ fun FileTreePanel(
                                         state.openFile(entry.path.toString())
                                     } else if (entry.name.endsWith(".imageset", ignoreCase = true)) {
                                         state.openImageSet(entry.path.toString())
+                                    } else if (entry.name.endsWith(".styles", ignoreCase = true)) {
+                                        state.openStyles(entry.path.toString())
                                     } else if (TEXTURE_EXTENSIONS.any { entry.name.endsWith(it, ignoreCase = true) }) {
                                         state.openTexture(entry.path.toString())
                                     }
@@ -384,6 +386,7 @@ fun FileTreePanel(
                                         (
                                             entry.name.endsWith(".layout", ignoreCase = true) ||
                                                 entry.name.endsWith(".imageset", ignoreCase = true) ||
+                                                entry.name.endsWith(".styles", ignoreCase = true) ||
                                                 TEXTURE_EXTENSIONS.any { entry.name.endsWith(it, ignoreCase = true) }
                                         )
                                     ) {

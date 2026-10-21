@@ -53,6 +53,11 @@ fun StatusBar(state: LayoutEditorState) {
 }
 
 private fun leftText(state: LayoutEditorState): String {
+    state.activeStyles?.let { doc ->
+        val styles = doc.sheet.widgets.sumOf { it.styles.size }
+        val picked = doc.selectedStyle
+        return if (picked == null) "$styles стилей" else "Стиль: ${picked.name} · ${picked.imageSet}"
+    }
     state.activeImageSet?.let { doc ->
         val picked = doc.selected.mapNotNull { doc.model.entry(it) }
         return when (picked.size) {

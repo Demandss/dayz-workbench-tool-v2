@@ -136,6 +136,11 @@ class LayoutEditorState(
     var activeImageSetIndex by mutableStateOf(-1)
     val activeImageSet get() = openImageSets.getOrNull(activeImageSetIndex)
 
+    // Style sheet tabs. When activeStylesIndex >= 0 the window shows the style editor for that file
+    val openStyles = mutableStateListOf<StylesDocument>()
+    var activeStylesIndex by mutableStateOf(-1)
+    val activeStyles get() = openStyles.getOrNull(activeStylesIndex)
+
     // Decoded textures of imagesets by file, null while loading or when the file cannot be read
     private val imageSetBitmaps = mutableStateMapOf<String, ImageBitmap?>()
     private val imageSetBitmapsLoading = mutableSetOf<String>()
@@ -305,7 +310,7 @@ class LayoutEditorState(
         scanning = true
         scope.launch(Dispatchers.IO) {
             val found = ArrayList<File>()
-            val wanted = setOf("layout", "imageset", "edds", "png")
+            val wanted = setOf("layout", "imageset", "styles", "edds", "png")
             runCatching {
                 File(workDrivePath)
                     .walkTopDown()
@@ -324,10 +329,11 @@ class LayoutEditorState(
 
     /** Ctrl+Tab: the next tab to the right (or the previous one for a negative [step]), over layouts, textures and imagesets. */
     fun cycleTab(step: Int) {
-        val tabs = openFiles.indices.map { 0 to it } + openTextures.indices.map { 1 to it } + openImageSets.indices.map { 2 to it }
+        val tabs = allTabs()
         if (tabs.size < 2) return
         val current =
             when {
+                activeStylesIndex >= 0 -> 3 to activeStylesIndex
                 activeImageSetIndex >= 0 -> 2 to activeImageSetIndex
                 activeTextureIndex >= 0 -> 1 to activeTextureIndex
                 else -> 0 to activeFileIndex
@@ -338,10 +344,14 @@ class LayoutEditorState(
 
     /** Ctrl+1…9: the tab with this number, counted from the left. */
     fun selectTabNumber(number: Int) {
-        val tabs = openFiles.indices.map { 0 to it } + openTextures.indices.map { 1 to it } + openImageSets.indices.map { 2 to it }
+        val tabs = allTabs()
         val tab = tabs.getOrNull(if (number == 9) tabs.lastIndex else number - 1) ?: return
         selectTab(tab.first, tab.second)
     }
+
+    private fun allTabs() =
+        openFiles.indices.map { 0 to it } + openTextures.indices.map { 1 to it } + openImageSets.indices.map { 2 to it } +
+            openStyles.indices.map { 3 to it }
 
     private fun selectTab(
         kind: Int,
@@ -350,7 +360,8 @@ class LayoutEditorState(
         when (kind) {
             0 -> selectLayout(index)
             1 -> selectTexture(index)
-            else -> selectImageSet(index)
+            2 -> selectImageSet(index)
+            else -> selectStyles(index)
         }
     }
 
@@ -862,6 +873,7 @@ class LayoutEditorState(
         when {
             path.endsWith(".layout", ignoreCase = true) -> openFile(path)
             path.endsWith(".imageset", ignoreCase = true) -> openImageSet(path)
+            path.endsWith(".styles", ignoreCase = true) -> openStyles(path)
             else -> openTexture(path)
         }
     }
@@ -870,6 +882,7 @@ class LayoutEditorState(
         activeFileIndex = index
         activeTextureIndex = -1
         activeImageSetIndex = -1
+        activeStylesIndex = -1
         saveSession()
     }
 
@@ -877,6 +890,7 @@ class LayoutEditorState(
         if (index !in openTextures.indices) return
         activeTextureIndex = index
         activeImageSetIndex = -1
+        activeStylesIndex = -1
         saveSession()
     }
 
@@ -926,6 +940,7 @@ class LayoutEditorState(
     fun selectImageSet(index: Int) {
         if (index !in openImageSets.indices) return
         activeImageSetIndex = index
+        activeStylesIndex = -1
         saveSession()
     }
 
@@ -955,6 +970,83 @@ class LayoutEditorState(
                 else -> activeImageSetIndex
             }
         saveSession()
+    }
+
+    /** Opens a `.styles` in the style editor, or switches to its tab when it is open already. */
+    fun openStyles(path: String) {
+        val normalized = runCatching { File(path).canonicalPath }.getOrDefault(path)
+        val existing = openStyles.indexOfFirst { it.path == normalized }
+        if (existing >= 0) {
+            noteRecent(normalized)
+            selectStyles(existing)
+            return
+        }
+        val parsed = runCatching { StylesFormat.parse(File(normalized).readText()) }
+        val sheet = parsed.getOrNull()
+        if (sheet == null) {
+            notify("Не удалось открыть ${File(path).name}: " + (parsed.exceptionOrNull()?.message ?: "это не .styles"), ToastKind.ERROR)
+            return
+        }
+        openStyles += StylesDocument(normalized, sheet)
+        noteRecent(normalized)
+        selectStyles(openStyles.lastIndex)
+    }
+
+    fun selectStyles(index: Int) {
+        if (index !in openStyles.indices) return
+        activeStylesIndex = index
+        saveSession()
+    }
+
+    fun closeStyles(index: Int) {
+        val doc = openStyles.getOrNull(index) ?: return
+        if (doc.isModified) {
+            confirmation =
+                Confirmation(
+                    title = "Закрыть ${doc.fileName}?",
+                    message = "Есть несохранённые изменения, они пропадут.",
+                    confirmLabel = "Закрыть",
+                    danger = true,
+                ) { dropStyles(index) }
+        } else {
+            dropStyles(index)
+        }
+    }
+
+    private fun dropStyles(index: Int) {
+        if (index !in openStyles.indices) return
+        openStyles.removeAt(index)
+        activeStylesIndex =
+            when {
+                openStyles.isEmpty() -> -1
+                index < activeStylesIndex -> activeStylesIndex - 1
+                index == activeStylesIndex -> (index - 1).coerceAtLeast(0)
+                else -> activeStylesIndex
+            }
+        saveSession()
+    }
+
+    fun saveActiveStyles() {
+        val doc = activeStyles ?: return
+        runCatching {
+            File(doc.path).writeText(StylesFormat.serialize(doc.sheet))
+        }.onSuccess {
+            doc.markSaved()
+            refreshVanillaStyles()
+            notify("Сохранено: ${doc.fileName}", ToastKind.SUCCESS)
+        }.onFailure {
+            notify("Не удалось сохранить ${doc.fileName}: ${it.message ?: it.javaClass.simpleName}", ToastKind.ERROR)
+        }
+    }
+
+    /** Forgets what was read from the vanilla styles and imagesets, so that the next draw reads the files again. */
+    fun refreshVanillaStyles() {
+        vanillaSheetFrom = null
+        vanillaSheet = null
+        skinPlans.clear()
+        tileCache.clear()
+        parsedImageSets.clear()
+        imageSetIndexFor = null
     }
 
     fun saveActiveImageSet() {
@@ -1112,6 +1204,29 @@ class LayoutEditorState(
             } else {
                 buildSkinPlan(node.node.type.className, styleName, nearPath).also { skinPlans[key] = it }
             } ?: return null
+        return skinFromPlan(plan, key)
+    }
+
+    /** What [style] paints in the state [stateName], for the preview of the style editor. Null while the atlas loads. */
+    fun previewSkin(
+        style: StyleDef,
+        stateName: String,
+        nearPath: String?,
+    ): WidgetSkin? {
+        val key = "preview|${style.imageSet}|$stateName|${style.color}|${style.states.firstOrNull { it.name == stateName }}|$nearPath"
+        val plan =
+            if (skinPlans.containsKey(key)) {
+                skinPlans[key]
+            } else {
+                planFor(style, stateName, nearPath).also { skinPlans[key] = it }
+            } ?: return null
+        return skinFromPlan(plan, key)
+    }
+
+    private fun skinFromPlan(
+        plan: SkinPlan,
+        key: String,
+    ): WidgetSkin? {
         val atlas = imageSetBitmap(plan.textureFile) ?: return null
         val kx = atlas.width.toFloat() / plan.refWidth
         val ky = atlas.height.toFloat() / plan.refHeight
@@ -1152,8 +1267,13 @@ class LayoutEditorState(
         nearPath: String?,
     ): SkinPlan? {
         val style = vanillaStylesFor(widgetClass, nearPath).firstOrNull { it.name == styleName } ?: return null
-        val stylesFile = findVanillaStyles(nearPath) ?: return null
-        val gui = stylesFile.parentFile?.parentFile ?: return null
+        return planFor(style, "Normal", nearPath)
+    }
+
+    /** The imagesets of gui/imagesets next to the looknfeel folder, by the name written inside them. */
+    private fun imageSetFiles(nearPath: String?): Map<String, File> {
+        val stylesFile = findVanillaStyles(nearPath) ?: return emptyMap()
+        val gui = stylesFile.parentFile?.parentFile ?: return emptyMap()
         val setsDir = File(gui, "imagesets")
         if (imageSetIndexFor != setsDir.absolutePath) {
             imageSetIndexFor = setsDir.absolutePath
@@ -1168,11 +1288,34 @@ class LayoutEditorState(
                         name?.let { it to f }
                     }.toMap()
         }
-        val setFile = imageSetIndex[style.imageSet] ?: return null
-        val set =
-            parsedImageSets.getOrPut(setFile.absolutePath) { runCatching { ImageSetFormat.parse(setFile.readText()) }.getOrNull() }
-                ?: return null
-        val state = style.states.firstOrNull { it.name == "Normal" } ?: return null
+        return imageSetIndex
+    }
+
+    private fun parsedImageSet(file: File) =
+        parsedImageSets.getOrPut(file.absolutePath) { runCatching { ImageSetFormat.parse(file.readText()) }.getOrNull() }
+
+    /** The names of the imagesets a style can use, for the drop-down of the style editor. */
+    fun imageSetNames(nearPath: String?): List<String> = imageSetFiles(nearPath).keys.sorted()
+
+    /** The names of the images in the imageset called [setName]. */
+    fun imageNamesOf(
+        setName: String,
+        nearPath: String?,
+    ): List<String> =
+        imageSetFiles(nearPath)[setName]
+            ?.let(::parsedImageSet)
+            ?.all
+            ?.map { it.name }
+            .orEmpty()
+
+    private fun planFor(
+        style: StyleDef,
+        stateName: String,
+        nearPath: String?,
+    ): SkinPlan? {
+        val setFile = imageSetFiles(nearPath)[style.imageSet] ?: return null
+        val set = parsedImageSet(setFile) ?: return null
+        val state = style.states.firstOrNull { it.name == stateName } ?: return null
         val byName = set.all.associateBy { it.name }
         val images =
             state.items
@@ -1213,7 +1356,10 @@ class LayoutEditorState(
             session.layouts.filter { File(it).isFile }.forEach { openFile(it) }
             session.textures.filter { File(it).isFile }.forEach { openTexture(it) }
             session.imageSets.filter { File(it).isFile }.forEach { openImageSet(it) }
-            if (session.activeIsImageSet) {
+            session.styles.filter { File(it).isFile }.forEach { openStyles(it) }
+            if (session.activeIsStyles) {
+                openStyles.indexOfFirst { it.path == session.active }.takeIf { it >= 0 }?.let { selectStyles(it) }
+            } else if (session.activeIsImageSet) {
                 openImageSets.indexOfFirst { it.path == session.active }.takeIf { it >= 0 }?.let { selectImageSet(it) }
             } else if (session.activeIsTexture) {
                 openTextures.indexOfFirst { it.path == session.active }.takeIf { it >= 0 }?.let { selectTexture(it) }
@@ -1278,8 +1424,10 @@ class LayoutEditorState(
                     layouts = openFiles.map { it.path },
                     textures = openTextures.map { it.path },
                     imageSets = openImageSets.map { it.path },
-                    active = activeImageSet?.path ?: texture?.path ?: activeFile?.path.orEmpty(),
-                    activeIsTexture = texture != null && activeImageSet == null,
+                    styles = openStyles.map { it.path },
+                    activeIsStyles = activeStyles != null,
+                    active = activeStyles?.path ?: activeImageSet?.path ?: texture?.path ?: activeFile?.path.orEmpty(),
+                    activeIsTexture = texture != null && activeImageSet == null && activeStyles == null,
                     activeIsImageSet = activeImageSet != null,
                     expandedDirs = treeExpanded,
                     selectedPath = treeSelected,

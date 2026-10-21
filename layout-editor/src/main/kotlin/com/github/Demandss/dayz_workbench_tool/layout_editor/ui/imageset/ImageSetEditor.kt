@@ -241,7 +241,7 @@ private fun ImageSetPanel(
 }
 
 @Composable
-private fun PanelHeader(
+internal fun PanelHeader(
     title: String,
     expanded: Boolean,
     onToggle: () -> Unit,
@@ -265,7 +265,7 @@ private fun PanelHeader(
 }
 
 @Composable
-private fun LabelRow(
+internal fun LabelRow(
     label: String,
     tooltip: String?,
     content: @Composable androidx.compose.foundation.layout.RowScope.() -> Unit,
@@ -278,7 +278,7 @@ private fun LabelRow(
 
 /** A one-line field that commits on Enter or when it loses the focus. [focusTick] puts the cursor in it and selects the text. */
 @Composable
-private fun CommitField(
+internal fun CommitField(
     value: String,
     modifier: Modifier = Modifier,
     focusTick: Int = 0,

@@ -16,6 +16,8 @@ data class EditorSession(
     val textures: List<String> = emptyList(),
     val imageSets: List<String> = emptyList(),
     val activeIsImageSet: Boolean = false,
+    val styles: List<String> = emptyList(),
+    val activeIsStyles: Boolean = false,
     val active: String = "",
     val activeIsTexture: Boolean = false,
     val expandedDirs: List<String> = emptyList(),

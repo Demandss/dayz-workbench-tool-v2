@@ -930,9 +930,17 @@ private fun DrawScope.drawSkin(
     tl: Offset,
     ss: Size,
     zoom: Float,
+) = drawSkinTinted(skin, node.node.properties["color"]?.let { parseWidgetColor(it) } ?: skin.styleColor, tl, ss, zoom)
+
+/** [drawSkin] with the colour given: the style editor draws a style without a widget. */
+internal fun DrawScope.drawSkinTinted(
+    skin: WidgetSkin,
+    tint: Color,
+    tl: Offset,
+    ss: Size,
+    zoom: Float,
 ) {
     if (ss.width < 1f || ss.height < 1f) return
-    val tint = node.node.properties["color"]?.let { parseWidgetColor(it) } ?: skin.styleColor
     val dst =
         androidx.compose.ui.geometry
             .Rect(tl.x, tl.y, tl.x + ss.width, tl.y + ss.height)
