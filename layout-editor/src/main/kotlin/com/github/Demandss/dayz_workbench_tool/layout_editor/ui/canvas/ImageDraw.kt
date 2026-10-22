@@ -49,7 +49,38 @@ internal fun DrawScope.drawImageWidget(
     val box = Rect(topLeft, boxSize)
     val additive = node.prop("mode")?.trim('"') == "additive"
 
+    // `stretch mode none` with `clamp mode wrap` repeats the picture at its own size instead of stretching it (a grid background)
+    val tiled = node.prop("stretch mode")?.trim('"') == "none" && node.prop("clamp mode")?.trim('"') == "wrap"
+
+    fun drawTiles() {
+        val tileW = (image.width * zoom).coerceAtLeast(1f)
+        val tileH = (image.height * zoom).coerceAtLeast(1f)
+        clipRect(box.left, box.top, box.right, box.bottom) {
+            var y = box.top
+            while (y < box.bottom) {
+                var x = box.left
+                while (x < box.right) {
+                    drawImage(
+                        image = image,
+                        srcOffset = IntOffset.Zero,
+                        srcSize = IntSize(image.width, image.height),
+                        dstOffset = IntOffset(x.roundToInt(), y.roundToInt()),
+                        dstSize = IntSize(tileW.roundToInt().coerceAtLeast(1), tileH.roundToInt().coerceAtLeast(1)),
+                        colorFilter = ColorFilter.tint(tint, BlendMode.Modulate),
+                        blendMode = if (additive) BlendMode.Plus else BlendMode.SrcOver,
+                    )
+                    x += tileW
+                }
+                y += tileH
+            }
+        }
+    }
+
     fun draw() {
+        if (tiled) {
+            drawTiles()
+            return
+        }
         drawImage(
             image = image,
             srcOffset = IntOffset.Zero,
