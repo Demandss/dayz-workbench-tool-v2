@@ -279,6 +279,43 @@ class LayoutEditorState(
         }
     }
 
+    /** The `.styles` and `.imageset` files of the connected mods, found by a scan in the background. */
+    private var modStyleFiles: List<File> = emptyList()
+    private var modImageSetFiles: List<File> = emptyList()
+
+    // Read by whatever draws from the mods' files, so that it draws again once the scan is done
+    private var modScanDone by mutableStateOf(0)
+
+    private fun scanMods() {
+        val mods = modFolders?.map(::File)?.filter { it.isDirectory }.orEmpty()
+        if (mods.isEmpty()) return
+        scope.launch(Dispatchers.IO) {
+            val styles = mutableListOf<File>()
+            val sets = mutableListOf<File>()
+            for (mod in mods) {
+                mod
+                    .walkTopDown()
+                    .onEnter { it.name != ".git" }
+                    .filter { it.isFile }
+                    .forEach {
+                        when (it.extension.lowercase()) {
+                            "styles" -> styles += it
+                            "imageset" -> sets += it
+                        }
+                    }
+            }
+            modStyleFiles = styles
+            modImageSetFiles = sets
+            withContext(Dispatchers.Main) {
+                vanillaSheetFrom = null
+                imageSetIndexFor = null
+                skinPlans.clear()
+                skinCache.clear()
+                modScanDone++
+            }
+        }
+    }
+
     /** Reads the header of `dta/gui.pbo` in the game folder (a few dozen kilobytes). */
     private fun openGamePbo() {
         val pbo = File(gameFolder, "dta/gui.pbo").takeIf { gameFolder.isNotBlank() && it.isFile } ?: return
@@ -1055,6 +1092,8 @@ class LayoutEditorState(
         val roots = mutableListOf<File>()
         gamePbo?.let { roots += PboFile(it, "") }
         if (workDrivePath.isNotBlank()) roots += File(workDrivePath)
+        // A path in a layout starts with the folder of its mod
+        modFolders?.forEach { mod -> File(mod).parentFile?.let { roots += it } }
         var dir = nearPath?.let { File(it).parentFile }
         while (dir != null) {
             roots += dir
@@ -1466,6 +1505,7 @@ class LayoutEditorState(
             dir = dir.parentFile
         }
         if (workDrivePath.isNotBlank()) candidates += File(workDrivePath, clean)
+        modFolders?.forEach { mod -> File(mod).parentFile?.let { candidates += File(it, clean) } }
         candidates += File(File(imageSetPath).parentFile, clean.substringAfterLast('/'))
         return candidates.firstOrNull { it.isFile }
     }
@@ -1539,10 +1579,14 @@ class LayoutEditorState(
         widgetClass: String,
         nearPath: String?,
     ): List<StyleDef> {
-        val key = workDrivePath + "|" + nearPath
+        val key = workDrivePath + "|" + nearPath + "|" + modScanDone
         if (vanillaSheetFrom != key) {
             vanillaSheetFrom = key
-            vanillaSheet = findVanillaStyles(nearPath)?.let { runCatching { StylesFormat.parse(readTextOf(it)) }.getOrNull() }
+            val vanilla = findVanillaStyles(nearPath)?.let { runCatching { StylesFormat.parse(readTextOf(it)) }.getOrNull() }
+            // The styles of the connected mods come after the vanilla ones
+            val fromMods = modStyleFiles.mapNotNull { f -> runCatching { StylesFormat.parse(f.readText()) }.getOrNull() }
+            vanillaSheet =
+                if (fromMods.isEmpty()) vanilla else StyleSheet((vanilla?.widgets.orEmpty()) + fromMods.flatMap { it.widgets })
         }
         return vanillaSheet?.stylesFor(widgetClass).orEmpty()
     }
@@ -1680,21 +1724,25 @@ class LayoutEditorState(
 
     /** The imagesets of gui/imagesets next to the looknfeel folder, by the name written inside them. */
     private fun imageSetFiles(nearPath: String?): Map<String, File> {
-        val stylesFile = findVanillaStyles(nearPath) ?: return emptyMap()
-        val gui = stylesFile.parentFile?.parentFile ?: return emptyMap()
-        val setsDir = childOf(gui, "imagesets")
-        if (imageSetIndexFor != setsDir.absolutePath) {
-            imageSetIndexFor = setsDir.absolutePath
+        val scanned = modScanDone
+        val gui = findVanillaStyles(nearPath)?.parentFile?.parentFile
+        val setsDir = gui?.let { childOf(it, "imagesets") }
+        val key = "${setsDir?.absolutePath}|$scanned"
+        if (imageSetIndexFor != key) {
+            imageSetIndexFor = key
             parsedImageSets.clear()
-            imageSetIndex =
+
+            fun indexOf(files: List<File>) =
+                files.mapNotNull { f ->
+                    runCatching { ImageSetFormat.parse(readTextOf(f))?.name }.getOrNull()?.let { it to f }
+                }
+            val vanilla =
                 setsDir
-                    .listFiles { f -> f.extension.equals("imageset", ignoreCase = true) }
+                    ?.listFiles { f -> f.extension.equals("imageset", ignoreCase = true) }
                     .orEmpty()
-                    .mapNotNull { f ->
-                        val name =
-                            runCatching { ImageSetFormat.parse(readTextOf(f))?.name }.getOrNull()
-                        name?.let { it to f }
-                    }.toMap()
+                    .toList()
+            // A mod's imageset adds its name; it does not replace a vanilla one
+            imageSetIndex = (indexOf(modImageSetFiles).reversed() + indexOf(vanilla)).toMap()
         }
         return imageSetIndex
     }
@@ -1944,6 +1992,11 @@ class LayoutEditorState(
                 key.reset()
             }
         }
+    }
+
+    // After every property above, which the scan fills in when it is done
+    init {
+        scanMods()
     }
 }
 
