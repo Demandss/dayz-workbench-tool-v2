@@ -218,8 +218,9 @@ private fun DrawScope.drawGrid(
     var every = 1
     while (gridSize * every * zoom < 6f && every < 4096) every *= 2
     val step = gridSize.coerceAtLeast(1) * every
-    val minor = Color(0x1FFFFFFF)
-    val major = Color(0x40FFFFFF)
+    // Difference with white darkens a light widget and lightens a dark one, so the grid shows on both
+    val minor = Color(0x38FFFFFF)
+    val major = Color(0x66FFFFFF)
     val top = pan.y
     val bottom = refH * zoom + pan.y
     val left = pan.x
@@ -228,7 +229,7 @@ private fun DrawScope.drawGrid(
     var x = 0f
     while (x <= refW) {
         val sx = (x * zoom + pan.x).roundToInt() + 0.5f
-        drawLine(if (i % 5 == 0) major else minor, Offset(sx, top), Offset(sx, bottom), 1f)
+        drawLine(if (i % 5 == 0) major else minor, Offset(sx, top), Offset(sx, bottom), 1f, blendMode = BlendMode.Difference)
         x += step
         i++
     }
@@ -236,7 +237,7 @@ private fun DrawScope.drawGrid(
     var y = 0f
     while (y <= refH) {
         val sy = (y * zoom + pan.y).roundToInt() + 0.5f
-        drawLine(if (i % 5 == 0) major else minor, Offset(left, sy), Offset(right, sy), 1f)
+        drawLine(if (i % 5 == 0) major else minor, Offset(left, sy), Offset(right, sy), 1f, blendMode = BlendMode.Difference)
         y += step
         i++
     }
@@ -1012,9 +1013,9 @@ fun LayoutCanvas(
         } else {
             drawRect(Color(0xFF232528), atl, aSize)
             drawRect(Color(0xFF555860), atl, aSize, style = Stroke(1f))
-            // 5. Widgets, with the grid under them
-            if (state.showGrid) drawGrid(state.gridSize, refW, refH, zoom, pan)
+            // 5. Widgets, with the grid over them so that no widget hides it
             widgets(pan)
+            if (state.showGrid) drawGrid(state.gridSize, refW, refH, zoom, pan)
         }
 
         // 6. Safe frame overlay
