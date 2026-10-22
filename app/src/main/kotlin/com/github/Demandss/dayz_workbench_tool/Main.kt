@@ -46,7 +46,11 @@ fun main() =
 
         if (state.showLayoutEditor) {
             val scope = rememberCoroutineScope()
-            val leState = remember { LayoutEditorState(state.config.workDrivePath, scope) }
+            val leState =
+                remember {
+                    val mods = (state.config.clientMods + state.config.serverMods).filter { it.enabled }.map { it.path }.distinct()
+                    LayoutEditorState(state.config.workDrivePath, scope, state.config.gamePath, mods)
+                }
             val leTheme =
                 remember(state.config.selectedTheme, state.config.customThemes) {
                     resolveTheme(state.config.selectedTheme, state.config.customThemes)

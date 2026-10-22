@@ -54,6 +54,7 @@ import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.withAppea
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.withCopyOf
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.wrapped
 import com.github.demandss.dayz_workbench_tool.layout_editor.updateNode
+import com.github.demandss.dayz_workbench_tool.pbo.PboArchive
 import com.github.demandss.dayz_workbench_tool.styles.StyleDef
 import com.github.demandss.dayz_workbench_tool.styles.StyleSheet
 import com.github.demandss.dayz_workbench_tool.styles.StylesFormat
@@ -105,10 +106,34 @@ private const val HIGHLIGHT_LIFT = 0.27f
 
 enum class PaletteMode { COMMANDS, FILES, WIDGETS }
 
+/** A top level folder of the file tree: [label] is shown instead of the folder name. */
+class TreeRoot(
+    val path: String,
+    val label: String,
+)
+
 class LayoutEditorState(
     val workDrivePath: String,
     private val scope: CoroutineScope,
+    /** The folder of the game (the one with `dta`): its `gui.pbo` is the source of the vanilla layouts, styles and fonts. */
+    private val gameFolder: String = "",
+    /** The folders of the connected mods; null shows the whole work drive instead. */
+    private val modFolders: List<String>? = null,
 ) {
+    /** The unpacked `gui` of the game, once [unpackGameGui] has finished: a folder that holds `gui/...`. */
+    var gameGuiRoot by mutableStateOf<File?>(null)
+        private set
+
+    /** The top level folders of the file tree: the game's data and the connected mods. Null: the work drive itself. */
+    val treeRoots: List<TreeRoot>?
+        get() {
+            val mods = modFolders ?: return null
+            return buildList {
+                gameGuiRoot?.let { add(TreeRoot(it.path, "DayZ")) }
+                mods.filter { File(it).isDirectory }.forEach { add(TreeRoot(it, File(it).name.ifEmpty { it })) }
+            }
+        }
+
     val screenSize: Size =
         Toolkit.getDefaultToolkit().screenSize.let {
             Size(it.width.toFloat(), it.height.toFloat())
@@ -238,11 +263,39 @@ class LayoutEditorState(
     val savedSelectedPath: String get() = treeSelected
 
     init {
+        unpackGameGui()
         startWatcher()
         loadSession().let {
             treeExpanded = it.expandedDirs
             treeSelected = it.selectedPath
             recentFiles.addAll(it.recent.filter { f -> File(f).isFile })
+        }
+    }
+
+    /**
+     * Unpacks `dta/gui.pbo` of the game folder into a cache named after the build, once per build, and makes it the newest
+     * source of vanilla files. It is done in the background: until it ends the editor uses what the work drive holds.
+     */
+    private fun unpackGameGui() {
+        val pbo = File(gameFolder, "dta/gui.pbo").takeIf { gameFolder.isNotBlank() && it.isFile } ?: return
+        scope.launch(Dispatchers.IO) {
+            runCatching {
+                val archive = PboArchive.open(pbo) ?: return@runCatching
+                val base = File(System.getenv("APPDATA") ?: System.getProperty("user.home"), ".dayzworkbenchtool/game-cache")
+                val target = File(base, "gui-${archive.version.ifEmpty { pbo.length().toString() }}")
+                val done = File(target, ".complete")
+                if (!done.isFile) {
+                    target.deleteRecursively()
+                    val gui = File(target, "gui")
+                    archive.extractTo(gui)
+                    File(gui, "rap.txt").writeText("version=${archive.version}\n")
+                    done.writeText(pbo.length().toString())
+                    // The caches of older builds are no use any more
+                    base.listFiles { f -> f.isDirectory && f != target && f.name.startsWith("gui-") }?.forEach { it.deleteRecursively() }
+                }
+                resourceRootsCache.clear()
+                withContext(Dispatchers.Main) { gameGuiRoot = target }
+            }
         }
     }
 
@@ -1010,6 +1063,7 @@ class LayoutEditorState(
     /** The work drive and every folder above [nearPath]: where `gui/...` paths are looked for. */
     private fun fileRoots(nearPath: String?): List<File> {
         val roots = mutableListOf<File>()
+        gameGuiRoot?.let { roots += it }
         if (workDrivePath.isNotBlank()) roots += File(workDrivePath)
         var dir = nearPath?.let { File(it).parentFile }
         while (dir != null) {
@@ -1027,7 +1081,7 @@ class LayoutEditorState(
      * draw an old picture, so the newest is tried first.
      */
     private fun resourceRoots(nearPath: String?): List<File> =
-        resourceRootsCache.getOrPut("$workDrivePath|${nearPath?.let { File(it).parent }}") {
+        resourceRootsCache.getOrPut("$workDrivePath|$gameGuiRoot|${nearPath?.let { File(it).parent }}") {
             val all = fileRoots(nearPath).distinct()
             val vanilla = all.filter { File(it, "gui/looknfeel/dayzwidgets.styles").isFile }
 

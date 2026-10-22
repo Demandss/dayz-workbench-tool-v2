@@ -21,7 +21,9 @@ fun main(args: Array<String>) =
             }
         val state =
             remember {
-                LayoutEditorState(workDrivePath, scope).also { s ->
+                val config = ConfigManager.App.load()
+                val mods = (config.clientMods + config.serverMods).filter { it.enabled }.map { it.path }.distinct()
+                LayoutEditorState(workDrivePath, scope, config.gamePath, mods).also { s ->
                     val files = args.drop(1)
                     if (files.isEmpty()) {
                         s.restoreSession()

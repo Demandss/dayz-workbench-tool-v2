@@ -5,16 +5,19 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.hoverable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.Offset
@@ -62,9 +65,17 @@ private data class TreeEntry(
     val hint: String = "",
 )
 
+/** A top level folder of the tree shown under [label]. */
+private class TreeTop(
+    val path: Path,
+    val label: String,
+)
+
 private fun buildFlatTree(
-    root: Path,
+    tops: List<TreeTop>,
     expandedDirs: Set<Path>,
+    // Lists the contents of the folder instead of showing the folder as a node
+    listContents: Boolean = false,
 ): List<TreeEntry> {
     val result = mutableListOf<TreeEntry>()
 
@@ -97,7 +108,15 @@ private fun buildFlatTree(
             if (isDir && expandedDirs.contains(child)) traverse(child, depth + 1)
         }
     }
-    if (Files.exists(root)) traverse(root, 0)
+    for (top in tops) {
+        if (!Files.exists(top.path)) continue
+        if (listContents) {
+            traverse(top.path, 0)
+            continue
+        }
+        result.add(TreeEntry(top.path, top.label, true, 0))
+        if (expandedDirs.contains(top.path)) traverse(top.path, 1)
+    }
     return result
 }
 
@@ -138,10 +157,22 @@ fun FileTreePanel(
         state.saveTreeState(expandedDirs.map { it.toString() }, selectedPath?.toString().orEmpty())
     }
 
+    // The connected mods and the game; without a list of mods (the editor on its own) the work drive itself
+    val treeRoots = state.treeRoots
+    val tops =
+        remember(treeRoots?.map { it.path to it.label }, workRoot) {
+            treeRoots?.mapNotNull { r -> runCatching { TreeTop(Path.of(r.path), r.label) }.getOrNull() }
+                ?: listOfNotNull(runCatching { TreeTop(Path.of(workRoot), "") }.getOrNull())
+        }
+    val wholeDrive = treeRoots == null
+
     val flatList =
-        remember(refreshTick, expandedDirs.toList()) {
-            val root = runCatching { Path.of(workRoot) }.getOrNull()
-            if (root != null) buildFlatTree(root, expandedDirs.toHashSet()) else emptyList()
+        remember(refreshTick, expandedDirs.toList(), tops) {
+            if (wholeDrive) {
+                tops.firstOrNull()?.let { buildFlatTree(listOf(it), expandedDirs.toHashSet(), listContents = true) }.orEmpty()
+            } else {
+                buildFlatTree(tops, expandedDirs.toHashSet())
+            }
         }
 
     var query by remember { mutableStateOf("") }
@@ -149,7 +180,7 @@ fun FileTreePanel(
     var searching by remember { mutableStateOf(false) }
     val searchActive = query.isNotBlank()
 
-    LaunchedEffect(query, refreshTick, workRoot) {
+    LaunchedEffect(query, refreshTick, tops) {
         if (query.isBlank()) {
             searchResults = emptyList()
             searching = false
@@ -157,18 +188,19 @@ fun FileTreePanel(
         }
         searching = true
         delay(250) // typing restarts this effect, so only the last query is searched
-        val root = runCatching { Path.of(workRoot) }.getOrNull()
-        searchResults = if (root != null) withContext(Dispatchers.IO) { searchTree(root, query) } else emptyList()
+        searchResults = withContext(Dispatchers.IO) { tops.flatMap { searchTree(it, query) }.take(SEARCH_LIMIT) }
         searching = false
     }
     val shownList = if (searchActive) searchResults else flatList
-    val rootPath = runCatching { Path.of(workRoot) }.getOrNull()
+    // Where a new file goes with nothing selected: the first mod, or the work drive
+    val rootPath = (tops.firstOrNull { it.label != "DayZ" } ?: tops.firstOrNull())?.path
+    val isInsideTops: (Path) -> Boolean = { dir -> tops.any { dir.startsWith(it.path) } }
 
     // File watcher — watch root and all expanded dirs
-    DisposableEffect(workRoot, expandedDirs.toList()) {
+    DisposableEffect(tops, expandedDirs.toList()) {
         val ws = FileSystems.getDefault().newWatchService()
         val toWatch = mutableListOf<Path>()
-        runCatching { toWatch.add(Path.of(workRoot)) }
+        tops.forEach { toWatch.add(it.path) }
         expandedDirs.forEach { toWatch.add(it) }
 
         for (dir in toWatch) {
@@ -280,7 +312,7 @@ fun FileTreePanel(
                                         withContext(Dispatchers.Main) {
                                             if (created != null) {
                                                 var dir: Path? = parentDir
-                                                while (dir != null && dir != rootPath) {
+                                                while (dir != null && isInsideTops(dir)) {
                                                     if (!expandedDirs.contains(dir)) expandedDirs.add(dir)
                                                     dir = dir.parent
                                                 }
@@ -351,9 +383,8 @@ fun FileTreePanel(
                                 },
                                 onDoubleClick = {
                                     if (entry.isDir && searchActive) {
-                                        val rootPath = runCatching { Path.of(workRoot) }.getOrNull()
                                         var dir: Path? = entry.path
-                                        while (dir != null && dir != rootPath) {
+                                        while (dir != null && isInsideTops(dir)) {
                                             if (!expandedDirs.contains(dir)) expandedDirs.add(dir)
                                             dir = dir.parent
                                         }
@@ -791,10 +822,17 @@ private const val SEARCH_LIMIT = 300
 
 /** Case-insensitive match of every space separated word against the file or folder name, anywhere under [root]. */
 private suspend fun searchTree(
-    root: Path,
+    top: TreeTop,
     query: String,
 ): List<TreeEntry> =
     coroutineScope {
+        val root = top.path
+        // A result of a mod or of the game tells which one it is in
+        val prefix =
+            top.label
+                .takeIf { it.isNotEmpty() }
+                ?.let { "$it/" }
+                .orEmpty()
         val words =
             query
                 .trim()
@@ -812,8 +850,8 @@ private suspend fun searchTree(
                 val name = path.fileName?.toString().orEmpty()
                 val lower = name.lowercase()
                 if (name.isNotEmpty() && words.all { lower.contains(it) }) {
-                    val folder = path.parent?.let { root.relativize(it).toString() }.orEmpty()
-                    found.add(TreeEntry(path, name, isDir, 0, folder))
+                    val folder = prefix + path.parent?.let { root.relativize(it).toString() }.orEmpty()
+                    found.add(TreeEntry(path, name, isDir, 0, folder.trimEnd('/')))
                 }
             }
             return if (found.size >= SEARCH_LIMIT) FileVisitResult.TERMINATE else FileVisitResult.CONTINUE
@@ -849,31 +887,41 @@ private fun SearchField(
     value: String,
     onChange: (String) -> Unit,
 ) {
-    Box(
-        Modifier
-            .fillMaxWidth()
-            .height(24.dp)
-            .background(FrameBackground)
-            .border(1.dp, DarkenedBorder)
-            .padding(horizontal = 6.dp),
-        contentAlignment = Alignment.CenterStart,
-    ) {
-        BasicTextField(
-            value = value,
-            onValueChange = onChange,
-            singleLine = true,
-            textStyle = TextStyle(color = TextForeground, fontSize = 11.sp),
-            cursorBrush = SolidColor(TextForeground),
-            modifier = Modifier.fillMaxWidth().padding(end = 16.dp),
-        )
-        if (value.isEmpty()) {
-            Text("Поиск по имени…", color = GhostlyText, fontSize = 11.sp)
-        } else {
-            Box(Modifier.align(Alignment.CenterEnd)) {
+    val focus = remember { MutableInteractionSource() }
+    val focused by focus.collectIsFocusedAsState()
+    // A padded field of its own, lighter than the panel and with a frame that lights up while typing
+    Box(Modifier.fillMaxWidth().background(FrameBackground).padding(horizontal = 6.dp, vertical = 5.dp)) {
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .height(26.dp)
+                .clip(RoundedCornerShape(4.dp))
+                .background(ElementsBackground)
+                .border(1.dp, if (focused) SelectColor else DarkenedBorder, RoundedCornerShape(4.dp))
+                .padding(horizontal = 7.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            AppIconView(AppIcon.UI_SEARCH, size = 13.dp, tint = if (focused) TextForeground else GhostlyText)
+            Spacer(Modifier.width(6.dp))
+            Box(Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
+                BasicTextField(
+                    value = value,
+                    onValueChange = onChange,
+                    singleLine = true,
+                    textStyle = TextStyle(color = TextForeground, fontSize = 11.sp),
+                    cursorBrush = SolidColor(TextForeground),
+                    interactionSource = focus,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                if (value.isEmpty()) {
+                    Text("Поиск по имени…", color = GhostlyText, fontSize = 11.sp)
+                }
+            }
+            if (value.isNotEmpty()) {
                 Tip("Очистить поиск") {
                     Box(
                         Modifier
-                            .size(14.dp)
+                            .size(16.dp)
                             .clickable(
                                 interactionSource = remember { MutableInteractionSource() },
                                 indication = null,
