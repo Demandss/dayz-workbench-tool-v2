@@ -190,7 +190,13 @@ object McpHost {
                     buildJsonObject {
                         val asked = params["protocolVersion"]?.jsonPrimitive?.contentOrNull
                         put("protocolVersion", if (asked in SUPPORTED_VERSIONS) asked else SUPPORTED_VERSIONS.first())
-                        put("capabilities", buildJsonObject { put("tools", buildJsonObject { }) })
+                        put(
+                            "capabilities",
+                            buildJsonObject {
+                                put("tools", buildJsonObject { })
+                                put("prompts", buildJsonObject { })
+                            },
+                        )
                         put(
                             "serverInfo",
                             buildJsonObject {
@@ -198,16 +204,21 @@ object McpHost {
                                 put("version", "1.0.0")
                             },
                         )
-                        put(
-                            "instructions",
-                            "Tools to read and edit the layout open in the DayZ Layout Editor, change the view and take screenshots. " +
-                                "Widgets are found by id, by name or by a path such as rootFrame/Header/CloseImg.",
-                        )
+                        put("instructions", McpGuide.instructions)
                     }
                 }
 
                 "ping" -> {
                     buildJsonObject { }
+                }
+
+                "prompts/list" -> {
+                    McpGuide.listPrompts()
+                }
+
+                "prompts/get" -> {
+                    val name = params["name"]?.jsonPrimitive?.contentOrNull ?: return error(id, -32602, "Missing prompt name")
+                    McpGuide.getPrompt(name, params["arguments"] as? JsonObject) ?: return error(id, -32602, "Unknown prompt: $name")
                 }
 
                 "tools/list" -> {
