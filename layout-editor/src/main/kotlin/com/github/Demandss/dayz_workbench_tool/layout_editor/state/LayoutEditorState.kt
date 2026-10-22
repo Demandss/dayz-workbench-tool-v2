@@ -55,6 +55,12 @@ import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.withCopyO
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.wrapped
 import com.github.demandss.dayz_workbench_tool.layout_editor.updateNode
 import com.github.demandss.dayz_workbench_tool.pbo.PboArchive
+import com.github.demandss.dayz_workbench_tool.pbo.PboFile
+import com.github.demandss.dayz_workbench_tool.pbo.childOf
+import com.github.demandss.dayz_workbench_tool.pbo.fileAt
+import com.github.demandss.dayz_workbench_tool.pbo.inRoot
+import com.github.demandss.dayz_workbench_tool.pbo.readBytesOf
+import com.github.demandss.dayz_workbench_tool.pbo.readTextOf
 import com.github.demandss.dayz_workbench_tool.styles.StyleDef
 import com.github.demandss.dayz_workbench_tool.styles.StyleSheet
 import com.github.demandss.dayz_workbench_tool.styles.StylesFormat
@@ -106,10 +112,11 @@ private const val HIGHLIGHT_LIFT = 0.27f
 
 enum class PaletteMode { COMMANDS, FILES, WIDGETS }
 
-/** A top level folder of the file tree: [label] is shown instead of the folder name. */
+/** A top level folder of the file tree: [label] is shown instead of the folder name; [archive] when it is a PBO. */
 class TreeRoot(
     val path: String,
     val label: String,
+    val archive: PboArchive? = null,
 )
 
 class LayoutEditorState(
@@ -120,8 +127,8 @@ class LayoutEditorState(
     /** The folders of the connected mods; null shows the whole work drive instead. */
     private val modFolders: List<String>? = null,
 ) {
-    /** The unpacked `gui` of the game, once [unpackGameGui] has finished: a folder that holds `gui/...`. */
-    var gameGuiRoot by mutableStateOf<File?>(null)
+    /** `gui.pbo` of the game once its header is read. Its files are read from it when needed, never unpacked. */
+    var gamePbo by mutableStateOf<PboArchive?>(null)
         private set
 
     /** The top level folders of the file tree: the game's data and the connected mods. Null: the work drive itself. */
@@ -129,7 +136,7 @@ class LayoutEditorState(
         get() {
             val mods = modFolders ?: return null
             return buildList {
-                gameGuiRoot?.let { add(TreeRoot(it.path, "DayZ")) }
+                gamePbo?.let { add(TreeRoot(it.file.path, "DayZ", it)) }
                 mods.filter { File(it).isDirectory }.forEach { add(TreeRoot(it, File(it).name.ifEmpty { it })) }
             }
         }
@@ -263,7 +270,7 @@ class LayoutEditorState(
     val savedSelectedPath: String get() = treeSelected
 
     init {
-        unpackGameGui()
+        openGamePbo()
         startWatcher()
         loadSession().let {
             treeExpanded = it.expandedDirs
@@ -272,31 +279,10 @@ class LayoutEditorState(
         }
     }
 
-    /**
-     * Unpacks `dta/gui.pbo` of the game folder into a cache named after the build, once per build, and makes it the newest
-     * source of vanilla files. It is done in the background: until it ends the editor uses what the work drive holds.
-     */
-    private fun unpackGameGui() {
+    /** Reads the header of `dta/gui.pbo` in the game folder (a few dozen kilobytes). */
+    private fun openGamePbo() {
         val pbo = File(gameFolder, "dta/gui.pbo").takeIf { gameFolder.isNotBlank() && it.isFile } ?: return
-        scope.launch(Dispatchers.IO) {
-            runCatching {
-                val archive = PboArchive.open(pbo) ?: return@runCatching
-                val base = File(System.getenv("APPDATA") ?: System.getProperty("user.home"), ".dayzworkbenchtool/game-cache")
-                val target = File(base, "gui-${archive.version.ifEmpty { pbo.length().toString() }}")
-                val done = File(target, ".complete")
-                if (!done.isFile) {
-                    target.deleteRecursively()
-                    val gui = File(target, "gui")
-                    archive.extractTo(gui)
-                    File(gui, "rap.txt").writeText("version=${archive.version}\n")
-                    done.writeText(pbo.length().toString())
-                    // The caches of older builds are no use any more
-                    base.listFiles { f -> f.isDirectory && f != target && f.name.startsWith("gui-") }?.forEach { it.deleteRecursively() }
-                }
-                resourceRootsCache.clear()
-                withContext(Dispatchers.Main) { gameGuiRoot = target }
-            }
-        }
+        gamePbo = PboArchive.open(pbo)?.also { PboFile.register(it) }
     }
 
     fun openFile(path: String) {
@@ -308,7 +294,7 @@ class LayoutEditorState(
             return
         }
         runCatching {
-            val root = LayoutParser.parse(File(normalized).readText()).toEditorNode()
+            val root = LayoutParser.parse(readTextOf(fileAt(normalized))).toEditorNode()
             openFiles += LayoutDocument(path = normalized, root = root)
             noteRecent(normalized)
             selectLayout(openFiles.lastIndex)
@@ -335,6 +321,10 @@ class LayoutEditorState(
     fun saveActiveFile() {
         val idx = activeFileIndex
         val doc = openFiles.getOrNull(idx) ?: return
+        if (PboFile.resolve(doc.path) != null) {
+            notify("Файл игры только для чтения: сохраните копию в свой мод", ToastKind.ERROR)
+            return
+        }
         ownWrites[doc.path] = System.currentTimeMillis()
         runCatching {
             File(doc.path).writeText(LayoutSerializer.serialize(doc.root.toWidgetNode()))
@@ -350,7 +340,7 @@ class LayoutEditorState(
         val idx = openFiles.indexOfFirst { it.path == path }
         if (idx < 0) return
         runCatching {
-            val root = LayoutParser.parse(File(path).readText()).toEditorNode()
+            val root = LayoutParser.parse(readTextOf(fileAt(path))).toEditorNode()
             openFiles[idx] = LayoutDocument(path = path, root = root)
         }
         filesChangedOnDisk.remove(path)
@@ -998,7 +988,7 @@ class LayoutEditorState(
         val family = last.trimEnd { it.isDigit() }
         val fixed = last.takeLastWhile { it.isDigit() }.toIntOrNull()
         val roots = resourceRoots(nearPath)
-        val sizes = BITMAP_FONT_SIZES.filter { size -> roots.any { File(it, "$directory/$family$size.fnt").isFile } }
+        val sizes = BITMAP_FONT_SIZES.filter { size -> roots.any { inRoot(it, "$directory/$family$size.fnt").isFile } }
         if (sizes.isEmpty()) return sdfFontFor(path, nearPath)
         val size =
             when {
@@ -1020,11 +1010,11 @@ class LayoutEditorState(
         path: String,
         roots: List<File>,
     ): BitmapFont? {
-        fun find(extension: String) = roots.map { File(it, "$path.$extension") }.firstOrNull { it.isFile }
+        fun find(extension: String) = roots.map { inRoot(it, "$path.$extension") }.firstOrNull { it.isFile }
         val fnt = find("fnt") ?: return null
         val edds = find("edds") ?: return null
         val (size, glyphs) = BitmapFont.readGlyphs(fnt) ?: return null
-        return BitmapFont(path, size, glyphs, EddsCodec.decode(edds).toBufferedImage())
+        return BitmapFont(path, size, glyphs, EddsCodec.decode(readBytesOf(edds)).toBufferedImage())
     }
 
     /** The name of the font of a text widget: `font`, else the font of its style, else the MetronBook of the style `Normal`. */
@@ -1063,7 +1053,7 @@ class LayoutEditorState(
     /** The work drive and every folder above [nearPath]: where `gui/...` paths are looked for. */
     private fun fileRoots(nearPath: String?): List<File> {
         val roots = mutableListOf<File>()
-        gameGuiRoot?.let { roots += it }
+        gamePbo?.let { roots += PboFile(it, "") }
         if (workDrivePath.isNotBlank()) roots += File(workDrivePath)
         var dir = nearPath?.let { File(it).parentFile }
         while (dir != null) {
@@ -1081,14 +1071,14 @@ class LayoutEditorState(
      * draw an old picture, so the newest is tried first.
      */
     private fun resourceRoots(nearPath: String?): List<File> =
-        resourceRootsCache.getOrPut("$workDrivePath|$gameGuiRoot|${nearPath?.let { File(it).parent }}") {
+        resourceRootsCache.getOrPut("$workDrivePath|${gamePbo?.file}|${nearPath?.let { File(it).parent }}") {
             val all = fileRoots(nearPath).distinct()
-            val vanilla = all.filter { File(it, "gui/looknfeel/dayzwidgets.styles").isFile }
+            val vanilla = all.filter { inRoot(it, "gui/looknfeel/dayzwidgets.styles").isFile }
 
             fun build(root: File) =
                 runCatching {
                     Regex("version=(\\d+)")
-                        .find(File(root, "gui/rap.txt").readText())
+                        .find(readTextOf(inRoot(root, "gui/rap.txt")))
                         ?.groupValues
                         ?.get(1)
                         ?.toLong()
@@ -1104,17 +1094,17 @@ class LayoutEditorState(
         fun find(
             relative: String,
             extension: String,
-        ) = roots.map { File(it, "$relative.$extension") }.firstOrNull { it.isFile }
+        ) = roots.map { inRoot(it, "$relative.$extension") }.firstOrNull { it.isFile }
         val fnt = find(path, "fnt") ?: return null
         val edds = find(path, "edds") ?: return null
         val (size, glyphs) = SdfFont.readGlyphs(fnt) ?: return null
-        val atlas = EddsCodec.decode(edds).toBufferedImage()
+        val atlas = EddsCodec.decode(readBytesOf(edds)).toBufferedImage()
         val cell = (glyphs[1].x - glyphs[0].x - 2).coerceAtLeast(8)
         // Advances in thousandths of an em: the biggest size of the family has the finest ones (a size 72 font tells them to
         // 1/72), the 24 px MetronBook has them exactly in its text description
         val family = path.replace(Regex("\\d+$"), "")
         val fine = find(family + "72", "fnt")?.let { SdfFont.readGlyphs(it) }
-        val exact = find(path, "fsdf")?.let { runCatching { it.readText() }.getOrNull() }?.let(::fsdfAdvances)
+        val exact = find(path, "fsdf")?.let { runCatching { readTextOf(it) }.getOrNull() }?.let(::fsdfAdvances)
         val advances =
             IntArray(SdfFont.LAST - SdfFont.FIRST + 1) { i ->
                 exact?.get(i) ?: fine?.let { (fineSize, records) -> records[i].advance * 1000 / fineSize }
@@ -1241,13 +1231,13 @@ class LayoutEditorState(
 
     private fun loadTexture(path: String): ImageBitmap? {
         val file =
-            resourceRoots(activeFile?.path).map { File(it, path) }.firstOrNull { it.isFile }
+            resourceRoots(activeFile?.path).map { inRoot(it, path) }.firstOrNull { it.isFile }
                 ?: return null
         val image =
             if (file.extension.equals("edds", ignoreCase = true)) {
-                EddsCodec.decode(file).toBufferedImage()
+                EddsCodec.decode(readBytesOf(file)).toBufferedImage()
             } else {
-                ImageIO.read(file)
+                ImageIO.read(java.io.ByteArrayInputStream(readBytesOf(file)))
             }
         return image?.toComposeImageBitmap()
     }
@@ -1317,7 +1307,7 @@ class LayoutEditorState(
             selectImageSet(existing)
             return
         }
-        val parsed = runCatching { ImageSetFormat.parse(File(normalized).readText()) }
+        val parsed = runCatching { ImageSetFormat.parse(readTextOf(fileAt(normalized))) }
         val set = parsed.getOrNull()
         if (set == null) {
             notify("Не удалось открыть ${File(path).name}: " + (parsed.exceptionOrNull()?.message ?: "это не imageset"), ToastKind.ERROR)
@@ -1372,7 +1362,7 @@ class LayoutEditorState(
             selectStyles(existing)
             return
         }
-        val parsed = runCatching { StylesFormat.parse(File(normalized).readText()) }
+        val parsed = runCatching { StylesFormat.parse(readTextOf(fileAt(normalized))) }
         val sheet = parsed.getOrNull()
         if (sheet == null) {
             notify("Не удалось открыть ${File(path).name}: " + (parsed.exceptionOrNull()?.message ?: "это не .styles"), ToastKind.ERROR)
@@ -1470,9 +1460,9 @@ class LayoutEditorState(
         if (clean.isEmpty()) return null
         // The folders above the imageset come first: a texture belongs to the extraction its imageset is in
         val candidates = mutableListOf<File>()
-        var dir = File(imageSetPath).parentFile
+        var dir = fileAt(imageSetPath).parentFile
         while (dir != null) {
-            candidates += File(dir, clean)
+            candidates += inRoot(dir, clean)
             dir = dir.parentFile
         }
         if (workDrivePath.isNotBlank()) candidates += File(workDrivePath, clean)
@@ -1495,9 +1485,9 @@ class LayoutEditorState(
                                     ignoreCase = true,
                                 )
                             ) {
-                                EddsCodec.decode(file).toBufferedImage()
+                                EddsCodec.decode(readBytesOf(file)).toBufferedImage()
                             } else {
-                                ImageIO.read(file)
+                                ImageIO.read(java.io.ByteArrayInputStream(readBytesOf(file)))
                             }
                         image?.toComposeImageBitmap()
                     }.onFailure { error ->
@@ -1552,14 +1542,14 @@ class LayoutEditorState(
         val key = workDrivePath + "|" + nearPath
         if (vanillaSheetFrom != key) {
             vanillaSheetFrom = key
-            vanillaSheet = findVanillaStyles(nearPath)?.let { runCatching { StylesFormat.parse(it.readText()) }.getOrNull() }
+            vanillaSheet = findVanillaStyles(nearPath)?.let { runCatching { StylesFormat.parse(readTextOf(it)) }.getOrNull() }
         }
         return vanillaSheet?.stylesFor(widgetClass).orEmpty()
     }
 
     private fun findVanillaStyles(nearPath: String?): File? {
         val relative = "gui/looknfeel/dayzwidgets.styles"
-        return resourceRoots(nearPath).map { File(it, relative) }.firstOrNull { it.isFile }
+        return resourceRoots(nearPath).map { inRoot(it, relative) }.firstOrNull { it.isFile }
     }
 
     // imageset name -> file, for the folder gui/imagesets next to gui/looknfeel
@@ -1692,7 +1682,7 @@ class LayoutEditorState(
     private fun imageSetFiles(nearPath: String?): Map<String, File> {
         val stylesFile = findVanillaStyles(nearPath) ?: return emptyMap()
         val gui = stylesFile.parentFile?.parentFile ?: return emptyMap()
-        val setsDir = File(gui, "imagesets")
+        val setsDir = childOf(gui, "imagesets")
         if (imageSetIndexFor != setsDir.absolutePath) {
             imageSetIndexFor = setsDir.absolutePath
             parsedImageSets.clear()
@@ -1702,7 +1692,7 @@ class LayoutEditorState(
                     .orEmpty()
                     .mapNotNull { f ->
                         val name =
-                            runCatching { ImageSetFormat.parse(f.readText())?.name }.getOrNull()
+                            runCatching { ImageSetFormat.parse(readTextOf(f))?.name }.getOrNull()
                         name?.let { it to f }
                     }.toMap()
         }
@@ -1710,7 +1700,7 @@ class LayoutEditorState(
     }
 
     private fun parsedImageSet(file: File) =
-        parsedImageSets.getOrPut(file.absolutePath) { runCatching { ImageSetFormat.parse(file.readText()) }.getOrNull() }
+        parsedImageSets.getOrPut(file.absolutePath) { runCatching { ImageSetFormat.parse(readTextOf(file)) }.getOrNull() }
 
     /** The imageset called [setName] next to the looknfeel folder, or null. */
     fun imageSetOf(
@@ -1891,14 +1881,15 @@ class LayoutEditorState(
 
     private fun loadTextureDocument(path: String) {
         scope.launch(Dispatchers.IO) {
-            val file = File(path)
+            val file = fileAt(path)
             val loaded =
                 try {
                     if (file.extension.equals("edds", ignoreCase = true)) {
-                        val image = EddsCodec.decode(file)
+                        val image = EddsCodec.decode(readBytesOf(file))
                         TextureDocument(path, image.toBufferedImage(), image.format, image.mipCount, file.length(), loading = false)
                     } else {
-                        val image = ImageIO.read(file) ?: error("Неподдерживаемый формат изображения")
+                        val image =
+                            ImageIO.read(java.io.ByteArrayInputStream(readBytesOf(file))) ?: error("Неподдерживаемый формат изображения")
                         TextureDocument(path, image, file.extension.uppercase(), 1, file.length(), loading = false)
                     }
                 } catch (e: Exception) {

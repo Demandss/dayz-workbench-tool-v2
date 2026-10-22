@@ -7,7 +7,6 @@ import java.io.FileInputStream
 import java.io.RandomAccessFile
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
-import java.nio.channels.FileChannel
 
 /**
  * A packed game folder (`dta/gui.pbo`): a header listing the files, then their bytes one after the other.
@@ -19,7 +18,8 @@ import java.nio.channels.FileChannel
  * an entry without a name and without a size ends the header
  * ```
  *
- * Only unpacked entries (method 0) are read: that is how the game ships `gui.pbo`.
+ * Only unpacked entries (method 0) are read: that is how the game ships `gui.pbo`. Nothing is unpacked to disk: an entry is read
+ * from the archive when it is asked for.
  */
 class PboArchive private constructor(
     val file: File,
@@ -36,49 +36,34 @@ class PboArchive private constructor(
     /** The game build the archive was made for (the `version` of its header), or an empty text. */
     val version: String get() = properties["version"].orEmpty()
 
-    /** Writes every entry for which [accept] is true under [directory], keeping its folders. Returns how many were written. */
-    fun extractTo(
-        directory: File,
-        accept: (String) -> Boolean = { true },
-    ): Int {
-        var count = 0
-        val root = directory.canonicalFile
-        RandomAccessFile(file, "r").use { raf ->
-            val channel = raf.channel
-            for (entry in entries) {
-                if (!accept(entry.path)) continue
-                val target = File(root, entry.path).canonicalFile
-                // A path that climbs out of the folder is not written
-                if (!target.path.startsWith(root.path + File.separator)) continue
-                target.parentFile.mkdirs()
-                target.outputStream().channel.use { out -> copy(channel, entry.offset, entry.size, out) }
-                count++
-            }
+    private val byPath: Map<String, Entry> = entries.associateBy { it.path.lowercase() }
+
+    /** The folder the archive stands for in game paths (`gui` for gui.pbo), or an empty text. */
+    val prefix: String get() = properties["prefix"].orEmpty().replace('\\', '/').trim('/')
+
+    /** The entry at [path] (`/` separated, case does not matter), or null. */
+    fun entry(path: String): Entry? = byPath[path.lowercase()]
+
+    /** The names directly inside the folder [dir] (empty for the top), folders marked by a trailing `/`, in no order. */
+    fun list(dir: String): List<String> {
+        val start = if (dir.isEmpty()) "" else dir.trimEnd('/').lowercase() + "/"
+        val names = LinkedHashSet<String>()
+        for (entry in entries) {
+            if (!entry.path.lowercase().startsWith(start)) continue
+            val rest = entry.path.substring(start.length)
+            val slash = rest.indexOf('/')
+            names += if (slash < 0) rest else rest.substring(0, slash) + "/"
         }
-        return count
+        return names.toList()
     }
 
-    /** The bytes of one entry, or null when it is not in the archive. */
+    /** The bytes of one entry, read from the archive when asked for and not kept; null when it is not in the archive. */
     fun read(path: String): ByteArray? {
-        val entry = entries.firstOrNull { it.path.equals(path, ignoreCase = true) } ?: return null
+        val entry = entry(path) ?: return null
         RandomAccessFile(file, "r").use { raf ->
             val buffer = ByteBuffer.allocate(entry.size.toInt())
             raf.channel.read(buffer, entry.offset)
             return buffer.array()
-        }
-    }
-
-    private fun copy(
-        from: FileChannel,
-        offset: Long,
-        size: Long,
-        to: FileChannel,
-    ) {
-        var done = 0L
-        while (done < size) {
-            val moved = from.transferTo(offset + done, size - done, to)
-            if (moved <= 0) break
-            done += moved
         }
     }
 

@@ -38,6 +38,8 @@ import com.github.demandss.dayz_workbench_tool.layout.NewFileKind
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.Confirmation
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.LayoutEditorState
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.ToastKind
+import com.github.demandss.dayz_workbench_tool.pbo.PboArchive
+import com.github.demandss.dayz_workbench_tool.pbo.PboFile
 import com.github.demandss.dayz_workbench_tool.texture.EddsCodec
 import com.github.demandss.dayz_workbench_tool.ui.components.DarkIconButton
 import com.github.demandss.dayz_workbench_tool.ui.components.Tip
@@ -54,6 +56,9 @@ import kotlin.math.roundToInt
 // Data model
 // ---------------------------------------------------------------------------
 
+/** Whether a path points into a game PBO. */
+private fun isInPbo(path: Path): Boolean = PboFile.resolve(path.toString()) != null
+
 private val TEXTURE_EXTENSIONS = listOf(".edds", ".png", ".jpg", ".jpeg")
 
 private data class TreeEntry(
@@ -69,21 +74,26 @@ private data class TreeEntry(
 private class TreeTop(
     val path: Path,
     val label: String,
-)
+    // Set for a PBO: its folders are read from the archive; the path of an entry is the path of the archive plus its inner path
+    val archive: PboArchive? = null,
+) {
+    /** The inner path of [entry] in the archive, empty for the archive itself. */
+    fun innerOf(entry: Path): String =
+        entry
+            .toString()
+            .substring(path.toString().length)
+            .trimStart('\\', '/')
+            .replace('\\', '/')
 
-private fun buildFlatTree(
-    tops: List<TreeTop>,
-    expandedDirs: Set<Path>,
-    // Lists the contents of the folder instead of showing the folder as a node
-    listContents: Boolean = false,
-): List<TreeEntry> {
-    val result = mutableListOf<TreeEntry>()
+    fun isFolder(entry: Path): Boolean = if (archive != null) archive.list(innerOf(entry)).isNotEmpty() else Files.isDirectory(entry)
 
-    fun traverse(
-        dir: Path,
-        depth: Int,
-    ) {
-        val children =
+    fun children(dir: Path): List<Path> =
+        if (archive != null) {
+            archive
+                .list(innerOf(dir))
+                .sortedWith(compareBy({ !it.endsWith("/") }, { it.lowercase() }))
+                .map { dir.resolve(it.trimEnd('/')) }
+        } else {
             runCatching {
                 Files
                     .list(dir)
@@ -102,20 +112,36 @@ private fun buildFlatTree(
                         },
                     ).toList()
             }.getOrDefault(emptyList())
-        for (child in children) {
-            val isDir = Files.isDirectory(child)
+        }
+}
+
+private fun buildFlatTree(
+    tops: List<TreeTop>,
+    expandedDirs: Set<Path>,
+    // Lists the contents of the folder instead of showing the folder as a node
+    listContents: Boolean = false,
+): List<TreeEntry> {
+    val result = mutableListOf<TreeEntry>()
+
+    fun traverse(
+        top: TreeTop,
+        dir: Path,
+        depth: Int,
+    ) {
+        for (child in top.children(dir)) {
+            val isDir = top.isFolder(child)
             result.add(TreeEntry(child, child.fileName.toString(), isDir, depth))
-            if (isDir && expandedDirs.contains(child)) traverse(child, depth + 1)
+            if (isDir && expandedDirs.contains(child)) traverse(top, child, depth + 1)
         }
     }
     for (top in tops) {
         if (!Files.exists(top.path)) continue
         if (listContents) {
-            traverse(top.path, 0)
+            traverse(top, top.path, 0)
             continue
         }
         result.add(TreeEntry(top.path, top.label, true, 0))
-        if (expandedDirs.contains(top.path)) traverse(top.path, 1)
+        if (expandedDirs.contains(top.path)) traverse(top, top.path, 1)
     }
     return result
 }
@@ -136,7 +162,7 @@ fun FileTreePanel(
         remember {
             mutableStateListOf<Path>().apply {
                 state.savedExpandedDirs.forEach { dir ->
-                    runCatching { Path.of(dir) }.getOrNull()?.takeIf { Files.isDirectory(it) }?.let { add(it) }
+                    runCatching { Path.of(dir) }.getOrNull()?.takeIf { Files.isDirectory(it) || isInPbo(it) }?.let { add(it) }
                 }
             }
         }
@@ -161,7 +187,7 @@ fun FileTreePanel(
     val treeRoots = state.treeRoots
     val tops =
         remember(treeRoots?.map { it.path to it.label }, workRoot) {
-            treeRoots?.mapNotNull { r -> runCatching { TreeTop(Path.of(r.path), r.label) }.getOrNull() }
+            treeRoots?.mapNotNull { r -> runCatching { TreeTop(Path.of(r.path), r.label, r.archive) }.getOrNull() }
                 ?: listOfNotNull(runCatching { TreeTop(Path.of(workRoot), "") }.getOrNull())
         }
     val wholeDrive = treeRoots == null
@@ -193,7 +219,7 @@ fun FileTreePanel(
     }
     val shownList = if (searchActive) searchResults else flatList
     // Where a new file goes with nothing selected: the first mod, or the work drive
-    val rootPath = (tops.firstOrNull { it.label != "DayZ" } ?: tops.firstOrNull())?.path
+    val rootPath = (tops.firstOrNull { it.archive == null } ?: tops.firstOrNull())?.path
     val isInsideTops: (Path) -> Boolean = { dir -> tops.any { dir.startsWith(it.path) } }
 
     // File watcher — watch root and all expanded dirs
@@ -427,6 +453,7 @@ fun FileTreePanel(
                                         }
                                         ContextMenuSeparator()
                                     }
+                                    if (isInPbo(entry.path)) return@ContextMenu
                                     // Next to a file, inside a folder
                                     val createDir = if (entry.isDir) entry.path else entry.path.parent
                                     CreateMenuItems { kind ->
@@ -857,6 +884,24 @@ private suspend fun searchTree(
             return if (found.size >= SEARCH_LIMIT) FileVisitResult.TERMINATE else FileVisitResult.CONTINUE
         }
 
+        // A PBO is searched through its list of files
+        if (top.archive != null) {
+            val seen = HashSet<String>()
+            for (entry in top.archive.entries) {
+                val parts = entry.path.split('/')
+                for (i in parts.indices) {
+                    val name = parts[i]
+                    val full = parts.take(i + 1).joinToString("/")
+                    if (!seen.add(full.lowercase()) || !words.all { name.lowercase().contains(it) }) continue
+                    val folder = prefix + parts.take(i).joinToString("/")
+                    found.add(TreeEntry(root.resolve(full), name, i < parts.lastIndex, 0, folder.trimEnd('/')))
+                    if (found.size >= SEARCH_LIMIT) break
+                }
+                ensureActive()
+                if (found.size >= SEARCH_LIMIT) break
+            }
+            return@coroutineScope found.sortedWith(compareBy({ !it.isDir }, { it.name.lowercase() }))
+        }
         // A folder that cannot be read is skipped instead of ending the whole search
         runCatching {
             Files.walkFileTree(

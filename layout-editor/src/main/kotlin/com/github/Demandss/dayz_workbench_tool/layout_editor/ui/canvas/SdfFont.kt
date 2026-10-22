@@ -2,6 +2,7 @@ package com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas
 
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.toComposeImageBitmap
+import com.github.demandss.dayz_workbench_tool.pbo.readBytesOf
 import java.awt.image.BufferedImage
 import java.io.File
 import java.nio.ByteBuffer
@@ -172,7 +173,7 @@ internal class SdfFont(
 
         /** Reads the glyph table of a `.fnt` file: the records of the TCRD chunk, seven 16 bit numbers each. */
         fun readGlyphs(file: File): Pair<Int, List<SdfGlyph>>? {
-            val bytes = runCatching { file.readBytes() }.getOrNull() ?: return null
+            val bytes = runCatching { readBytesOf(file) }.getOrNull() ?: return null
             if (bytes.size < 12 || String(bytes, 0, 4) != "FORM" || String(bytes, 8, 4) != "FNT5") return null
             val buffer = ByteBuffer.wrap(bytes)
             var pos = 12

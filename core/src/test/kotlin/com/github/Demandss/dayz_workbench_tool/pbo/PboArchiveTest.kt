@@ -66,15 +66,28 @@ class PboArchiveTest {
     }
 
     @Test
-    fun extractsKeepingFolders() {
-        val archive = PboArchive.open(pbo(listOf("fonts${SEP}x.fnt" to byteArrayOf(5, 6))))!!
-        val dir =
-            kotlin.io.path
-                .createTempDirectory()
-                .toFile()
-        assertEquals(1, archive.extractTo(dir))
-        assertContentEquals(byteArrayOf(5, 6), File(dir, "fonts/x.fnt").readBytes())
-        dir.deleteRecursively()
+    fun listsFoldersAndReadsThroughVirtualFiles() {
+        val archive =
+            PboArchive.open(
+                pbo(
+                    listOf(
+                        "fonts${SEP}x.fnt" to byteArrayOf(5, 6),
+                        "fonts${SEP}y.fnt" to byteArrayOf(7),
+                        "a.txt" to byteArrayOf(1),
+                    ),
+                ),
+            )!!
+        assertEquals(listOf("fonts/", "a.txt"), archive.list(""))
+        assertEquals(listOf("x.fnt", "y.fnt"), archive.list("fonts"))
+        assertEquals("gui", archive.prefix)
+        PboFile.register(archive)
+        val file = PboFile.resolve(archive.file.path + SEP + "fonts" + SEP + "x.fnt")!!
+        assertEquals(true, file.isFile)
+        assertEquals(true, file.parentFile!!.isDirectory)
+        assertContentEquals(byteArrayOf(5, 6), readBytesOf(file))
+        assertEquals("x.fnt", file.name)
+        assertContentEquals(byteArrayOf(5, 6), readBytesOf(inRoot(PboFile(archive, ""), "gui/fonts/x.fnt")))
+        assertEquals(false, inRoot(PboFile(archive, ""), "other/fonts/x.fnt").isFile)
     }
 
     @Test

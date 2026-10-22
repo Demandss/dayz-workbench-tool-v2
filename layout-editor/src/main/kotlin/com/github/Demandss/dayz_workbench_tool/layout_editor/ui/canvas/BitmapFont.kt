@@ -1,6 +1,7 @@
 package com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas
 
 import androidx.compose.ui.graphics.toComposeImageBitmap
+import com.github.demandss.dayz_workbench_tool.pbo.readBytesOf
 import java.awt.image.BufferedImage
 import java.io.File
 import java.nio.ByteBuffer
@@ -76,7 +77,7 @@ internal class BitmapFont(
 
         /** Reads the glyph table of a bitmap `.fnt` (`FNT3`): 12 byte records of x, y, width, height and two signed bearings. */
         fun readGlyphs(file: File): Pair<Int, List<BitmapGlyph>>? {
-            val bytes = runCatching { file.readBytes() }.getOrNull() ?: return null
+            val bytes = runCatching { readBytesOf(file) }.getOrNull() ?: return null
             if (bytes.size < 12 || String(bytes, 0, 4) != "FORM" || String(bytes, 8, 4) != "FNT3") return null
             val buffer = ByteBuffer.wrap(bytes)
             var pos = 12
