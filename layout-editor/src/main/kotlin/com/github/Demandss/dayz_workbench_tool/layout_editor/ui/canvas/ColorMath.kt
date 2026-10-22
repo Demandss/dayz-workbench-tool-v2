@@ -7,6 +7,16 @@ import kotlin.math.min
 import kotlin.math.pow
 import kotlin.math.roundToInt
 
+/**
+ * How the numbers of a `color` are read. Up to Workbench 1.29 and in the game they are the sRGB values that are drawn
+ * (`0.078` is `#141414`); the Workbench of 1.30 reads them as linear light and blends in linear light, which shows the same
+ * file much lighter.
+ */
+internal object ColorSpaceMode {
+    @Volatile
+    var workbench130 = false
+}
+
 /** Light as the file stores it (linear) to what the screen shows (sRGB), and back. */
 internal fun linearToSrgb(c: Float): Float = if (c <= 0.0031308f) 12.92f * c else 1.055f * c.pow(1f / 2.4f) - 0.055f
 
@@ -152,4 +162,8 @@ private fun hslToColor(
 
 /** The `color` value of a layout for a colour that was chosen on the screen. */
 internal fun Color.toFileColor(): String =
-    listOf(srgbToLinear(red), srgbToLinear(green), srgbToLinear(blue), alpha).joinToString(" ") { formatNumber(it) }
+    if (ColorSpaceMode.workbench130) {
+        listOf(srgbToLinear(red), srgbToLinear(green), srgbToLinear(blue), alpha).joinToString(" ") { formatNumber(it) }
+    } else {
+        listOf(red, green, blue, alpha).joinToString(" ") { formatNumber(it) }
+    }

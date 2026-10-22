@@ -24,6 +24,7 @@ import com.github.demandss.dayz_workbench_tool.layout_editor.toWidgetNode
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.AlignMode
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.BitmapFont
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.BulkMode
+import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.ColorSpaceMode
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.EdgeDistance
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.GameFont
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.GuideLine
@@ -199,6 +200,16 @@ class LayoutEditorState(
     var showSafeFrame by mutableStateOf(false)
     var showMeasure by mutableStateOf(true)
 
+    private var workbench130State by mutableStateOf(false)
+
+    /** Draws like the Workbench of 1.30 (colours read as linear light, blended in linear light) instead of like the game. */
+    var workbenchColors: Boolean
+        get() = workbench130State
+        set(value) {
+            workbench130State = value
+            ColorSpaceMode.workbench130 = value
+        }
+
     // A clean view: no borders, labels, selection or measurements, only what the widgets draw
     var livePreview by mutableStateOf(false)
 
@@ -279,6 +290,22 @@ class LayoutEditorState(
         }
     }
 
+    // The mods of the layouts that were opened: the mod a layout belongs to is connected while it is edited, listed or not
+    private val detectedMods = java.util.concurrent.CopyOnWriteArrayList<String>()
+
+    private fun connectedMods(): List<String> = (modFolders.orEmpty() + detectedMods).distinct()
+
+    /** Connects the mod that holds [path] (the nearest folder above it with a `config.cpp`), if it is not connected yet. */
+    private fun connectModOf(path: String) {
+        var dir = File(path).parentFile
+        while (dir != null && !File(dir, "config.cpp").isFile) dir = dir.parentFile
+        val mod = dir?.path ?: return
+        if (mod in connectedMods()) return
+        detectedMods += mod
+        resourceRootsCache.clear()
+        scanMods()
+    }
+
     /** The `.styles` and `.imageset` files of the connected mods, found by a scan in the background. */
     private var modStyleFiles: List<File> = emptyList()
     private var modImageSetFiles: List<File> = emptyList()
@@ -287,7 +314,7 @@ class LayoutEditorState(
     private var modScanDone by mutableStateOf(0)
 
     private fun scanMods() {
-        val mods = modFolders?.map(::File)?.filter { it.isDirectory }.orEmpty()
+        val mods = connectedMods().map(::File).filter { it.isDirectory }
         if (mods.isEmpty()) return
         scope.launch(Dispatchers.IO) {
             val styles = mutableListOf<File>()
@@ -333,6 +360,7 @@ class LayoutEditorState(
         runCatching {
             val root = LayoutParser.parse(readTextOf(fileAt(normalized))).toEditorNode()
             openFiles += LayoutDocument(path = normalized, root = root)
+            connectModOf(normalized)
             noteRecent(normalized)
             selectLayout(openFiles.lastIndex)
             File(normalized).parentFile?.toPath()?.let { watchDirectory(it) }
@@ -1093,7 +1121,7 @@ class LayoutEditorState(
         gamePbo?.let { roots += PboFile(it, "") }
         if (workDrivePath.isNotBlank()) roots += File(workDrivePath)
         // A path in a layout starts with the folder of its mod
-        modFolders?.forEach { mod -> File(mod).parentFile?.let { roots += it } }
+        connectedMods().forEach { mod -> File(mod).parentFile?.let { roots += it } }
         var dir = nearPath?.let { File(it).parentFile }
         while (dir != null) {
             roots += dir
@@ -1505,7 +1533,7 @@ class LayoutEditorState(
             dir = dir.parentFile
         }
         if (workDrivePath.isNotBlank()) candidates += File(workDrivePath, clean)
-        modFolders?.forEach { mod -> File(mod).parentFile?.let { candidates += File(it, clean) } }
+        connectedMods().forEach { mod -> File(mod).parentFile?.let { candidates += File(it, clean) } }
         candidates += File(File(imageSetPath).parentFile, clean.substringAfterLast('/'))
         return candidates.firstOrNull { it.isFile }
     }

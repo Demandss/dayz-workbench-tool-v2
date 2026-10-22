@@ -119,6 +119,13 @@ fun buildCommands(
         add(
             Command("Масштаб 100%", AppIcon.UI_ZOOMIN, "Ctrl+0", hasDoc) { state.zoomActual() },
         )
+        add(
+            toggle(
+                "Цвета как в Workbench 1.30",
+                AppIcon.UI_LAYERS,
+                state.workbenchColors,
+            ) { state.workbenchColors = !state.workbenchColors },
+        )
         add(toggle("Live Preview", AppIcon.UI_PLAY, state.livePreview) { state.livePreview = !state.livePreview })
         add(toggle("привязку к сетке", AppIcon.UI_MAGNET, state.snapToGrid) { state.snapToGrid = !state.snapToGrid })
         add(toggle("рамки виджетов", AppIcon.UI_GRID, state.showBorders) { state.showBorders = !state.showBorders })

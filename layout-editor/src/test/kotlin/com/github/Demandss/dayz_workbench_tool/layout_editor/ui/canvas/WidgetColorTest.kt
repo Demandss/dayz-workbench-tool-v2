@@ -5,6 +5,8 @@ import com.github.demandss.dayz_workbench_tool.layout.WidgetNode
 import com.github.demandss.dayz_workbench_tool.layout.WidgetType
 import com.github.demandss.dayz_workbench_tool.layout_editor.EditorWidgetNode
 import kotlin.math.abs
+import kotlin.test.AfterTest
+import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -12,6 +14,17 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class WidgetColorTest {
+    // The numbers were measured on the Workbench of 1.30, which reads them as linear light
+    @BeforeTest
+    fun workbench130() {
+        ColorSpaceMode.workbench130 = true
+    }
+
+    @AfterTest
+    fun game() {
+        ColorSpaceMode.workbench130 = false
+    }
+
     private fun panel(vararg props: Pair<String, String>) =
         EditorWidgetNode(node = WidgetNode(WidgetType.PANEL, WidgetType.PANEL.className, "p", LinkedHashMap(props.toMap())))
 

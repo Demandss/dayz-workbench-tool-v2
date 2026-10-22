@@ -943,7 +943,12 @@ fun LayoutCanvas(
                 fontNameFor = { n -> state.fontNameFor(n, doc.path) },
             )
         }
-        if (state.livePreview) {
+        if (state.livePreview && !state.workbenchColors) {
+            // The game: colours are sRGB values and blend as they are
+            drawRect(PREVIEW_GREY, atl, aSize)
+            drawRect(Color(0xFF555860), atl, aSize, style = Stroke(1f))
+            widgets(pan)
+        } else if (state.livePreview) {
             // Workbench blends in linear light, so Live Preview is painted into a linear buffer and shown from it: a black
             // image with the alpha of a vignette comes out as dark as in the Workbench preview
             drawLinear(atl, aSize) {

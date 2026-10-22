@@ -46,14 +46,18 @@ internal fun anchorDirection(align: String?): Float =
     }
 
 /**
- * A `color` value as it looks in Workbench. The four numbers are read as linear light and shown in sRGB, so
- * `0.9 0.3 0.3` is 244 148 148 on the screen and not 230 77 77 (measured on a filled panel). Alpha stays as it is.
+ * A `color` value as it looks on the screen. In the game the numbers are the sRGB values themselves. The Workbench of 1.30
+ * ([ColorSpaceMode.workbench130]) reads the first three as linear light and shows them in sRGB, so `0.9 0.3 0.3` is 244 148 148
+ * and not 230 77 77 (measured on a filled panel). Alpha stays as it is.
  */
 internal fun parseWidgetColor(value: String?): Color {
     if (value == null) return Color.Transparent
     val p = value.trim().split(Regex("\\s+"))
 
-    fun channel(i: Int) = linearToSrgb((p.getOrNull(i)?.toFloatOrNull() ?: 0f).coerceIn(0f, 1f))
+    fun channel(i: Int): Float {
+        val v = (p.getOrNull(i)?.toFloatOrNull() ?: 0f).coerceIn(0f, 1f)
+        return if (ColorSpaceMode.workbench130) linearToSrgb(v) else v
+    }
     return Color(channel(0), channel(1), channel(2), (p.getOrNull(3)?.toFloatOrNull() ?: 1f).coerceIn(0f, 1f))
 }
 
