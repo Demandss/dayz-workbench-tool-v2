@@ -24,6 +24,7 @@ private val SHORTCUTS: List<Pair<String, List<Pair<String, String>>>> =
             listOf(
                 "Ctrl+Shift+P" to "Палитра команд",
                 "Ctrl+P" to "Открыть файл по имени",
+                "Ctrl+," to "Настройки",
                 "Ctrl+F" to "Найти виджет (в layout) или картинку (в ImageSet)",
                 "Ctrl+B" to "Скрыть или показать браузер файлов",
                 "Ctrl+Tab / Ctrl+Shift+Tab" to "Следующая / предыдущая вкладка",

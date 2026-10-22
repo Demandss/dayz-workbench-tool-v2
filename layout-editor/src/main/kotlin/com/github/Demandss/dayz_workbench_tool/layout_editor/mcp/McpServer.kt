@@ -1,5 +1,10 @@
 package com.github.demandss.dayz_workbench_tool.layout_editor.mcp
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshots.Snapshot
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.LayoutEditorState
 import com.sun.net.httpserver.HttpExchange
 import com.sun.net.httpserver.HttpServer
@@ -25,7 +30,6 @@ import java.util.concurrent.Executors
  * that is attached to it.
  */
 object McpHost {
-    private const val DEFAULT_PORT = 39871
     private const val PORT_TRIES = 10
     private val json = Json { ignoreUnknownKeys = true }
 
@@ -36,15 +40,28 @@ object McpHost {
     private var tools: McpTools? = null
 
     /** The address the server listens on, or null while it is not running. */
-    @Volatile
-    var url: String? = null
+    var url: String? by mutableStateOf(null)
         private set
 
-    /** Serves [state] from now on and starts the server when it is not running. */
+    /** Why the server could not start, or null. */
+    var lastError: String? by mutableStateOf(null)
+        private set
+
+    /** The latest calls, newest first, for the preferences window. */
+    val calls = mutableStateListOf<String>()
+
+    internal fun log(text: String) {
+        Snapshot.withMutableSnapshot {
+            calls.add(0, text)
+            while (calls.size > 40) calls.removeAt(calls.lastIndex)
+        }
+    }
+
+    /** Serves [state] from now on and starts the server when it is switched on and not running. */
     @Synchronized
     fun attach(state: LayoutEditorState) {
         tools = McpTools(state)
-        if (server == null) start()
+        if (state.mcpEnabled && server == null) start(state.mcpPort)
     }
 
     /** Stops serving [state] (the editor window was closed). The server itself keeps running for the next window. */
@@ -53,8 +70,21 @@ object McpHost {
         if (tools?.state === state) tools = null
     }
 
-    private fun start() {
-        val first = System.getenv("DAYZ_LE_MCP_PORT")?.toIntOrNull() ?: DEFAULT_PORT
+    /** Takes the switch and the port of [state] into use: restarts the server or stops it. */
+    @Synchronized
+    fun apply(state: LayoutEditorState) {
+        stop()
+        if (state.mcpEnabled) start(state.mcpPort)
+    }
+
+    private fun stop() {
+        server?.stop(0)
+        server = null
+        url = null
+    }
+
+    private fun start(first: Int) {
+        lastError = null
         for (port in first until first + PORT_TRIES) {
             val created =
                 runCatching { HttpServer.create(InetSocketAddress(InetAddress.getLoopbackAddress(), port), 0) }.getOrNull() ?: continue
@@ -66,6 +96,7 @@ object McpHost {
             writeDiscoveryFile(port)
             return
         }
+        lastError = "Порты $first–${first + PORT_TRIES - 1} заняты"
     }
 
     /** Tells other programs where the server is: `%APPDATA%/.dayzworkbenchtool/layout-editor/mcp.json`. */

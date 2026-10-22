@@ -6,6 +6,13 @@ import kotlinx.serialization.Serializable
 data class LayoutEditorConfig(
     val undoLimit: Int = 5,
     val defaultResolution: String = "1920x1080",
+    // The preferences window
+    val mcpEnabled: Boolean = true,
+    val mcpPort: Int = 39871,
+    val workbenchColors: Boolean = false,
+    val showGrid: Boolean = false,
+    val snapToGrid: Boolean = false,
+    val gridSize: Int = 10,
     // What was open when the editor was closed, per work drive (lower-case path without a trailing slash)
     val sessions: Map<String, EditorSession> = emptyMap(),
 )

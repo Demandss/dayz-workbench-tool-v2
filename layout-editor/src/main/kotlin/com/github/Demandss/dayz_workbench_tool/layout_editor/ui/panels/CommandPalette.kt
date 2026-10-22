@@ -109,6 +109,7 @@ fun buildCommands(
         add(Command("Копировать свойства", AppIcon.UI_COPY, "Ctrl+Alt+C", hasSelection) { state.copyAppearance() })
         add(Command("Вставить свойства", AppIcon.UI_COPY, "Ctrl+Alt+V", hasSelection) { state.pasteAppearance() })
         add(Command("Переименовать", AppIcon.UI_SEARCH, "F2", hasSelection) { state.requestRename() })
+        add(Command("Настройки: MCP и отображение", AppIcon.UI_CMD, "Ctrl+,") { state.preferencesOpen = true })
         McpHost.url?.let { address ->
             add(Command("Скопировать адрес MCP сервера", AppIcon.UI_CMD, address) { state.copyMcpAddress(address) })
         }

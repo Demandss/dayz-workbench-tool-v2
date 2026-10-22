@@ -63,6 +63,7 @@ import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.HistoryPa
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.IconPickerWindow
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.Minimap
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.PaletteContent
+import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.PreferencesWindow
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.ProblemsPanel
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.PropertiesContent
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.ReferencePanel
@@ -427,6 +428,7 @@ fun LayoutEditorWindow(
 
                 BulkEditDialog(state)
                 IconPickerWindow(state)
+                PreferencesWindow(state)
                 ConfirmDialog(state)
                 ShortcutsDialog(state)
                 if (state.debugOverlay) FpsOverlay(Modifier.align(Alignment.TopEnd).padding(top = 34.dp, end = 12.dp))
@@ -805,6 +807,11 @@ private fun handleGlobalKey(
     val shift = event.isShiftPressed
     val digit = listOf(Key.One, Key.Two, Key.Three, Key.Four, Key.Five, Key.Six, Key.Seven, Key.Eight, Key.Nine).indexOf(event.key) + 1
     return when {
+        event.key == Key.Comma -> {
+            state.preferencesOpen = !state.preferencesOpen
+            true
+        }
+
         event.key == Key.P && shift -> {
             state.openPalette(PaletteMode.COMMANDS)
             true

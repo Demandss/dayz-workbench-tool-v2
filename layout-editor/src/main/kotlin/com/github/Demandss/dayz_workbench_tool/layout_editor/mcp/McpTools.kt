@@ -52,17 +52,23 @@ internal class McpTools(
         name: String,
         args: JsonObject,
     ): JsonElement {
-        return try {
+        val started = System.currentTimeMillis()
+        var failed = false
+        try {
             val result =
                 when (name) {
                     "screenshot" -> return screenshot(args)
                     else -> onMain { run(name, args) }
                 }
-            textResult(result)
+            return textResult(result)
         } catch (e: ToolFailure) {
-            textResult(e.message.orEmpty(), isError = true)
+            failed = true
+            return textResult(e.message.orEmpty(), isError = true)
         } catch (e: Exception) {
-            textResult("${e.javaClass.simpleName}: ${e.message}", isError = true)
+            failed = true
+            return textResult("${e.javaClass.simpleName}: ${e.message}", isError = true)
+        } finally {
+            McpHost.log("$name  ${System.currentTimeMillis() - started} ms${if (failed) "  ошибка" else ""}")
         }
     }
 
@@ -643,7 +649,7 @@ internal class McpTools(
                 "path" to ("string" to "Path of names from the root, e.g. rootFrame/Header/CloseImg"),
             )
 
-        fun definitions(): List<JsonElement> =
+        fun definitions(): List<JsonObject> =
             listOf(
                 tool("editor_status", "Open layouts, the selection, the view flags, the zoom and the resolution."),
                 tool(

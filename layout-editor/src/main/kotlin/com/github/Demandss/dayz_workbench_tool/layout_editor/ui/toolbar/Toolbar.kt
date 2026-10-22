@@ -139,6 +139,8 @@ fun Toolbar(
             primary = true,
         )
         Spacer(Modifier.width(4.dp))
+        DarkIconButton(AppIcon.UI_CMD, "Настройки: MCP и отображение (Ctrl+,)", onClick = { state.preferencesOpen = true })
+        Spacer(Modifier.width(4.dp))
         DarkToolButton(
             "WB 1.30",
             tooltip = "Как Workbench 1.30: color читается как линейный свет и смешивается в нём. Выключено: как в игре (F6)",

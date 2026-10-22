@@ -263,6 +263,36 @@ class LayoutEditorState(
     // Bounds updated via onGloballyPositioned (window coordinate space)
     var canvasBoundsInWindow by mutableStateOf(Rect.Zero)
 
+    // The preferences window: what the MCP server does and how the view is drawn. Saved with the other settings of the editor.
+    var preferencesOpen by mutableStateOf(false)
+    var mcpEnabled by mutableStateOf(true)
+    var mcpPort by mutableStateOf(39871)
+
+    private fun loadPreferences() {
+        val config = runCatching { ConfigManager.LayoutEditor.load() }.getOrNull() ?: return
+        mcpEnabled = config.mcpEnabled
+        mcpPort = config.mcpPort
+        workbenchColors = config.workbenchColors
+        showGrid = config.showGrid
+        snapToGrid = config.snapToGrid
+        gridSize = config.gridSize.coerceIn(1, 512)
+    }
+
+    fun savePreferences() {
+        runCatching {
+            ConfigManager.LayoutEditor.save(
+                ConfigManager.LayoutEditor.load().copy(
+                    mcpEnabled = mcpEnabled,
+                    mcpPort = mcpPort,
+                    workbenchColors = workbenchColors,
+                    showGrid = showGrid,
+                    snapToGrid = snapToGrid,
+                    gridSize = gridSize,
+                ),
+            )
+        }
+    }
+
     /** The window the editor is shown in, for screenshots. */
     var hostWindow: java.awt.Window? = null
     var hierarchyBoundsInWindow by mutableStateOf(Rect.Zero)
@@ -2079,6 +2109,7 @@ class LayoutEditorState(
 
     // After every property above, which the scan fills in when it is done
     init {
+        loadPreferences()
         scanMods()
     }
 }
