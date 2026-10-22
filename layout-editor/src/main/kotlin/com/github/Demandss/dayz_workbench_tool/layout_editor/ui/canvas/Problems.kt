@@ -30,9 +30,6 @@ fun findProblems(root: EditorWidgetNode): List<Problem> {
         if (node.hasBareCenter()) {
             out += Problem(node.id, name, Severity.WARNING, "«center» без _ref не центрирует, нужно center_ref")
         }
-        if (node.node.type == WidgetType.PANEL && node.prop("style") == null) {
-            out += Problem(node.id, name, Severity.WARNING, "Panel без style: в Workbench не рисуется")
-        }
         val size =
             node
                 .prop("size")

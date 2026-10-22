@@ -38,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.rememberWindowState
+import com.github.demandss.dayz_workbench_tool.layout_editor.mcp.McpHost
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.DragSession
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.DragSource
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.LayoutDocument
@@ -126,6 +127,15 @@ fun LayoutEditorWindow(
         state = rememberWindowState(width = 1280.dp, height = 800.dp),
         resizable = true,
     ) {
+        // The tools of the MCP server work on this editor while its window is open
+        DisposableEffect(state) {
+            state.hostWindow = window
+            McpHost.attach(state)
+            onDispose {
+                McpHost.detach(state)
+                state.hostWindow = null
+            }
+        }
         AppTheme(themeColors) {
             Box(
                 Modifier

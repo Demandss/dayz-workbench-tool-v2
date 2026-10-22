@@ -40,9 +40,9 @@ class ProblemsTest {
     }
 
     @Test
-    fun `a panel without a style is reported`() {
+    fun `a panel without a style is not a problem`() {
         val root = frame("Root", widget("a"))
-        assertEquals(1, findProblems(root).size)
+        assertEquals(0, findProblems(root).size)
     }
 
     @Test

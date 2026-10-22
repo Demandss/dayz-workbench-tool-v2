@@ -262,6 +262,9 @@ class LayoutEditorState(
 
     // Bounds updated via onGloballyPositioned (window coordinate space)
     var canvasBoundsInWindow by mutableStateOf(Rect.Zero)
+
+    /** The window the editor is shown in, for screenshots. */
+    var hostWindow: java.awt.Window? = null
     var hierarchyBoundsInWindow by mutableStateOf(Rect.Zero)
     val hierarchyRowBounds = HashMap<UUID, Rect>()
 

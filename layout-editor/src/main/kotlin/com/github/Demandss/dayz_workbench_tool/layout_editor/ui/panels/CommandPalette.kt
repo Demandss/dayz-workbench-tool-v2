@@ -41,6 +41,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.github.demandss.dayz_workbench_tool.layout.WidgetType
+import com.github.demandss.dayz_workbench_tool.layout_editor.mcp.McpHost
+import com.github.demandss.dayz_workbench_tool.layout_editor.mcp.copyMcpAddress
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.LayoutEditorState
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.PaletteMode
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.AlignMode
@@ -107,6 +109,9 @@ fun buildCommands(
         add(Command("Копировать свойства", AppIcon.UI_COPY, "Ctrl+Alt+C", hasSelection) { state.copyAppearance() })
         add(Command("Вставить свойства", AppIcon.UI_COPY, "Ctrl+Alt+V", hasSelection) { state.pasteAppearance() })
         add(Command("Переименовать", AppIcon.UI_SEARCH, "F2", hasSelection) { state.requestRename() })
+        McpHost.url?.let { address ->
+            add(Command("Скопировать адрес MCP сервера", AppIcon.UI_CMD, address) { state.copyMcpAddress(address) })
+        }
         add(Command("Скопировать код доступа к виджету", AppIcon.UI_CMD, "Enforce Script", hasSelection) { state.copyScriptSnippet() })
         add(Command("Заменить в именах виджетов…", AppIcon.UI_SEARCH, enabled = hasDoc) { state.bulkDialog = BulkMode.NAME })
         add(Command("Заменить значение свойства…", AppIcon.UI_SEARCH, enabled = hasDoc) { state.bulkDialog = BulkMode.PROPERTY })
