@@ -309,6 +309,7 @@ class LayoutEditorState(
         if (mod in connectedMods()) return
         detectedMods += mod
         resourceRootsCache.clear()
+        bitmapSizesCache.clear()
         scanMods()
     }
 
@@ -1053,6 +1054,7 @@ class LayoutEditorState(
         return null
     }
 
+    private val bitmapSizesCache = java.util.concurrent.ConcurrentHashMap<String, List<Int>>()
     private val bitmapFonts = mutableStateMapOf<String, BitmapFont?>()
     private val bitmapFontsLoading = HashSet<String>()
 
@@ -1078,9 +1080,12 @@ class LayoutEditorState(
         val fixed = last.takeLastWhile { it.isDigit() }.toIntOrNull()
         val roots = resourceRoots(nearPath)
         // A font of a mod can be made in a size of its own, written in its name
+        // Asked for every text on every frame, so the files are looked for once
         val sizes =
-            (BITMAP_FONT_SIZES.toList() + listOfNotNull(fixed)).distinct().sorted().filter { size ->
-                roots.any { inRoot(it, "$directory/$family$size.fnt").isFile }
+            bitmapSizesCache.getOrPut("$directory|$family|$fixed|$workDrivePath|${gamePbo?.file}|${nearPath?.let { File(it).parent }}") {
+                (BITMAP_FONT_SIZES.toList() + listOfNotNull(fixed)).distinct().sorted().filter { size ->
+                    roots.any { inRoot(it, "$directory/$family$size.fnt").isFile }
+                }
             }
         if (sizes.isEmpty()) return sdfFontFor(path, nearPath)
         val size =
@@ -1332,6 +1337,7 @@ class LayoutEditorState(
     }
 
     fun reloadTextures() {
+        bitmapSizesCache.clear()
         pictureCache.clear()
         sdfFonts.clear()
         sdfFontsLoading.clear()

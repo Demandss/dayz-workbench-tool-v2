@@ -7,10 +7,14 @@ import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.ImageShader
+import androidx.compose.ui.graphics.ShaderBrush
+import androidx.compose.ui.graphics.TileMode
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.drawscope.scale
+import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import com.github.demandss.dayz_workbench_tool.layout_editor.EditorWidgetNode
@@ -53,26 +57,19 @@ internal fun DrawScope.drawImageWidget(
     val tiled = node.prop("stretch mode")?.trim('"') == "none" && node.prop("clamp mode")?.trim('"') == "wrap"
 
     fun drawTiles() {
-        val tileW = (image.width * zoom).coerceAtLeast(1f)
-        val tileH = (image.height * zoom).coerceAtLeast(1f)
-        clipRect(box.left, box.top, box.right, box.bottom) {
-            var y = box.top
-            while (y < box.bottom) {
-                var x = box.left
-                while (x < box.right) {
-                    drawImage(
-                        image = image,
-                        srcOffset = IntOffset.Zero,
-                        srcSize = IntSize(image.width, image.height),
-                        dstOffset = IntOffset(x.roundToInt(), y.roundToInt()),
-                        dstSize = IntSize(tileW.roundToInt().coerceAtLeast(1), tileH.roundToInt().coerceAtLeast(1)),
-                        colorFilter = ColorFilter.tint(tint, BlendMode.Modulate),
-                        blendMode = if (additive) BlendMode.Plus else BlendMode.SrcOver,
-                    )
-                    x += tileW
-                }
-                y += tileH
-            }
+        // One draw with a repeating shader: a loop of drawImage calls per tile is far too slow for a large grid
+        val brush = ShaderBrush(ImageShader(image, TileMode.Repeated, TileMode.Repeated))
+        withTransform({
+            translate(box.left, box.top)
+            scale(zoom, zoom, Offset.Zero)
+        }) {
+            drawRect(
+                brush,
+                Offset.Zero,
+                Size(box.width / zoom, box.height / zoom),
+                colorFilter = ColorFilter.tint(tint, BlendMode.Modulate),
+                blendMode = if (additive) BlendMode.Plus else BlendMode.SrcOver,
+            )
         }
     }
 
