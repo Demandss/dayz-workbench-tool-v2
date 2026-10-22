@@ -32,6 +32,8 @@ private val SHORTCUTS: List<Pair<String, List<Pair<String, String>>>> =
                 "Ctrl+Z / Ctrl+Y / Ctrl+Shift+Z" to "Отменить / повторить",
                 "Ctrl+W" to "Закрыть вкладку",
                 "F3" to "Счётчик FPS",
+                "F5" to "Live Preview",
+                "F6" to "Цвета как в Workbench 1.30",
                 "F1" to "Эта справка",
             ),
         "Layout" to

@@ -121,7 +121,7 @@ fun Toolbar(
         Spacer(Modifier.width(4.dp))
         DarkToolButton(
             "Live Preview",
-            tooltip = "Чистый вид без рамок, подписей и выделения",
+            tooltip = "Чистый вид без рамок, подписей и выделения (F5)",
             onClick = { state.livePreview = !state.livePreview },
             icon = AppIcon.UI_PLAY,
             active = state.livePreview,
@@ -130,7 +130,7 @@ fun Toolbar(
         Spacer(Modifier.width(4.dp))
         DarkToolButton(
             "WB 1.30",
-            tooltip = "Как Workbench 1.30: color читается как линейный свет и смешивается в нём. Выключено: как в игре",
+            tooltip = "Как Workbench 1.30: color читается как линейный свет и смешивается в нём. Выключено: как в игре (F6)",
             onClick = { state.workbenchColors = !state.workbenchColors },
             icon = AppIcon.UI_LAYERS,
             active = state.workbenchColors,

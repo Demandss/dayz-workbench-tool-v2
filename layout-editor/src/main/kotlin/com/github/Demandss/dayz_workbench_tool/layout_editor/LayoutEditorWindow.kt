@@ -137,6 +137,14 @@ fun LayoutEditorWindow(
                             state.debugOverlay = !state.debugOverlay
                             return@onPreviewKeyEvent true
                         }
+                        if (event.key == Key.F5) {
+                            state.livePreview = !state.livePreview
+                            return@onPreviewKeyEvent true
+                        }
+                        if (event.key == Key.F6) {
+                            state.workbenchColors = !state.workbenchColors
+                            return@onPreviewKeyEvent true
+                        }
                         if (event.key == Key.F1) {
                             state.shortcutsOpen = !state.shortcutsOpen
                             return@onPreviewKeyEvent true
