@@ -1,7 +1,9 @@
 package com.github.demandss.dayz_workbench_tool.layout_editor.ui.toolbar
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -9,7 +11,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.LayoutEditorState
@@ -75,7 +79,14 @@ fun Toolbar(
         )
         DarkIconButton(
             AppIcon.UI_GRID,
-            "Сетка и привязка к ней",
+            "Показать сетку",
+            onClick = { state.showGrid = !state.showGrid },
+            active = state.showGrid,
+        )
+        if (state.showGrid || state.snapToGrid) GridSizeField(state)
+        DarkIconButton(
+            AppIcon.UI_MAGNET,
+            "Привязка к сетке при перемещении (Ctrl отключает)",
             onClick = { state.snapToGrid = !state.snapToGrid },
             active = state.snapToGrid,
         )
@@ -136,6 +147,35 @@ fun Toolbar(
             active = state.workbenchColors,
         )
         Spacer(Modifier.width(4.dp))
+    }
+}
+
+/** The step of the grid in pixels of the screen the layout is made for. */
+@Composable
+private fun GridSizeField(state: LayoutEditorState) {
+    var text by remember(state.gridSize) { mutableStateOf(state.gridSize.toString()) }
+    Tip("Шаг сетки в пикселях") {
+        Row(
+            Modifier
+                .height(22.dp)
+                .background(FrameBackground)
+                .border(1.dp, DarkenedBorder)
+                .padding(horizontal = 5.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            BasicTextField(
+                value = text,
+                onValueChange = { v ->
+                    text = v.filter(Char::isDigit).take(3)
+                    text.toIntOrNull()?.takeIf { it in 1..512 }?.let { state.gridSize = it }
+                },
+                singleLine = true,
+                textStyle = TextStyle(color = TextForeground, fontSize = 11.sp),
+                cursorBrush = SolidColor(TextForeground),
+                modifier = Modifier.width(24.dp),
+            )
+            Text("px", color = GhostlyText, fontSize = 10.sp)
+        }
     }
 }
 

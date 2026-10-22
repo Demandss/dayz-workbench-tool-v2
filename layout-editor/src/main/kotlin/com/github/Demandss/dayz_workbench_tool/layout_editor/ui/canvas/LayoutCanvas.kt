@@ -203,6 +203,11 @@ private data class WidgetDragInfo(
 // Draw helpers
 // ---------------------------------------------------------------------------
 
+/**
+ * The grid over the work area: a line every [gridSize] pixels of the screen it is made for and a brighter one every fifth.
+ * Lines that would lie closer than 6 screen pixels are left out (every second, fourth... one is kept), so a small step does
+ * not turn the area into a solid fill when the view is far away.
+ */
 private fun DrawScope.drawGrid(
     gridSize: Int,
     refW: Float,
@@ -210,19 +215,30 @@ private fun DrawScope.drawGrid(
     zoom: Float,
     pan: Offset,
 ) {
-    val step = gridSize.toFloat()
-    val col = Color(0x1AFFFFFF)
+    var every = 1
+    while (gridSize * every * zoom < 6f && every < 4096) every *= 2
+    val step = gridSize.coerceAtLeast(1) * every
+    val minor = Color(0x1FFFFFFF)
+    val major = Color(0x40FFFFFF)
+    val top = pan.y
+    val bottom = refH * zoom + pan.y
+    val left = pan.x
+    val right = refW * zoom + pan.x
+    var i = 0
     var x = 0f
     while (x <= refW) {
-        val sx = x * zoom + pan.x
-        drawLine(col, Offset(sx, 0f), Offset(sx, size.height), 1f)
+        val sx = (x * zoom + pan.x).roundToInt() + 0.5f
+        drawLine(if (i % 5 == 0) major else minor, Offset(sx, top), Offset(sx, bottom), 1f)
         x += step
+        i++
     }
+    i = 0
     var y = 0f
     while (y <= refH) {
-        val sy = y * zoom + pan.y
-        drawLine(col, Offset(0f, sy), Offset(size.width, sy), 1f)
+        val sy = (y * zoom + pan.y).roundToInt() + 0.5f
+        drawLine(if (i % 5 == 0) major else minor, Offset(left, sy), Offset(right, sy), 1f)
         y += step
+        i++
     }
 }
 
@@ -822,6 +838,15 @@ fun LayoutCanvas(
                                                 // The edges of the screen are snapped to, but no gap is measured to them
                                                 val snap = snapMove(union, worldDelta, dragCandidates, 6f / zoom) { it != screenRect }
                                                 worldDelta += Offset(snap.dx, snap.dy)
+                                                // The top left corner goes to the grid where no neighbour was snapped to
+                                                if (state.snapToGrid && snap.guides.isEmpty()) {
+                                                    val g = state.gridSize.coerceAtLeast(1).toFloat()
+                                                    worldDelta =
+                                                        Offset(
+                                                            round((union.left + worldDelta.x) / g) * g - union.left,
+                                                            round((union.top + worldDelta.y) / g) * g - union.top,
+                                                        )
+                                                }
                                                 state.snapGuides = snap.guides
                                                 state.snapDistances = snap.distances
                                             } else {
@@ -937,7 +962,6 @@ fun LayoutCanvas(
         drawRect(Color(0xFF1A1B1E))
 
         // 2. Grid (screen-space lines aligned to world grid)
-        if (state.snapToGrid) drawGrid(state.gridSize, refW, refH, zoom, pan)
 
         // 3. Shadow behind work area
         val wtl = worldToScreen(Offset(-6f, -6f), zoom, pan)
@@ -988,7 +1012,8 @@ fun LayoutCanvas(
         } else {
             drawRect(Color(0xFF232528), atl, aSize)
             drawRect(Color(0xFF555860), atl, aSize, style = Stroke(1f))
-            // 5. Widgets
+            // 5. Widgets, with the grid under them
+            if (state.showGrid) drawGrid(state.gridSize, refW, refH, zoom, pan)
             widgets(pan)
         }
 

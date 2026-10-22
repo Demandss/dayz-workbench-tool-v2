@@ -200,6 +200,7 @@ class LayoutEditorState(
 
     var lastCanvasSize by mutableStateOf(Size.Zero)
 
+    var showGrid by mutableStateOf(false)
     var snapToGrid by mutableStateOf(false)
     var snapToShapes by mutableStateOf(false)
     var showBorders by mutableStateOf(true)

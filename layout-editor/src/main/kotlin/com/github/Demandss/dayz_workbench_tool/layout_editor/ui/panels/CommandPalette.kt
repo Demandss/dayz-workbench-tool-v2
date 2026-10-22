@@ -127,6 +127,7 @@ fun buildCommands(
             ) { state.workbenchColors = !state.workbenchColors },
         )
         add(toggle("Live Preview (F5)", AppIcon.UI_PLAY, state.livePreview) { state.livePreview = !state.livePreview })
+        add(toggle("сетку", AppIcon.UI_GRID, state.showGrid) { state.showGrid = !state.showGrid })
         add(toggle("привязку к сетке", AppIcon.UI_MAGNET, state.snapToGrid) { state.snapToGrid = !state.snapToGrid })
         add(toggle("рамки виджетов", AppIcon.UI_GRID, state.showBorders) { state.showBorders = !state.showBorders })
         add(toggle("безопасную зону", AppIcon.UI_SAFE, state.showSafeFrame) { state.showSafeFrame = !state.showSafeFrame })
