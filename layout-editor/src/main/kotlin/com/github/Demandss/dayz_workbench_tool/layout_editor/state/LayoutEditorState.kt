@@ -1311,7 +1311,7 @@ class LayoutEditorState(
 
     /** Every image of every imageset the editor knows (the game's and the connected mods'): the set name and the image name. */
     fun allIcons(nearPath: String?): List<Pair<String, String>> =
-        imageSetNames(nearPath).flatMap { set -> imageNamesOf(set, nearPath).map { set to it } }
+        imageSetNames(nearPath).flatMap { set -> imageNamesOf(set, nearPath).distinct().map { set to it } }
 
     private fun rawPictureFor(
         node: EditorWidgetNode,

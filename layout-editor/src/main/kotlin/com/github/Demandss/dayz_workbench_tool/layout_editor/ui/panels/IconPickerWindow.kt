@@ -89,7 +89,7 @@ fun IconPickerWindow(state: LayoutEditorState) {
                 verticalArrangement = Arrangement.spacedBy(4.dp),
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
             ) {
-                items(shown.take(ICON_LIMIT), key = { (set, image) -> "$set/$image" }) { (set, image) ->
+                items(shown.take(ICON_LIMIT), key = { (set, image) -> "$set::$image" }) { (set, image) ->
                     IconCell(state, set, image, nearPath) {
                         onPick("set:$set image:$image")
                         state.iconPicker = null
