@@ -132,6 +132,12 @@ fun buildCommands(
                 state.workbenchColors,
             ) { state.workbenchColors = !state.workbenchColors },
         )
+        add(
+            toggle("подписи виджетов (F7)", AppIcon.UI_INFO, state.showWidgetNames) {
+                state.showWidgetNames = !state.showWidgetNames
+                state.savePreferences()
+            },
+        )
         add(toggle("Live Preview (F5)", AppIcon.UI_PLAY, state.livePreview) { state.livePreview = !state.livePreview })
         add(toggle("сетку", AppIcon.UI_GRID, state.showGrid) { state.showGrid = !state.showGrid })
         add(toggle("привязку к сетке", AppIcon.UI_MAGNET, state.snapToGrid) { state.snapToGrid = !state.snapToGrid })

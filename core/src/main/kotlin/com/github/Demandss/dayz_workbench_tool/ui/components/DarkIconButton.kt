@@ -42,6 +42,8 @@ fun DarkIconButton(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     active: Boolean? = null,
+    // Paints the icon in this colour, e.g. the state of a connection
+    tint: Color? = null,
 ) {
     val interaction = remember { MutableInteractionSource() }
     val hovered by interaction.collectIsHoveredAsState()
@@ -68,6 +70,7 @@ fun DarkIconButton(
                 tint =
                     when {
                         !enabled -> GhostlyText.copy(alpha = 0.4f)
+                        tint != null -> tint
                         active == false -> GhostlyText
                         else -> icon.tint?.let { Color(it) } ?: TextForeground
                     },

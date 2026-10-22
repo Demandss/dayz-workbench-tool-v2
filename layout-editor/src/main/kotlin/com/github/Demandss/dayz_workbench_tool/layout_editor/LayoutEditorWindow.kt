@@ -152,6 +152,11 @@ fun LayoutEditorWindow(
                             state.livePreview = !state.livePreview
                             return@onPreviewKeyEvent true
                         }
+                        if (event.key == Key.F7) {
+                            state.showWidgetNames = !state.showWidgetNames
+                            state.savePreferences()
+                            return@onPreviewKeyEvent true
+                        }
                         if (event.key == Key.F6) {
                             state.workbenchColors = !state.workbenchColors
                             return@onPreviewKeyEvent true

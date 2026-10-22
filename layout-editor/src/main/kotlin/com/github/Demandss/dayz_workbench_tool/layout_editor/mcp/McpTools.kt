@@ -151,6 +151,7 @@ internal class McpTools(
             put("live_preview", state.livePreview)
             put("workbench_130_colors", state.workbenchColors)
             put("show_grid", state.showGrid)
+            put("show_widget_names", state.showWidgetNames)
             put("grid_size", state.gridSize)
             put("snap_to_grid", state.snapToGrid)
             put("zoom", state.zoom.toDouble())
@@ -494,6 +495,7 @@ internal class McpTools(
         args.bool("live_preview")?.let { state.livePreview = it }
         args.bool("workbench_130_colors")?.let { state.workbenchColors = it }
         args.bool("show_grid")?.let { state.showGrid = it }
+        args.bool("show_widget_names")?.let { state.showWidgetNames = it }
         args.bool("snap_to_grid")?.let { state.snapToGrid = it }
         args.int("grid_size")?.let { state.gridSize = it.coerceIn(1, 512) }
         args.string("resolution")?.let { text ->
@@ -738,6 +740,7 @@ internal class McpTools(
                         "live_preview" to ("boolean" to "Clean view without borders and labels"),
                         "workbench_130_colors" to ("boolean" to "Draw colours like the Workbench of 1.30 instead of like the game"),
                         "show_grid" to ("boolean" to "Show the grid"),
+                        "show_widget_names" to ("boolean" to "Write the type and name in the corner of every widget"),
                         "snap_to_grid" to ("boolean" to "Snap moved widgets to the grid"),
                         "grid_size" to ("integer" to "Grid step in pixels"),
                         "resolution" to ("string" to "e.g. 1920x1080 or FitToWindow"),

@@ -1,5 +1,6 @@
 package com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -27,6 +28,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.TextStyle
@@ -130,7 +132,23 @@ private fun Check(
                 .border(1.dp, DarkenedBorder),
             contentAlignment = Alignment.Center,
         ) {
-            if (checked) Text("✓", color = Color.White, fontSize = 11.sp)
+            if (checked) {
+                Canvas(Modifier.size(16.dp)) {
+                    val stroke = 1.6.dp.toPx()
+                    drawLine(
+                        Color.White,
+                        Offset(size.width * 0.24f, size.height * 0.52f),
+                        Offset(size.width * 0.43f, size.height * 0.72f),
+                        stroke,
+                    )
+                    drawLine(
+                        Color.White,
+                        Offset(size.width * 0.43f, size.height * 0.72f),
+                        Offset(size.width * 0.77f, size.height * 0.30f),
+                        stroke,
+                    )
+                }
+            }
         }
         Text(label, color = TextForeground, fontSize = 12.sp)
     }
@@ -303,6 +321,11 @@ private fun ViewPage(state: LayoutEditorState) {
         color = GhostlyText,
         fontSize = 10.sp,
     )
+    Caption("Холст")
+    Check("Подписи виджетов (F7)", state.showWidgetNames) {
+        state.showWidgetNames = it
+        state.savePreferences()
+    }
     Caption("Сетка")
     Check("Показывать сетку", state.showGrid) {
         state.showGrid = it

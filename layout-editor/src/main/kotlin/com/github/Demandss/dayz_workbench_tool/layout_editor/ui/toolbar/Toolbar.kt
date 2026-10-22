@@ -16,6 +16,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.github.demandss.dayz_workbench_tool.layout_editor.mcp.McpHost
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.LayoutEditorState
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.Resolution
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.DropdownPopup
@@ -76,6 +77,15 @@ fun Toolbar(
             "Рамки виджетов",
             onClick = { state.showBorders = !state.showBorders },
             active = state.showBorders,
+        )
+        DarkIconButton(
+            AppIcon.UI_INFO,
+            "Подписи виджетов на холсте (F7)",
+            onClick = {
+                state.showWidgetNames = !state.showWidgetNames
+                state.savePreferences()
+            },
+            active = state.showWidgetNames,
         )
         DarkIconButton(
             AppIcon.UI_GRID,
@@ -139,7 +149,18 @@ fun Toolbar(
             primary = true,
         )
         Spacer(Modifier.width(4.dp))
-        DarkIconButton(AppIcon.UI_CMD, "Настройки: MCP и отображение (Ctrl+,)", onClick = { state.preferencesOpen = true })
+        // The colour of the icon tells the state of the MCP connection: green works, red is on but not running
+        DarkIconButton(
+            AppIcon.UI_CMD,
+            "Настройки: MCP и отображение (Ctrl+,)" + if (McpHost.url != null) "  ·  MCP работает" else "",
+            onClick = { state.preferencesOpen = true },
+            tint =
+                when {
+                    McpHost.url != null -> Color(0xFF5CB85C)
+                    state.mcpEnabled -> Color(0xFFD06A6A)
+                    else -> null
+                },
+        )
         Spacer(Modifier.width(4.dp))
         DarkToolButton(
             "WB 1.30",

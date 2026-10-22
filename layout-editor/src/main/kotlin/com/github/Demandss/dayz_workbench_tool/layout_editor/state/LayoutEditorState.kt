@@ -268,6 +268,9 @@ class LayoutEditorState(
     var mcpEnabled by mutableStateOf(true)
     var mcpPort by mutableStateOf(39871)
 
+    /** The "Type · name" label in the corner of every widget of the editor view. */
+    var showWidgetNames by mutableStateOf(true)
+
     private fun loadPreferences() {
         val config = runCatching { ConfigManager.LayoutEditor.load() }.getOrNull() ?: return
         mcpEnabled = config.mcpEnabled
@@ -276,6 +279,7 @@ class LayoutEditorState(
         showGrid = config.showGrid
         snapToGrid = config.snapToGrid
         gridSize = config.gridSize.coerceIn(1, 512)
+        showWidgetNames = config.showWidgetNames
     }
 
     fun savePreferences() {
@@ -288,6 +292,7 @@ class LayoutEditorState(
                     showGrid = showGrid,
                     snapToGrid = snapToGrid,
                     gridSize = gridSize,
+                    showWidgetNames = showWidgetNames,
                 ),
             )
         }

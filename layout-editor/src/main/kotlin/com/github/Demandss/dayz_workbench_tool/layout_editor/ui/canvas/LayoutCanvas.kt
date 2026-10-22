@@ -440,7 +440,7 @@ internal fun DrawScope.drawWidgetTree(
     }
 
     // Widget type label (screen-space, fixed 10sp, only when big enough)
-    if (showLabels && !isRoot && ss.width > 40f && ss.height > 14f) {
+    if (showLabels && WidgetNames.shown && !isRoot && ss.width > 40f && ss.height > 14f) {
         val className =
             node.node.type.className
                 .removeSuffix("WidgetClass")
@@ -958,6 +958,7 @@ fun LayoutCanvas(
         val pan = state.panOffset
         val doc = state.activeFile
         val selectedSet = state.selectedIds.toHashSet()
+        WidgetNames.shown = state.showWidgetNames
 
         // 1. Infinite dark background
         drawRect(Color(0xFF1A1B1E))
@@ -1309,6 +1310,12 @@ internal fun DrawScope.drawSkinSlot(
             )
         }
     }
+}
+
+/** Whether the editor view writes "Type · name" in the corner of every widget; set from the state before a frame is drawn. */
+internal object WidgetNames {
+    @Volatile
+    var shown = true
 }
 
 /** The grey the Workbench preview clears its window with. */
