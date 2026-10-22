@@ -1047,13 +1047,17 @@ class LayoutEditorState(
                 .trim()
                 .trim('"')
                 .replace('\\', '/')
-        val last = path.substringAfterLast('/')
+        val last = path.substringAfterLast('/').trimEnd('.')
         if (last.startsWith("sdf_", ignoreCase = true)) return sdfFontFor(path, nearPath)
         val directory = path.substringBeforeLast('/', "gui/fonts")
         val family = last.trimEnd { it.isDigit() }
         val fixed = last.takeLastWhile { it.isDigit() }.toIntOrNull()
         val roots = resourceRoots(nearPath)
-        val sizes = BITMAP_FONT_SIZES.filter { size -> roots.any { inRoot(it, "$directory/$family$size.fnt").isFile } }
+        // A font of a mod can be made in a size of its own, written in its name
+        val sizes =
+            (BITMAP_FONT_SIZES.toList() + listOfNotNull(fixed)).distinct().sorted().filter { size ->
+                roots.any { inRoot(it, "$directory/$family$size.fnt").isFile }
+            }
         if (sizes.isEmpty()) return sdfFontFor(path, nearPath)
         val size =
             when {
@@ -1214,6 +1218,10 @@ class LayoutEditorState(
                 ?.let { name -> vanillaStylesFor(className, nearPath).firstOrNull { it.name == name } }
                 ?.let { styleColorOf(it.color) }
                 ?: Color.White
+        // A button names the colour of its letters itself with `text color` (a dark label on a white button)
+        if (node.node.type == WidgetType.BUTTON) {
+            node.node.properties["text color"]?.let { return parseWidgetColor(it) }
+        }
         // The `color` of a button tints its skin; the letters keep the colour of the style (measured: a red button, white text)
         if (node.node.type == WidgetType.BUTTON || node.node.type == WidgetType.CHECKBOX ||
             node.node.type == WidgetType.THREE_STATE_CHECKBOX
