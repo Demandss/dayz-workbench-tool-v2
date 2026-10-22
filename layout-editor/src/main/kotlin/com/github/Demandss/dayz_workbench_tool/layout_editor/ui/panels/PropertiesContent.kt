@@ -40,6 +40,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.github.demandss.dayz_workbench_tool.layout.WidgetType
+import com.github.demandss.dayz_workbench_tool.layout_editor.EditorWidgetNode
 import com.github.demandss.dayz_workbench_tool.layout_editor.findNode
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.LayoutEditorState
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.convertUnit
@@ -296,7 +297,7 @@ fun PropertiesContent(
                 },
                 StyleChoice(state, node.node.type, doc?.path),
             )
-            if (node.node.type in IMAGE_TYPES) ImageWidgetSection(props, commit, state.workDrivePath)
+            if (node.node.type in IMAGE_TYPES) ImageWidgetSection(props, commit, state.workDrivePath, state, node, doc?.path)
             val extra = props.filter { it.key !in WIDGET_KEYS && it.key !in IMAGE_KEYS }
             if (extra.isNotEmpty()) RawSection(extra, commit)
         }
@@ -527,6 +528,9 @@ private fun ImageWidgetSection(
     props: Map<String, String>,
     commit: (String, String) -> Unit,
     workDrivePath: String,
+    state: LayoutEditorState,
+    node: EditorWidgetNode,
+    nearPath: String?,
 ) {
     var expanded by remember { mutableStateOf(true) }
     SectionHeader("ImageWidget", expanded) { expanded = !expanded }
@@ -551,10 +555,12 @@ private fun ImageWidgetSection(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         PropLabel("imageTexture", "imageTexture" in props, null, Modifier.width(LABEL_W))
-        Spacer(Modifier.weight(1f))
+        StringField(props["imageTexture"] ?: "", Modifier.weight(1f)) { commit("imageTexture", it) }
+        Spacer(Modifier.width(2.dp))
         SmallButton("..") { scope.launch { pickFile("Выбрать текстуру", "*", basePath)?.let { commit("imageTexture", it) } } }
     }
     HLine()
+    ImagePreview(state.pictureFor(node, nearPath), (props["image0"] ?: props["imageTexture"]).orEmpty().isNotBlank())
 
     PropRow("mode", "mode" in props) { CompactDropdown(props["mode"] ?: "", MODE_OPTS) { commit("mode", it) } }
     CheckRow("src alpha", props["src alpha"], commit)
@@ -597,6 +603,69 @@ private fun ImageWidgetSection(
 
     SliderRow("Transition width", props["transition width"], 0f, 1f) { commit("transition width", it) }
     SliderRow("Progress", props["progress"], 0f, 1f) { commit("progress", it) }
+}
+
+/** A small look at the picture of an image widget, on a chequered ground so that a transparent one can be seen. */
+@Composable
+private fun ImagePreview(
+    picture: androidx.compose.ui.graphics.ImageBitmap?,
+    named: Boolean,
+) {
+    Row(
+        Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Spacer(Modifier.width(LABEL_W))
+        androidx.compose.foundation.Canvas(
+            Modifier
+                .size(72.dp)
+                .border(1.dp, Color(0xFF3A3C40)),
+        ) {
+            val cell = 8.dp.toPx()
+            val cols = (size.width / cell).toInt() + 1
+            val rows = (size.height / cell).toInt() + 1
+            for (y in 0 until rows) {
+                for (x in 0 until cols) {
+                    drawRect(
+                        if ((x + y) % 2 == 0) Color(0xFF3A3A3A) else Color(0xFF2C2C2C),
+                        Offset(x * cell, y * cell),
+                        Size(cell, cell),
+                    )
+                }
+            }
+            if (picture != null) {
+                val scale = minOf(size.width / picture.width, size.height / picture.height)
+                val w = (picture.width * scale).toInt().coerceAtLeast(1)
+                val h = (picture.height * scale).toInt().coerceAtLeast(1)
+                drawImage(
+                    picture,
+                    srcSize =
+                        androidx.compose.ui.unit
+                            .IntSize(picture.width, picture.height),
+                    dstOffset =
+                        androidx.compose.ui.unit.IntOffset(
+                            ((size.width - w) / 2).toInt(),
+                            ((size.height - h) / 2).toInt(),
+                        ),
+                    dstSize =
+                        androidx.compose.ui.unit
+                            .IntSize(w, h),
+                    filterQuality = androidx.compose.ui.graphics.FilterQuality.Medium,
+                )
+            }
+        }
+        Text(
+            when {
+                picture != null -> "${picture.width} × ${picture.height}"
+                named -> "не найдена"
+                else -> "нет картинки"
+            },
+            color = GhostlyText,
+            fontSize = 10.sp,
+        )
+    }
+    HLine()
 }
 
 // ---------------------------------------------------------------------------
