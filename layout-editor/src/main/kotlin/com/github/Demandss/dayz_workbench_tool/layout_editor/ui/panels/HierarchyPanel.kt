@@ -7,6 +7,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -24,6 +25,7 @@ import com.github.demandss.dayz_workbench_tool.layout_editor.state.DragSession
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.DragSource
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.LayoutEditorState
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.hasBareCenter
+import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.parentOf
 import com.github.demandss.dayz_workbench_tool.ui.components.Tip
 import com.github.demandss.dayz_workbench_tool.ui.icons.AppIcon
 import com.github.demandss.dayz_workbench_tool.ui.icons.AppIconView
@@ -50,10 +52,24 @@ fun HierarchyPanel(
 ) {
     val doc = state.activeFile
     val expandedIds = remember { mutableStateListOf<UUID>() }
+    var query by remember { mutableStateOf("") }
+    val listState = rememberLazyListState()
 
     LaunchedEffect(doc?.path) {
         expandedIds.clear()
+        query = ""
         doc?.root?.id?.let { expandedIds.add(it) }
+    }
+
+    // A widget picked on the canvas is shown in the tree: the folders above it open up
+    val picked = state.selectedIds.lastOrNull()
+    LaunchedEffect(picked, doc?.root) {
+        val root = doc?.root ?: return@LaunchedEffect
+        var parent = picked?.let { root.parentOf(it) }
+        while (parent != null) {
+            if (parent.id !in expandedIds) expandedIds.add(parent.id)
+            parent = root.parentOf(parent.id)
+        }
     }
 
     Column(
@@ -73,6 +89,7 @@ fun HierarchyPanel(
         ) {
             Text("Hierarchy", color = GhostlyText, fontSize = 10.sp)
         }
+        SearchField(query, "Поиск виджета…") { query = it }
 
         if (doc == null) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -82,16 +99,34 @@ fun HierarchyPanel(
         }
 
         val flatList =
-            remember(doc.root, expandedIds.toSet()) {
+            remember(doc.root, expandedIds.toSet(), query) {
                 mutableListOf<Pair<EditorWidgetNode, Int>>().also {
-                    buildFlatList(doc.root, 0, expandedIds.toHashSet(), it)
+                    if (query.isBlank()) {
+                        buildFlatList(doc.root, 0, expandedIds.toHashSet(), it)
+                    } else {
+                        // A search shows the widgets that match, flat
+                        val words = query.trim().lowercase().split(Regex("\\s+"))
+
+                        fun visit(n: EditorWidgetNode) {
+                            val hay = (n.node.name + " " + n.node.type.className).lowercase()
+                            if (words.all { w -> w in hay }) it.add(n to 0)
+                            n.children.forEach(::visit)
+                        }
+                        visit(doc.root)
+                    }
                 }
             }
+
+        // Scroll to the picked widget when it is not in view
+        LaunchedEffect(picked, flatList.size) {
+            val index = flatList.indexOfFirst { (n, _) -> n.id == picked }
+            if (index >= 0 && listState.layoutInfo.visibleItemsInfo.none { it.index == index }) listState.animateScrollToItem(index)
+        }
 
         val dragSrc = state.dragSession?.source
         val isDragging = dragSrc != null
 
-        LazyColumn(Modifier.fillMaxSize()) {
+        LazyColumn(Modifier.fillMaxSize(), state = listState) {
             items(flatList, key = { (node, _) -> node.id.toString() }) { (node, depth) ->
                 val isExpanded = expandedIds.contains(node.id)
                 val isSelected = state.selectedIds.contains(node.id)

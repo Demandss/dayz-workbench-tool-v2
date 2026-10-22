@@ -545,8 +545,11 @@ private fun ImageWidgetSection(
         horizontalArrangement = Arrangement.spacedBy(2.dp),
     ) {
         PropLabel("image0", "image0" in props, null, Modifier.width(LABEL_W))
-        StringField(props["image0"] ?: "", Modifier.weight(1f)) { commit("image0", it) }
-        SmallButton("..") { scope.launch { pickFile("Выбрать текстуру", "*", basePath)?.let { commit("image0", it) } } }
+        // The quotes of the file are not shown; Enter or leaving the field confirms what was typed
+        StringField(shownPath(props["image0"]), Modifier.weight(1f)) { commit("image0", storedPath(it, state)) }
+        Tip("Выбрать иконку из imageset-ов игры и модов") {
+            SmallButton("...") { state.iconPicker = { ref -> commit("image0", "\"$ref\"") } }
+        }
     }
     HLine()
 
@@ -555,9 +558,12 @@ private fun ImageWidgetSection(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         PropLabel("imageTexture", "imageTexture" in props, null, Modifier.width(LABEL_W))
-        StringField(props["imageTexture"] ?: "", Modifier.weight(1f)) { commit("imageTexture", it) }
+        // The `{GUID}` that Workbench wants in front of the path is kept in the file and not shown
+        StringField(shownPath(props["imageTexture"]), Modifier.weight(1f)) { commit("imageTexture", storedPath(it, state)) }
         Spacer(Modifier.width(2.dp))
-        SmallButton("..") { scope.launch { pickFile("Выбрать текстуру", "*", basePath)?.let { commit("imageTexture", it) } } }
+        SmallButton("..") {
+            scope.launch { pickFile("Выбрать текстуру", "*", basePath)?.let { commit("imageTexture", storedPath(it, state)) } }
+        }
     }
     HLine()
     ImagePreview(state.pictureFor(node, nearPath), (props["image0"] ?: props["imageTexture"]).orEmpty().isNotBlank())
@@ -603,6 +609,24 @@ private fun ImageWidgetSection(
 
     SliderRow("Transition width", props["transition width"], 0f, 1f) { commit("transition width", it) }
     SliderRow("Progress", props["progress"], 0f, 1f) { commit("progress", it) }
+}
+
+/** A path of an image property as the user sees it: without quotes and without the `{GUID}` in front. */
+private fun shownPath(raw: String?): String =
+    raw
+        .orEmpty()
+        .trim()
+        .trim('"')
+        .replace(Regex("^\\{[0-9A-Fa-f]+}"), "")
+
+/** What goes into the file for a path typed or picked: quoted, `set:` references as they are, files with their `{GUID}`. */
+private fun storedPath(
+    text: String,
+    state: LayoutEditorState,
+): String {
+    val clean = text.trim().trim('"')
+    if (clean.isEmpty()) return ""
+    return "\"" + (if (clean.startsWith("set:")) clean else state.textureReference(clean)) + "\""
 }
 
 /** A small look at the picture of an image widget, on a chequered ground so that a transparent one can be seen. */

@@ -37,6 +37,7 @@ import androidx.compose.ui.unit.sp
 import com.github.demandss.dayz_workbench_tool.layout.WidgetType
 import com.github.demandss.dayz_workbench_tool.layout_editor.EditorWidgetNode
 import com.github.demandss.dayz_workbench_tool.layout_editor.findNode
+import com.github.demandss.dayz_workbench_tool.layout_editor.state.CanvasMenu
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.LayoutEditorState
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.Resolution
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.WidgetSkin
@@ -97,6 +98,22 @@ private fun hitTest(
         hitTest(child, worldPos, layout, hidden, locked)?.let { return it }
     }
     return if (inside && node.id !in locked) node else null
+}
+
+/** Every widget under [worldPos], the topmost first, for the menu of the right button. */
+private fun hitsAt(
+    node: EditorWidgetNode,
+    worldPos: Offset,
+    layout: TreeLayout,
+    hidden: Set<UUID>,
+    out: MutableList<EditorWidgetNode>,
+) {
+    if (!node.isVisible() || node.id in hidden) return
+    val rect = layout.rects[node.id] ?: return
+    val inside = rect.contains(worldPos)
+    if (!inside && node.clipsChildren()) return
+    for (child in node.drawOrder().asReversed()) hitsAt(child, worldPos, layout, hidden, out)
+    if (inside) out += node
 }
 
 /** The button under [worldPos] that takes the pointer, the topmost one; null when there is none. */
@@ -605,6 +622,18 @@ fun LayoutCanvas(
                                     val isMiddle = event.buttons.isTertiaryPressed
                                     val isPrimary = event.buttons.isPrimaryPressed
                                     when {
+                                        event.buttons.isSecondaryPressed -> {
+                                            runCatching { focusRequester.requestFocus() }
+                                            val doc = state.activeFile
+                                            if (doc != null) {
+                                                val layout = layoutOf(state, doc.root, screenRect(state))
+                                                val hits = mutableListOf<EditorWidgetNode>()
+                                                hitsAt(doc.root, screenToWorld(pos, zoom, pan), layout, state.hiddenIds.toSet(), hits)
+                                                state.canvasMenu = if (hits.isEmpty()) null else CanvasMenu(pos, hits)
+                                            }
+                                            event.changes.forEach { it.consume() }
+                                        }
+
                                         isMiddle || (isPrimary && spacePressed) -> {
                                             isPanning = true
                                             panStartScreen = pos
@@ -1160,7 +1189,16 @@ internal fun DrawScope.drawSkinTinted(
     val dst =
         androidx.compose.ui.geometry
             .Rect(tl.x, tl.y, tl.x + ss.width, tl.y + ss.height)
-    val rects = sliceRects(dst, skin.native.mapValues { (_, v) -> Size(v.width * zoom, v.height * zoom) })
+    // Every edge is put on a whole pixel: the pieces share their borders, so a zoom that gives them fractions leaves no seams
+    val rects =
+        sliceRects(dst, skin.native.mapValues { (_, v) -> Size(v.width * zoom, v.height * zoom) }).mapValues { (_, r) ->
+            androidx.compose.ui.geometry.Rect(
+                r.left.roundToInt().toFloat(),
+                r.top.roundToInt().toFloat(),
+                r.right.roundToInt().toFloat(),
+                r.bottom.roundToInt().toFloat(),
+            )
+        }
     // The Center first: the edges are drawn over it, and where they have holes it shows through
     rects["Center"]?.let { drawSkinSlot(skin, "Center", it, tint, zoom) }
     for ((slot, r) in rects) if (slot != "Center") drawSkinSlot(skin, slot, r, tint, zoom)

@@ -50,6 +50,7 @@ import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.findProbl
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.imageset.ImageSetEditor
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.Breadcrumbs
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.BulkEditDialog
+import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.CanvasContextMenu
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.CommandPalette
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.ConfirmDialog
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.EmptyState
@@ -58,6 +59,7 @@ import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.FlatDialo
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.FpsOverlay
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.HierarchyPanel
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.HistoryPanel
+import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.IconPickerWindow
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.Minimap
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.PaletteContent
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.ProblemsPanel
@@ -341,6 +343,7 @@ fun LayoutEditorWindow(
                                                     state.canvasBoundsInWindow = coords.boundsInWindow()
                                                 },
                                         )
+                                        CanvasContextMenu(state)
                                         ReferencePanel(state, Modifier.align(Alignment.TopEnd).padding(12.dp))
                                         if (state.showRulers && !state.livePreview) Rulers(state)
                                         if (state.showMinimap &&
@@ -405,6 +408,7 @@ fun LayoutEditorWindow(
                 }
 
                 BulkEditDialog(state)
+                IconPickerWindow(state)
                 ConfirmDialog(state)
                 ShortcutsDialog(state)
                 if (state.debugOverlay) FpsOverlay(Modifier.align(Alignment.TopEnd).padding(top = 34.dp, end = 12.dp))

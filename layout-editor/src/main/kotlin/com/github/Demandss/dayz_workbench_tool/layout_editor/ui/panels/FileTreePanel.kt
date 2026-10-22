@@ -740,7 +740,7 @@ private fun InlineNameField(
 
 /** Compact popup menu shown with its top-left corner at [position] inside the anchor. */
 @Composable
-private fun ContextMenu(
+internal fun ContextMenu(
     position: IntOffset,
     onDismiss: () -> Unit,
     content: @Composable ColumnScope.() -> Unit,
@@ -764,7 +764,7 @@ private fun ContextMenu(
 }
 
 @Composable
-private fun ContextMenuItem(
+internal fun ContextMenuItem(
     text: String,
     color: Color = TextForeground,
     icon: AppIcon? = null,
@@ -790,7 +790,7 @@ private fun ContextMenuItem(
 }
 
 @Composable
-private fun ContextMenuSeparator() {
+internal fun ContextMenuSeparator() {
     Box(
         Modifier
             .fillMaxWidth()
@@ -801,7 +801,7 @@ private fun ContextMenuSeparator() {
 }
 
 @Composable
-private fun ContextMenuCaption(text: String) {
+internal fun ContextMenuCaption(text: String) {
     Text(text.uppercase(), color = GhostlyText, fontSize = 10.sp, modifier = Modifier.padding(start = 10.dp, top = 4.dp, bottom = 2.dp))
 }
 
@@ -928,8 +928,9 @@ private suspend fun searchTree(
     }
 
 @Composable
-private fun SearchField(
+internal fun SearchField(
     value: String,
+    placeholder: String = "Поиск по имени…",
     onChange: (String) -> Unit,
 ) {
     val focus = remember { MutableInteractionSource() }
@@ -959,7 +960,7 @@ private fun SearchField(
                     modifier = Modifier.fillMaxWidth(),
                 )
                 if (value.isEmpty()) {
-                    Text("Поиск по имени…", color = GhostlyText, fontSize = 11.sp)
+                    Text(placeholder, color = GhostlyText, fontSize = 11.sp)
                 }
             }
             if (value.isNotEmpty()) {

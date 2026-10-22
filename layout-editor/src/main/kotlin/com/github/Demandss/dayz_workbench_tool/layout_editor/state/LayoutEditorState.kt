@@ -113,6 +113,12 @@ private const val HIGHLIGHT_LIFT = 0.27f
 
 enum class PaletteMode { COMMANDS, FILES, WIDGETS }
 
+/** The menu of the widgets under the cursor, opened by the right button on the canvas at [position] (canvas pixels). */
+class CanvasMenu(
+    val position: Offset,
+    val hits: List<EditorWidgetNode>,
+)
+
 /** A top level folder of the file tree: [label] is shown instead of the folder name; [archive] when it is a PBO. */
 class TreeRoot(
     val path: String,
@@ -681,6 +687,24 @@ class LayoutEditorState(
     var rightTab by mutableStateOf(0)
     var focusNameTick by mutableStateOf(0)
     var canvasFocusTick by mutableStateOf(0)
+
+    var canvasMenu by mutableStateOf<CanvasMenu?>(null)
+
+    /** Set while the window that picks an icon is open: what to do with the chosen `set:NAME image:IMAGE` text. */
+    var iconPicker by mutableStateOf<((String) -> Unit)?>(null)
+
+    /** Writes the layout reference of a file chosen by the user: with the `{GUID}` of its `.meta`, when it has one. */
+    fun textureReference(text: String): String {
+        val clean =
+            text
+                .trim()
+                .trim('"')
+                .replace(Regex("^\\{[0-9A-Fa-f]+}"), "")
+                .replace('\\', '/')
+        if (clean.isEmpty()) return ""
+        val file = listOf(File(clean), File(workDrivePath, clean)).firstOrNull { it.isFile }
+        return file?.let { resourceReference(it) } ?: clean
+    }
 
     fun requestRename() {
         if (selectedIds.size != 1) return
@@ -1258,6 +1282,37 @@ class LayoutEditorState(
         return copy.toComposeImageBitmap()
     }
 
+    /** The piece of an imageset called [imageName] in the set [setName], cut from its atlas once; null while the atlas loads or when it is missing. */
+    fun imagePiece(
+        setName: String,
+        imageName: String,
+        nearPath: String?,
+    ): ImageBitmap? {
+        val key = "$setName|$imageName|$workDrivePath|$nearPath"
+        if (pictureCache.containsKey(key)) return pictureCache[key]
+        val set = imageSetOf(setName, nearPath)
+        val def = set?.all?.firstOrNull { it.name == imageName }
+        val texture = imageSetTextureOf(setName, nearPath)
+        if (set == null || def == null || texture == null) {
+            pictureCache[key] = null
+            return null
+        }
+        val atlas = imageSetBitmap(texture) ?: return null
+        val kx = atlas.width.toFloat() / set.refWidth
+        val ky = atlas.height.toFloat() / set.refHeight
+        val x = (def.x * kx).toInt().coerceIn(0, atlas.width - 1)
+        val y = (def.y * ky).toInt().coerceIn(0, atlas.height - 1)
+        val w = (def.width * kx).toInt().coerceIn(1, atlas.width - x)
+        val h = (def.height * ky).toInt().coerceIn(1, atlas.height - y)
+        val piece = runCatching { awtOf(atlas).getSubimage(x, y, w, h).toComposeImageBitmap() }.getOrNull()
+        pictureCache[key] = piece
+        return piece
+    }
+
+    /** Every image of every imageset the editor knows (the game's and the connected mods'): the set name and the image name. */
+    fun allIcons(nearPath: String?): List<Pair<String, String>> =
+        imageSetNames(nearPath).flatMap { set -> imageNamesOf(set, nearPath).map { set to it } }
+
     private fun rawPictureFor(
         node: EditorWidgetNode,
         nearPath: String?,
@@ -1270,25 +1325,7 @@ class LayoutEditorState(
         val setMatch = Regex("^set:(\\S+)\\s+image:(\\S+)").find(image0)
         if (setMatch != null) {
             val (setName, imageName) = setMatch.destructured
-            val key = "$setName|$imageName|$workDrivePath|$nearPath"
-            if (pictureCache.containsKey(key)) return pictureCache[key]
-            val set = imageSetOf(setName, nearPath)
-            val def = set?.all?.firstOrNull { it.name == imageName }
-            val texture = imageSetTextureOf(setName, nearPath)
-            if (set == null || def == null || texture == null) {
-                pictureCache[key] = null
-                return null
-            }
-            val atlas = imageSetBitmap(texture) ?: return null
-            val kx = atlas.width.toFloat() / set.refWidth
-            val ky = atlas.height.toFloat() / set.refHeight
-            val x = (def.x * kx).toInt().coerceIn(0, atlas.width - 1)
-            val y = (def.y * ky).toInt().coerceIn(0, atlas.height - 1)
-            val w = (def.width * kx).toInt().coerceIn(1, atlas.width - x)
-            val h = (def.height * ky).toInt().coerceIn(1, atlas.height - y)
-            val piece = runCatching { awtOf(atlas).getSubimage(x, y, w, h).toComposeImageBitmap() }.getOrNull()
-            pictureCache[key] = piece
-            return piece
+            return imagePiece(setName, imageName, nearPath)
         }
         val path = image0.takeIf { it.isNotEmpty() } ?: node.node.properties["imageTexture"]
         return path?.let(::textureFor)
