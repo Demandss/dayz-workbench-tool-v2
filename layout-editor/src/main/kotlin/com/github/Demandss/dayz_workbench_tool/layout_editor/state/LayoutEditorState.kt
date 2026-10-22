@@ -32,6 +32,7 @@ import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.NINE_SLIC
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.Reorder
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.ResizeHandle
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.SdfFont
+import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.TemplateKind
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.alignedRoot
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.allNames
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.appearance
@@ -49,6 +50,7 @@ import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.reordered
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.sanitizeWidgetName
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.screenRect
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.scriptSnippet
+import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.scriptTemplate
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.ungrouped
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.uniqueName
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.withAppearance
@@ -340,11 +342,20 @@ class LayoutEditorState(
 
     private fun connectedMods(): List<String> = (modFolders.orEmpty() + detectedMods).distinct()
 
-    /** Connects the mod that holds [path] (the nearest folder above it with a `config.cpp`), if it is not connected yet. */
-    private fun connectModOf(path: String) {
+    /** The folder of the mod that holds [path]: the highest folder above it with a `config.cpp` (a `GUI` folder may have one too). */
+    private fun modRootOf(path: String): File? {
         var dir = File(path).parentFile
-        while (dir != null && !File(dir, "config.cpp").isFile) dir = dir.parentFile
-        val mod = dir?.path ?: return
+        var found: File? = null
+        while (dir != null) {
+            if (File(dir, "config.cpp").isFile) found = dir
+            dir = dir.parentFile
+        }
+        return found
+    }
+
+    /** Connects the mod that holds [path], if it is not connected yet. */
+    private fun connectModOf(path: String) {
+        val mod = modRootOf(path)?.path ?: return
         if (mod in connectedMods()) return
         detectedMods += mod
         resourceRootsCache.clear()
@@ -593,6 +604,66 @@ class LayoutEditorState(
             return
         }
         notify("Код доступа скопирован: ${nodes.size}", ToastKind.SUCCESS)
+    }
+
+    /** The path the game finds the layout [path] by: from the work drive, else from the folder of its mod (`Mod/GUI/layout/x.layout`). */
+    fun gameLayoutPath(path: String): String {
+        PboFile.resolve(path)?.let { pbo ->
+            val prefix = pbo.archive.prefix
+            return (if (prefix.isEmpty()) "" else "$prefix/") + pbo.inner
+        }
+        val file = runCatching { File(path).canonicalFile }.getOrDefault(File(path))
+        val drive = workDrivePath.takeIf { it.isNotBlank() }?.let { runCatching { File(it).canonicalFile }.getOrNull() }
+        if (drive != null && file.path.startsWith(drive.path + File.separator, ignoreCase = true)) {
+            return file.path.substring(drive.path.length + 1).replace(File.separatorChar, '/')
+        }
+        val dir = modRootOf(file.path)
+        if (dir != null) return dir.name + "/" + file.path.substring(dir.path.length + 1).replace(File.separatorChar, '/')
+        return file.name
+    }
+
+    /** `MF_CLS_` and the name of the layout in Pascal case: the class name offered for a layout of the mod `MF_CLS_Client`. */
+    fun defaultScriptClassName(path: String): String {
+        val parts =
+            (modRootOf(path)?.name ?: "")
+                .split(Regex("[^A-Za-z0-9]+"))
+                .filter { it.isNotEmpty() }
+                .toMutableList()
+        if (parts.size > 1 &&
+            parts.last().lowercase() in setOf("client", "server", "core", "common", "mod")
+        ) {
+            parts.removeAt(parts.lastIndex)
+        }
+        val prefix = if (parts.isEmpty()) "" else parts.joinToString("_") + "_"
+        val base =
+            File(path)
+                .nameWithoutExtension
+                .split(Regex("[^A-Za-z0-9]+"))
+                .filter { it.isNotEmpty() }
+                .joinToString("") { it.replaceFirstChar { c -> c.uppercase() } }
+                .ifEmpty { "Layout" }
+        return (prefix + base).let { if (it.first().isDigit()) "_$it" else it }
+    }
+
+    /** The Enforce Script class for the open layout of the given [kind]; null when no layout is open. */
+    fun scriptTemplateText(
+        kind: TemplateKind,
+        className: String? = null,
+    ): String? {
+        val doc = activeFile ?: return null
+        return scriptTemplate(doc.root, gameLayoutPath(doc.path), className ?: defaultScriptClassName(doc.path), kind)
+    }
+
+    /** Puts the script template of the open layout on the clipboard. */
+    fun copyScriptTemplate(kind: TemplateKind) {
+        val text = scriptTemplateText(kind) ?: return
+        runCatching {
+            Toolkit.getDefaultToolkit().systemClipboard.setContents(java.awt.datatransfer.StringSelection(text), null)
+        }.onFailure {
+            notify("Не удалось скопировать: ${it.message ?: it.javaClass.simpleName}", ToastKind.ERROR)
+            return
+        }
+        notify("Шаблон скопирован: ${kind.title}", ToastKind.SUCCESS)
     }
 
     // The look copied with "Copy properties"

@@ -14,11 +14,16 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.github.demandss.dayz_workbench_tool.layout_editor.mcp.McpHost
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.LayoutEditorState
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.Resolution
+import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.TemplateKind
+import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.ContextMenu
+import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.ContextMenuCaption
+import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.ContextMenuItem
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.DropdownPopup
 import com.github.demandss.dayz_workbench_tool.ui.components.DarkButton
 import com.github.demandss.dayz_workbench_tool.ui.components.DarkIconButton
@@ -139,6 +144,7 @@ fun Toolbar(
             enabled = state.activeFile?.redoStack?.isNotEmpty() == true,
         )
         DarkIconButton(AppIcon.UI_SAVE, "Сохранить (Ctrl+S)", onClick = { state.saveActiveFile() }, enabled = state.activeFile != null)
+        ScriptTemplateButton(state)
         Spacer(Modifier.width(4.dp))
         DarkToolButton(
             "Live Preview",
@@ -170,6 +176,31 @@ fun Toolbar(
             active = state.workbenchColors,
         )
         Spacer(Modifier.width(4.dp))
+    }
+}
+
+/** Copies an Enforce Script class for the open layout: a menu, a component or just the variables. */
+@Composable
+private fun ScriptTemplateButton(state: LayoutEditorState) {
+    var open by remember { mutableStateOf(false) }
+    Box {
+        DarkIconButton(
+            AppIcon.UI_COPY,
+            "Скопировать шаблон скрипта для лайаута",
+            onClick = { open = true },
+            enabled = state.activeFile != null,
+        )
+        if (open) {
+            ContextMenu(IntOffset(0, with(LocalDensity.current) { 28.dp.roundToPx() }), onDismiss = { open = false }) {
+                ContextMenuCaption("Шаблон скрипта в буфер")
+                TemplateKind.entries.forEach { kind ->
+                    ContextMenuItem(kind.title, icon = AppIcon.UI_COPY) {
+                        open = false
+                        state.copyScriptTemplate(kind)
+                    }
+                }
+            }
+        }
     }
 }
 

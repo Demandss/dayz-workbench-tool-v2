@@ -15,6 +15,7 @@ import com.github.demandss.dayz_workbench_tool.layout_editor.state.LayoutEditorS
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.Resolution
 import com.github.demandss.dayz_workbench_tool.layout_editor.toEditorNode
 import com.github.demandss.dayz_workbench_tool.layout_editor.toWidgetNode
+import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.TemplateKind
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.findProblems
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.layoutTree
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.sanitizeWidgetName
@@ -114,6 +115,7 @@ internal class McpTools(
             "move_widget" -> moveWidget(args)
             "select_widgets" -> selectWidgets(args)
             "get_layout_text" -> layoutText()
+            "get_script_template" -> scriptTemplate(args)
             "replace_layout_text" -> replaceLayoutText(args)
             "set_view" -> setView(args)
             "get_problems" -> problems()
@@ -288,6 +290,18 @@ internal class McpTools(
     }
 
     private fun layoutText(): String = LayoutSerializer.serialize(requireDoc().root.toWidgetNode())
+
+    private fun scriptTemplate(args: JsonObject): String {
+        requireDoc()
+        val kind =
+            when (args.string("kind")?.lowercase()) {
+                null, "menu" -> TemplateKind.MENU
+                "component" -> TemplateKind.COMPONENT
+                "widgets" -> TemplateKind.WIDGETS
+                else -> throw ToolFailure("kind is menu, component or widgets")
+            }
+        return state.scriptTemplateText(kind, args.string("class_name")) ?: throw ToolFailure("No layout is open")
+    }
 
     private fun problems(): String {
         val doc = requireDoc()
@@ -731,6 +745,18 @@ internal class McpTools(
                     "Replaces the whole active layout by the given .layout text (undoable).",
                     mapOf("text" to ("string" to "Text of a .layout file")),
                     listOf("text"),
+                ),
+                tool(
+                    "get_script_template",
+                    "The Enforce Script class for the active layout, as the editor copies it: the widget members, the lookup, the events of the buttons and inputs and, for a menu, its registration.",
+                    mapOf(
+                        "kind" to
+                            (
+                                "string" to
+                                    "menu (UIScriptedMenu, default), component (ScriptedWidgetEventHandler) or widgets (members and lookup only)"
+                            ),
+                        "class_name" to ("string" to "Name of the class, made from the mod and the layout name by default"),
+                    ),
                 ),
                 tool("get_problems", "What the editor thinks is wrong in the active layout."),
                 tool(
