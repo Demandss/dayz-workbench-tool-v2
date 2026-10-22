@@ -360,7 +360,7 @@ internal fun DrawScope.drawWidgetTree(
                     fontAt = { px -> fontFor(node, px) },
                     fontName = fontNameFor(node),
                 )
-            } else if (showLabels && label.isNotEmpty() && ss.width > 4f && ss.height > 8f) {
+            } else if (showLabels && WidgetNames.shown && label.isNotEmpty() && ss.width > 4f && ss.height > 8f) {
                 val measured =
                     textMeasurer.measure(
                         label,
@@ -384,7 +384,7 @@ internal fun DrawScope.drawWidgetTree(
                     fontAt = { px -> fontFor(node, px) },
                     fontName = fontNameFor(node),
                 )
-            } else if (showLabels && label.isNotEmpty() && ss.width > 4f && ss.height > 8f) {
+            } else if (showLabels && WidgetNames.shown && label.isNotEmpty() && ss.width > 4f && ss.height > 8f) {
                 val measured =
                     textMeasurer.measure(
                         label,
