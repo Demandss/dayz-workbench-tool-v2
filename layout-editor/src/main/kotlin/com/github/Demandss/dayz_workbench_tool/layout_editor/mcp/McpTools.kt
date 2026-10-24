@@ -16,10 +16,13 @@ import com.github.demandss.dayz_workbench_tool.layout_editor.state.Resolution
 import com.github.demandss.dayz_workbench_tool.layout_editor.toEditorNode
 import com.github.demandss.dayz_workbench_tool.layout_editor.toWidgetNode
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.TemplateKind
+import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.allNames
+import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.copiedWithNewIds
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.findProblems
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.layoutTree
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.sanitizeWidgetName
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.screenRect
+import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.knownPropertyKeys
 import com.github.demandss.dayz_workbench_tool.layout_editor.updateNode
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
@@ -101,6 +104,7 @@ internal class McpTools(
         when (name) {
             "editor_status" -> status().toString()
             "open_layout" -> openLayout(args)
+            "create_layout" -> createLayout(args)
             "close_layout" -> closeLayout(args)
             "save_layout" -> saveLayout()
             "undo" -> undoRedo(true, args)
@@ -110,6 +114,8 @@ internal class McpTools(
             "find_widgets" -> findWidgets(args)
             "set_properties" -> setProperties(args)
             "add_widget" -> addWidget(args)
+            "add_widgets" -> addWidgets(args)
+            "copy_widget" -> copyWidget(args)
             "delete_widget" -> deleteWidget(args)
             "rename_widget" -> renameWidget(args)
             "move_widget" -> moveWidget(args)
@@ -149,7 +155,13 @@ internal class McpTools(
                     }
                 },
             )
-            put("selected", buildJsonArray { state.selectedIds.forEach { add(JsonPrimitive(it.toString())) } })
+            put(
+                "selected",
+                buildJsonArray {
+                    val root = state.activeFile?.root
+                    state.selectedIds.filter { root?.findNode(it) != null }.forEach { add(JsonPrimitive(it.toString())) }
+                },
+            )
             put("live_preview", state.livePreview)
             put("workbench_130_colors", state.workbenchColors)
             put("show_grid", state.showGrid)
@@ -356,10 +368,31 @@ internal class McpTools(
         return "Opened ${doc.path}"
     }
 
+    private fun createLayout(args: JsonObject): String {
+        val path = args.string("path") ?: throw ToolFailure("path is required")
+        val file = java.io.File(path)
+        if (file.exists() && args.bool("overwrite") != true) throw ToolFailure("$path exists: open_layout opens it, or pass overwrite=true")
+        file.parentFile?.mkdirs()
+        val root = args.string("root_type")?.let { typeOf(it) } ?: WidgetType.FRAME
+        val rootName = sanitizeWidgetName(args.string("root_name") ?: "Root")
+        val width = args.int("width") ?: 1920
+        val height = args.int("height") ?: 1080
+        // A root of exact pixels, so that what is put into it keeps the same size on every screen
+        file.writeText(
+            "${root.className} $rootName {\n size $width $height\n hexactpos 1\n vexactpos 1\n hexactsize 1\n vexactsize 1\n}\n",
+            Charsets.UTF_8,
+        )
+        return openLayout(buildJsonObject { put("path", path) })
+    }
+
     private fun closeLayout(args: JsonObject): String {
         val index = args.int("index") ?: state.activeFileIndex
         if (index !in state.openFiles.indices) throw ToolFailure("No layout with that index")
+        if (state.openFiles[index].isModified && args.bool("discard") != true) {
+            throw ToolFailure("The layout has unsaved changes: call save_layout first, or pass discard=true to drop them")
+        }
         state.closeFile(index)
+        state.selectedIds.clear()
         return "Closed"
     }
 
@@ -390,19 +423,52 @@ internal class McpTools(
         state.updateActiveRoot(change(doc.root))
     }
 
+    /** The name of a property as the file writes it: a name with a space is quoted by the writer, so quotes given here are dropped. */
+    private fun cleanKey(key: String): String = key.trim().trim('"').trim()
+
+    /** The names among [keys] that the editor does not know for [node], as a warning for the answer of a tool. */
+    private fun warningsFor(
+        node: EditorWidgetNode,
+        keys: Collection<String>,
+    ): List<String> {
+        val known = knownPropertyKeys(node.node.type, node.node.originalClassName)
+        return keys
+            .filter { it.lowercase() !in known }
+            .map {
+                "Unknown property '$it' for ${node.node.type.className.removeSuffix(
+                    "Class",
+                )}: it is written to the file as it is (a typo?)"
+            }
+    }
+
+    private fun withWarnings(
+        json: JsonObject,
+        warnings: List<String>,
+    ): String =
+        if (warnings.isEmpty()) {
+            json.toString()
+        } else {
+            buildJsonObject {
+                json.forEach { (k, v) -> put(k, v) }
+                put("warnings", JsonArray(warnings.map { JsonPrimitive(it) }))
+            }.toString()
+        }
+
     private fun setProperties(args: JsonObject): String {
         val node = requireNode(args)
         val values = args["properties"] as? JsonObject ?: throw ToolFailure("properties must be an object of name: value")
-        edit("MCP: ${values.keys.joinToString(", ")}") { root ->
+        val cleaned = values.entries.associate { (key, value) -> cleanKey(key) to value }
+        edit("MCP: ${cleaned.keys.joinToString(", ")}") { root ->
             root.updateNode(node.id) { n ->
                 val props = LinkedHashMap(n.node.properties)
-                for ((key, value) in values) {
+                for ((key, value) in cleaned) {
                     if (value is JsonNull) props.remove(key) else props[key] = (value as? JsonPrimitive)?.content.orEmpty()
                 }
                 n.copy(node = n.node.copy(properties = props))
             }
         }
-        return widgetJson(requireNode(buildJsonObject { put("id", node.id.toString()) }), withRect = true).toString()
+        val after = requireNode(buildJsonObject { put("id", node.id.toString()) })
+        return withWarnings(widgetJson(after, withRect = true), warningsFor(after, cleaned.filterValues { it !is JsonNull }.keys))
     }
 
     private fun typeOf(text: String): WidgetType {
@@ -415,26 +481,40 @@ internal class McpTools(
         } ?: throw ToolFailure("Unknown widget type: $text")
     }
 
-    private fun addWidget(args: JsonObject): String {
-        val doc = requireDoc()
-        val parent =
-            if (args.string("parent_id") != null || args.string("parent_name") != null || args.string("parent_path") != null) {
-                requireNode(args, "parent_")
-            } else {
-                doc.root
-            }
-        val type = typeOf(args.string("type") ?: throw ToolFailure("type is required, e.g. PanelWidget"))
-        val taken = mutableSetOf<String>()
-
-        fun collect(n: EditorWidgetNode) {
-            taken += n.node.name
-            n.children.forEach(::collect)
+    private fun findIn(
+        root: EditorWidgetNode,
+        args: JsonObject,
+        prefix: String,
+    ): EditorWidgetNode? {
+        args.string(prefix + "id")?.let { raw ->
+            val id = runCatching { UUID.fromString(raw) }.getOrNull() ?: throw ToolFailure("Not a widget id: $raw")
+            return root.findNode(id)
         }
-        collect(doc.root)
-        val wanted = sanitizeWidgetName(args.string("name") ?: type.className.removeSuffix("WidgetClass"))
+        args.string(prefix + "path")?.let { path ->
+            var current = root
+            val parts = path.split('/').filter { it.isNotEmpty() }
+            if (parts.isEmpty() || parts.first() != current.node.name) return null
+            for (part in parts.drop(1)) current = current.children.firstOrNull { it.node.name == part } ?: return null
+            return current
+        }
+        args.string(prefix + "name")?.let { name ->
+            fun search(n: EditorWidgetNode): EditorWidgetNode? = if (n.node.name == name) n else n.children.firstNotNullOfOrNull(::search)
+            return search(root)
+        }
+        return root
+    }
+
+    /** One widget as `add_widget` builds it: a free name, 100 by 50 pixels at 0 0 unless the properties say otherwise. */
+    private fun buildWidget(
+        spec: JsonObject,
+        taken: MutableSet<String>,
+    ): EditorWidgetNode {
+        val type = typeOf(spec.string("type") ?: throw ToolFailure("type is required, e.g. PanelWidget"))
+        val wanted = sanitizeWidgetName(spec.string("name") ?: type.className.removeSuffix("WidgetClass"))
         var name = wanted
         var n = 1
         while (name in taken) name = wanted + (++n)
+        taken += name
         val props =
             linkedMapOf(
                 "position" to "0 0",
@@ -444,10 +524,21 @@ internal class McpTools(
                 "hexactsize" to "1",
                 "vexactsize" to "1",
             )
-        (args["properties"] as? JsonObject)?.forEach { (k, v) -> props[k] = (v as? JsonPrimitive)?.content.orEmpty() }
-        val created = EditorWidgetNode(node = WidgetNode(type = type, originalClassName = type.className, name = name, properties = props))
+        (spec["properties"] as? JsonObject)?.forEach { (k, v) -> props[cleanKey(k)] = (v as? JsonPrimitive)?.content.orEmpty() }
+        return EditorWidgetNode(node = WidgetNode(type = type, originalClassName = type.className, name = name, properties = props))
+    }
+
+    private fun addWidget(args: JsonObject): String {
+        val doc = requireDoc()
+        val parent =
+            if (args.string("parent_id") != null || args.string("parent_name") != null || args.string("parent_path") != null) {
+                requireNode(args, "parent_")
+            } else {
+                doc.root
+            }
+        val created = buildWidget(args, doc.root.allNames().toMutableSet())
         val index = args.int("index")
-        edit("MCP: add $name") { root ->
+        edit("MCP: add ${created.node.name}") { root ->
             root.updateNode(parent.id) { p ->
                 val list = p.children.toMutableList()
                 list.add(index?.coerceIn(0, list.size) ?: list.size, created)
@@ -456,7 +547,144 @@ internal class McpTools(
         }
         state.selectedIds.clear()
         state.selectedIds.add(created.id)
-        return widgetJson(created, withRect = false).toString()
+        return withWarnings(widgetJson(created, withRect = false), warningsFor(created, created.node.properties.keys))
+    }
+
+    /** Many widgets in one call and one step of the history. A widget may name a parent that an earlier one of the list created. */
+    private fun addWidgets(args: JsonObject): String {
+        val doc = requireDoc()
+        val specs = args["widgets"] as? JsonArray ?: throw ToolFailure("widgets must be an array of {type, name, parent_name, properties}")
+        if (specs.isEmpty()) throw ToolFailure("widgets is empty")
+        val taken = doc.root.allNames().toMutableSet()
+        var root = doc.root
+        val created = mutableListOf<EditorWidgetNode>()
+        val warnings = mutableListOf<String>()
+        specs.forEachIndexed { i, raw ->
+            val spec = raw as? JsonObject ?: throw ToolFailure("widgets[$i] is not an object")
+            try {
+                val hasParent = listOf("parent_id", "parent_name", "parent_path").any { spec.string(it) != null }
+                val parent = if (hasParent) findIn(root, spec, "parent_") else root
+                parent ?: throw ToolFailure("parent not found")
+                val widget = buildWidget(spec, taken)
+                root =
+                    root.updateNode(parent.id) { p ->
+                        val list = p.children.toMutableList()
+                        list.add(spec.int("index")?.coerceIn(0, list.size) ?: list.size, widget)
+                        p.copy(children = list)
+                    }
+                created += widget
+                warnings += warningsFor(widget, widget.node.properties.keys).map { "${widget.node.name}: $it" }
+            } catch (e: ToolFailure) {
+                throw ToolFailure("widgets[$i]: ${e.message}. Nothing was added")
+            }
+        }
+        val idx = state.activeFileIndex
+        state.pushUndo(idx, doc.root, "MCP: add ${created.size} widgets")
+        state.updateActiveRoot(root)
+        state.selectedIds.clear()
+        return withWarnings(
+            buildJsonObject {
+                put("added", created.size)
+                put(
+                    "widgets",
+                    JsonArray(
+                        created.map { w ->
+                            buildJsonObject {
+                                put("id", w.id.toString())
+                                put("name", w.node.name)
+                            }
+                        },
+                    ),
+                )
+            },
+            warnings,
+        )
+    }
+
+    /**
+     * Copies a widget with everything under it. Every name in the copy gets [name_prefix] before it and [name_suffix] after it
+     * (`{n}` is the number of the copy), and the copy may be shifted by [offset] pixels, which grows with each of [count] copies.
+     */
+    private fun copyWidget(args: JsonObject): String {
+        val doc = requireDoc()
+        val source = requireNode(args)
+        if (source.id == doc.root.id) throw ToolFailure("The root widget cannot be copied")
+        val count = (args.int("count") ?: 1).coerceIn(1, 200)
+        val prefix = args.string("name_prefix").orEmpty()
+        val suffix = args.string("name_suffix") ?: "_{n}"
+        val shift =
+            args
+                .string("offset")
+                ?.trim()
+                ?.split(Regex("\\s+"))
+                ?.mapNotNull { it.toFloatOrNull() }
+                ?.takeIf { it.size == 2 }
+        val hasTarget = listOf("parent_id", "parent_name", "parent_path").any { args.string(it) != null }
+        var root = doc.root
+        val targetId =
+            if (hasTarget) {
+                requireNode(
+                    args,
+                    "parent_",
+                ).id
+            } else {
+                (doc.root.pathTo(source.id)?.let { it.getOrNull(it.size - 2)?.id })
+            }
+        if (targetId == null) throw ToolFailure("The widget has no parent")
+        val taken = doc.root.allNames().toMutableSet()
+        val made = mutableListOf<EditorWidgetNode>()
+
+        fun renamed(
+            n: EditorWidgetNode,
+            copyNumber: Int,
+        ): EditorWidgetNode {
+            val wanted = sanitizeWidgetName(prefix + n.node.name + suffix.replace("{n}", copyNumber.toString()))
+            var name = wanted
+            var k = 1
+            while (name in taken) name = wanted + (++k)
+            taken += name
+            return n.copy(node = n.node.copy(name = name), children = n.children.map { renamed(it, copyNumber) }.toMutableList())
+        }
+
+        for (copyNumber in 1..count) {
+            var copy = renamed(source.copiedWithNewIds(), copyNumber)
+            if (shift != null) {
+                val props = LinkedHashMap(copy.node.properties)
+                val parts = (props["position"] ?: "0 0").trim().split(Regex("\\s+")).mapNotNull { it.toFloatOrNull() }
+                if (parts.size == 2) {
+                    fun fmt(v: Float) = if (v == v.toInt().toFloat()) v.toInt().toString() else v.toString()
+                    props["position"] = "${fmt(parts[0] + shift[0] * copyNumber)} ${fmt(parts[1] + shift[1] * copyNumber)}"
+                    copy = copy.copy(node = copy.node.copy(properties = props))
+                }
+            }
+            root =
+                root.updateNode(targetId) { p ->
+                    val list = p.children.toMutableList()
+                    // Next to the original when it stays in its parent, otherwise at the end of the new parent
+                    val at = list.indexOfFirst { it.id == source.id }
+                    list.add(if (at >= 0) at + copyNumber else list.size, copy)
+                    p.copy(children = list)
+                }
+            made += copy
+        }
+        state.pushUndo(state.activeFileIndex, doc.root, "MCP: copy ${source.node.name}")
+        state.updateActiveRoot(root)
+        state.selectedIds.clear()
+        state.selectedIds.add(made.last().id)
+        return buildJsonObject {
+            put("copies", made.size)
+            put(
+                "widgets",
+                JsonArray(
+                    made.map { w ->
+                        buildJsonObject {
+                            put("id", w.id.toString())
+                            put("name", w.node.name)
+                        }
+                    },
+                ),
+            )
+        }.toString()
     }
 
     private fun deleteWidget(args: JsonObject): String {
@@ -495,7 +723,12 @@ internal class McpTools(
 
     private fun replaceLayoutText(args: JsonObject): String {
         requireDoc()
-        val text = args.string("text") ?: throw ToolFailure("text is required")
+        val text =
+            args.string("text")
+                ?: args.string("path")?.let { p ->
+                    runCatching { java.io.File(p).readText(Charsets.UTF_8) }.getOrElse { throw ToolFailure("Cannot read $p") }
+                }
+                ?: throw ToolFailure("text or path is required")
         val parsed = runCatching { LayoutParser.parse(text) }.getOrElse { throw ToolFailure("Not a layout: ${it.message}") }
         val idx = state.activeFileIndex
         val doc = state.openFiles[idx]
@@ -533,7 +766,9 @@ internal class McpTools(
     private fun screenshot(args: JsonObject): JsonElement {
         val mode = args.string("mode") ?: "editor"
         val area = args.string("area") ?: "canvas"
-        val maxWidth = (args.int("max_width") ?: 1600).coerceIn(200, 4000)
+        val screenOnly = area == "screen"
+        val screenWidth = if (state.selectedResolution == Resolution.FIT) state.screenSize.width.toInt() else state.selectedResolution.width
+        val maxWidth = (args.int("max_width") ?: if (screenOnly) screenWidth else 1600).coerceIn(200, 4000)
         val saved = onMain { Triple(state.livePreview, state.workbenchColors, state.zoom to state.panOffset) }
         try {
             onMain {
@@ -557,6 +792,20 @@ internal class McpTools(
             // The frame with the new view has to be drawn before it is taken
             Thread.sleep(600)
             val image = onMain { capture(area) } ?: return textResult("The window cannot be captured", isError = true)
+            // The screen of the layout alone is scaled to its own pixels, so that it can be compared with a reference one to one
+            if (screenOnly) {
+                val screenHeight =
+                    if (state.selectedResolution == Resolution.FIT) state.screenSize.height.toInt() else state.selectedResolution.height
+                val exact = BufferedImage(screenWidth, screenHeight, BufferedImage.TYPE_INT_ARGB)
+                val g = exact.createGraphics()
+                g.setRenderingHint(java.awt.RenderingHints.KEY_INTERPOLATION, java.awt.RenderingHints.VALUE_INTERPOLATION_BICUBIC)
+                g.drawImage(image, 0, 0, screenWidth, screenHeight, null)
+                g.dispose()
+                return imageResult(
+                    exact,
+                    "${exact.width}x${exact.height}, the screen of the layout, mode $mode, resolution ${state.selectedResolution.label}",
+                )
+            }
             val scaled = if (image.width > maxWidth) scale(image, maxWidth) else image
             val out = ByteArrayOutputStream()
             ImageIO.write(scaled, "png", out)
@@ -603,11 +852,50 @@ internal class McpTools(
         return out
     }
 
+    private fun imageResult(
+        image: BufferedImage,
+        caption: String,
+    ): JsonObject {
+        val out = ByteArrayOutputStream()
+        ImageIO.write(image, "png", out)
+        return buildJsonObject {
+            put(
+                "content",
+                buildJsonArray {
+                    add(
+                        buildJsonObject {
+                            put("type", "image")
+                            put("data", Base64.getEncoder().encodeToString(out.toByteArray()))
+                            put("mimeType", "image/png")
+                        },
+                    )
+                    add(
+                        buildJsonObject {
+                            put("type", "text")
+                            put("text", caption)
+                        },
+                    )
+                },
+            )
+        }
+    }
+
     private fun capture(area: String): BufferedImage? {
         val window = state.hostWindow ?: return null
         val layer = findLayer(window) ?: return null
         val full = layer.screenshot()?.asComposeImageBitmap()?.toAwtImage() ?: return null
         if (area == "window") return full
+        if (area == "screen") {
+            // The screen of the layout inside the canvas: its corner is the pan, its size the resolution times the zoom
+            val b = state.canvasBoundsInWindow
+            val w = if (state.selectedResolution == Resolution.FIT) state.screenSize.width else state.selectedResolution.width.toFloat()
+            val h = if (state.selectedResolution == Resolution.FIT) state.screenSize.height else state.selectedResolution.height.toFloat()
+            val x = (b.left + state.panOffset.x).toInt().coerceIn(0, full.width - 1)
+            val y = (b.top + state.panOffset.y).toInt().coerceIn(0, full.height - 1)
+            val cw = (w * state.zoom).toInt().coerceIn(1, full.width - x)
+            val ch = (h * state.zoom).toInt().coerceIn(1, full.height - y)
+            return full.getSubimage(x, y, cw, ch)
+        }
         val b = state.canvasBoundsInWindow
         val x = b.left.toInt().coerceIn(0, full.width - 1)
         val y = b.top.toInt().coerceIn(0, full.height - 1)
@@ -675,9 +963,25 @@ internal class McpTools(
                     listOf("path"),
                 ),
                 tool(
+                    "create_layout",
+                    "Creates a new .layout file with an empty root (a Frame of 1920x1080 pixels by default) and opens it. Missing folders are made.",
+                    mapOf(
+                        "path" to ("string" to "Full path of the new file"),
+                        "width" to ("integer" to "Width of the root in pixels, 1920 by default"),
+                        "height" to ("integer" to "Height of the root in pixels, 1080 by default"),
+                        "root_type" to ("string" to "Type of the root, FrameWidget by default"),
+                        "root_name" to ("string" to "Name of the root, Root by default"),
+                        "overwrite" to ("boolean" to "Replace a file that exists, false by default"),
+                    ),
+                    listOf("path"),
+                ),
+                tool(
                     "close_layout",
-                    "Closes a layout tab (the active one when index is not given).",
-                    mapOf("index" to ("integer" to "Tab index from editor_status")),
+                    "Closes a layout tab (the active one when index is not given). A layout with unsaved changes is not closed unless discard is true.",
+                    mapOf(
+                        "index" to ("integer" to "Tab index from editor_status"),
+                        "discard" to ("boolean" to "Close even when there are unsaved changes, false by default"),
+                    ),
                 ),
                 tool("save_layout", "Saves the active layout to its file."),
                 tool("undo", "Undoes the last edits of the active layout.", mapOf("steps" to ("integer" to "How many, 1 by default"))),
@@ -703,13 +1007,13 @@ internal class McpTools(
                 ),
                 tool(
                     "set_properties",
-                    "Sets properties of a widget (undoable). A value of null removes the property. Values are written as they stand in the .layout file, with quotes for text, e.g. image0 = \"set:Name image:Img\".",
+                    "Sets properties of a widget (undoable). A value of null removes the property. Values are written as they stand in the .layout file, with quotes for text, e.g. image0 = \"set:Name image:Img\". A name with a space is given without quotes (text color); the file writer quotes it. A name the editor does not know is still written, with a warning in the answer.",
                     WIDGET_REF + mapOf("properties" to ("object" to "Property name to value")),
                     listOf("properties"),
                 ),
                 tool(
                     "add_widget",
-                    "Adds a widget inside a parent (the root when no parent is given).",
+                    "Adds a widget inside a parent (the root when no parent is given). Position and size are pixels unless hexactpos/vexactpos/hexactsize/vexactsize are 0: size \"1 1\" is one pixel, not the whole parent.",
                     mapOf(
                         "type" to ("string" to "Widget type, e.g. PanelWidget, TextWidget, ImageWidget"),
                         "name" to ("string" to "Name of the new widget"),
@@ -720,6 +1024,30 @@ internal class McpTools(
                         "index" to ("integer" to "Place among the parent's children (the end by default)"),
                     ),
                     listOf("type"),
+                ),
+                tool(
+                    "add_widgets",
+                    "Adds many widgets in one call and one step of the history. Each item is what add_widget takes; an item may name a parent that an earlier item created. If one item is wrong nothing is added.",
+                    mapOf("widgets" to ("array" to "Items of {type, name, parent_name or parent_id or parent_path, properties, index}")),
+                    listOf("widgets"),
+                ),
+                tool(
+                    "copy_widget",
+                    "Copies a widget with everything under it, count times. Names in the copy get name_prefix before and name_suffix after them, so they stay unique and meaningful.",
+                    WIDGET_REF +
+                        mapOf(
+                            "count" to ("integer" to "How many copies, 1 by default"),
+                            "name_prefix" to ("string" to "Put before every name in the copy, empty by default"),
+                            "name_suffix" to ("string" to "Put after every name; {n} is the number of the copy, _{n} by default"),
+                            "offset" to
+                                (
+                                    "string" to
+                                        "Pixels added to the position of the copy for each copy, e.g. \"124 0\" for a column to the right"
+                                ),
+                            "parent_id" to ("string" to "Put the copies into this parent instead of the parent of the original"),
+                            "parent_name" to ("string" to "Same, by name"),
+                            "parent_path" to ("string" to "Same, by path"),
+                        ),
                 ),
                 tool("delete_widget", "Deletes a widget with its children.", WIDGET_REF),
                 tool(
@@ -742,9 +1070,11 @@ internal class McpTools(
                 tool("get_layout_text", "The active layout as the text of a .layout file."),
                 tool(
                     "replace_layout_text",
-                    "Replaces the whole active layout by the given .layout text (undoable).",
-                    mapOf("text" to ("string" to "Text of a .layout file")),
-                    listOf("text"),
+                    "Replaces the whole active layout by the given .layout text (undoable). Give the text, or the path of a file that holds it (better for a big layout).",
+                    mapOf(
+                        "text" to ("string" to "Text of a .layout file"),
+                        "path" to ("string" to "Path of a file with that text, read instead of text"),
+                    ),
                 ),
                 tool(
                     "get_script_template",
@@ -784,7 +1114,11 @@ internal class McpTools(
                                 "string" to
                                     "editor (as it is, default), preview (Live Preview like the game) or preview_workbench (Live Preview like Workbench 1.30)"
                             ),
-                        "area" to ("string" to "canvas (default) or window"),
+                        "area" to
+                            (
+                                "string" to
+                                    "canvas (default), window, or screen: only the screen of the layout, scaled to exactly the pixels of the resolution (1920x1080), for comparing with a reference one to one"
+                            ),
                         "max_width" to ("integer" to "Scale down to this width, 1600 by default"),
                         "fit" to ("boolean" to "Fit the screen into the view first, true by default"),
                         "actual_size" to ("boolean" to "With fit false: zoom to 100%"),

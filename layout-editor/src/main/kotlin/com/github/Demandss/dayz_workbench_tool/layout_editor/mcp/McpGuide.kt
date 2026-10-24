@@ -20,21 +20,23 @@ internal object McpGuide {
         You are connected to the DayZ Layout Editor. It edits .layout files of DayZ GUI and draws them the way the game does.
 
         Workflow
-        1. editor_status shows what is open. open_layout opens a file when nothing is.
+        1. editor_status shows what is open. open_layout opens a file when nothing is; create_layout makes a new file and opens it.
         2. get_tree (max_depth to keep it short) shows the widgets with ids, types, properties and the computed rectangle in pixels.
-        3. Change things with set_properties, add_widget, rename_widget, move_widget, delete_widget. Every change can be undone with undo.
-        4. Look at the result: screenshot with mode preview (as the game draws it). Use preview_workbench only to compare with the Workbench of 1.30.
+        3. Change things with set_properties, add_widget (add_widgets for many at once), copy_widget (a widget with its children, many times), rename_widget, move_widget, delete_widget. Every change can be undone with undo.
+        4. Look at the result: screenshot with mode preview (as the game draws it); area screen gives only the screen of the layout in exactly its own pixels. Use preview_workbench only to compare with the Workbench of 1.30.
         5. save_layout writes the file. Do not leave a layout modified and unsaved when the task is done.
         6. get_problems lists what the editor thinks is wrong.
 
         Rules of the format
         - Property values are written as they stand in the .layout file: text and paths in quotes ("set:Icons image:Cross"), numbers and flags without.
+        - A property name with a space (text color, exact text size) is given without quotes: the file writer quotes it. A name the editor does not know is written all the same, with a warning in the answer: read the warnings.
+        - Text has no line breaks: \n shows as it is. Give each line its own TextWidget, or set wrap 1 so that it wraps by the width of the widget.
         - position and size are pixels when hexactpos/vexactpos and hexactsize/vexactsize are 1, otherwise shares of the parent (0.5 is half).
         - halign and valign anchor to the parent: left_ref, center_ref, right_ref (and top_ref, bottom_ref). A bare center does not centre.
         - color is r g b a from 0 to 1. The editor reads it as sRGB, like the game. Workbench 1.30 reads it as linear light and shows it lighter.
         - Names of widgets are Latin letters, digits and underscore, because scripts find a widget by name (FindAnyWidget).
         - Icons come from imagesets: list_icons gives set:NAME image:IMAGE, which goes into image0. Textures go into imageTexture with a path from the mod folder.
-        - Styles: list_styles for a widget class, then set the style property. A panel without a style draws nothing, so give it style Colorable (or another) to get a flat fill of its color. On a button Colorable colours the text too.
+        - Styles: list_styles for a widget class, then set the style property. A panel without a style draws nothing, so give it style Colorable to get a flat fill of its color (Colorable works on panels and buttons although list_styles may not show it). On a button Colorable colours the text too.
         - Files inside the game's PBO are read-only.
 
         Scripts

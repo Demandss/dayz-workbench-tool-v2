@@ -137,6 +137,23 @@ private val IMAGE_KEYS =
 
 private val IMAGE_TYPES = setOf(WidgetType.IMAGE, WidgetType.VIDEO)
 
+/** Every property the editor has a row for on a widget of this class, lower case: what a tool can tell a typo from. */
+internal fun knownPropertyKeys(
+    type: WidgetType,
+    originalClassName: String = "",
+): Set<String> =
+    (
+        WIDGET_KEYS + (
+            if (type in
+                IMAGE_TYPES
+            ) {
+                IMAGE_KEYS
+            } else {
+                emptySet()
+            }
+        ) + schemaKeys(type, originalClassName)
+    ).map { it.lowercase() }.toSet()
+
 /** What each property does, shown when the pointer rests on its name. */
 private val PROPERTY_HINTS =
     mapOf(
