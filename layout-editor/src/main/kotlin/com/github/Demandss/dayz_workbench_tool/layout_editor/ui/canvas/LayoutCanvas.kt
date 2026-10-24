@@ -423,18 +423,13 @@ internal fun DrawScope.drawWidgetTree(
         null -> {}
 
         WidgetType.PANEL, WidgetType.SMART_PANEL, WidgetType.WRAP_SPACER, WidgetType.GRID_SPACER, WidgetType.SCROLL, WidgetType.WINDOW -> {
-            // What the style paints; a widget that paints nothing still gets a faint tint so it can be found
+            // Only what the style paints: a widget that paints nothing is found by its border, not by a tint that would add up
+            // with the tints of the widgets above and below it
             val fill = node.fillColor()?.let { it.copy(alpha = it.alpha * inherited) }
-            if (fill != null) {
-                drawRect(fill, tl, ss)
-            } else if (showLabels) {
-                drawRect(Color(0x0AFFFFFF), tl, ss)
-            }
+            if (fill != null) drawRect(fill, tl, ss)
         }
 
-        WidgetType.FRAME -> {
-            if (showLabels) drawRect(Color(0x0AFFFFFF), tl, ss)
-        }
+        WidgetType.FRAME -> {}
 
         WidgetType.IMAGE -> {
             val texture = pictureFor(node)
@@ -445,15 +440,11 @@ internal fun DrawScope.drawWidgetTree(
                 // A picture with no image is a white rectangle in the Workbench preview, tinted by its colour
                 val tint = node.prop("color")?.let { parseWidgetColor(it) } ?: Color.White
                 drawRect(tint.copy(alpha = tint.alpha * inherited), tl, ss)
-            } else {
-                drawRect(Color(0x22FFFFFF), tl, ss)
-                drawLine(Color(0x55FFFFFF), tl, br, 1f)
-                drawLine(Color(0x55FFFFFF), Offset(tl.x, br.y), Offset(br.x, tl.y), 1f)
             }
+            // A picture without its image is only a border in the editor: no tint and no crossed lines over what lies below
         }
 
         WidgetType.TEXT, WidgetType.MULTILINE_TEXT, WidgetType.RICH_TEXT -> {
-            if (showLabels) drawRect(Color(0x15FFFFFF), tl, ss)
             val label = node.node.properties["text"] ?: node.node.name
             if (node.shownText().isNotEmpty()) {
                 drawWidgetText(
@@ -500,9 +491,7 @@ internal fun DrawScope.drawWidgetTree(
             }
         }
 
-        else -> {
-            if (showLabels) drawRect(Color(0x0DFFFFFF), tl, ss)
-        }
+        else -> {}
     }
 
     // A button with a skin (or a style that paints nothing) still shows its text
