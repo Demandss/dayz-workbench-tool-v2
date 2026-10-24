@@ -41,6 +41,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.github.demandss.dayz_workbench_tool.layout.WidgetType
 import com.github.demandss.dayz_workbench_tool.layout_editor.EditorWidgetNode
+import com.github.demandss.dayz_workbench_tool.layout_editor.behavior.ScriptParam
+import com.github.demandss.dayz_workbench_tool.layout_editor.behavior.ScriptParams
+import com.github.demandss.dayz_workbench_tool.layout_editor.behavior.scriptClassName
+import com.github.demandss.dayz_workbench_tool.layout_editor.behavior.setScriptParam
 import com.github.demandss.dayz_workbench_tool.layout_editor.findNode
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.LayoutEditorState
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.convertUnit
@@ -296,6 +300,7 @@ fun PropertiesContent(
                     doc?.root?.let { documentColors(it) }.orEmpty()
                 },
                 StyleChoice(state, node.node.type, doc?.path),
+                { ScriptParamRows(state, node) },
             ) {
                 ScriptClassPicker(state, node, props["scriptclass"]?.trim()?.trim('"').orEmpty()) { commit("scriptclass", it) }
             }
@@ -461,6 +466,7 @@ private fun WidgetSection(
     commit: (String, String) -> Unit,
     documentColors: List<Color>,
     styles: StyleChoice,
+    scriptParams: @Composable () -> Unit,
     scriptClass: @Composable RowScope.() -> Unit,
 ) {
     var expanded by remember { mutableStateOf(true) }
@@ -493,6 +499,7 @@ private fun WidgetSection(
     }
     CheckRow("draggable", props["draggable"], commit)
     PropRow("scriptclass", "scriptclass" in props, content = scriptClass)
+    scriptParams()
     PropRow("style", "style" in props) {
         val names = styles.names
         val current = props["style"]?.trim('"').orEmpty()
@@ -1259,4 +1266,56 @@ private class StyleChoice(
     layoutPath: String?,
 ) {
     val names: List<String> = state.vanillaStylesFor(type.className, layoutPath).map { it.name }.distinct()
+}
+
+/** The fields of `ScriptParamsClass` of the script class on the widget: those the class reads, then any others the layout has. */
+@Composable
+private fun ScriptParamRows(
+    state: LayoutEditorState,
+    node: EditorWidgetNode,
+) {
+    val className = node.scriptClassName() ?: return
+    val known = remember(className, state.scriptClasses) { state.scriptParamsOf(className) }
+    val given = node.node.scriptParams.orEmpty()
+    val extra =
+        given.keys
+            .filter { key ->
+                known.none { it.name == key }
+            }.map { ScriptParam(it, "", "В лайауте есть, класс его не читает") }
+    if (known.isEmpty() && extra.isEmpty()) return
+    Text(
+        "Параметры скрипт-класса",
+        color = GhostlyText,
+        fontSize = 9.sp,
+        modifier = Modifier.fillMaxWidth().padding(start = 8.dp, top = 6.dp, bottom = 2.dp),
+    )
+    for (param in known + extra) {
+        val value = given[param.name]?.trim()?.trim('"')
+        val set = { text: String ->
+            state.setScriptParam(
+                node.id,
+                param.name,
+                ScriptParams.formatted(param.takeIf { it.type.isNotEmpty() }, given[param.name], text),
+            )
+        }
+        if (param.isFlag) {
+            CheckRow(param.name, value, { _, v -> set(v) }, param.hint())
+        } else {
+            PropRow(param.name, param.name in given, param.hint()) {
+                Box(Modifier.weight(1f)) {
+                    StringField(value.orEmpty(), Modifier.fillMaxWidth()) { set(it) }
+                    if (value.isNullOrEmpty() && param.default.isNotEmpty()) {
+                        Text(
+                            param.default,
+                            color = GhostlyText,
+                            fontSize = 11.sp,
+                            fontFamily = FontFamily.Monospace,
+                            maxLines = 1,
+                            modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp),
+                        )
+                    }
+                }
+            }
+        }
+    }
 }

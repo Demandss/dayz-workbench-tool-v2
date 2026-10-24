@@ -16,6 +16,12 @@ import com.github.demandss.dayz_workbench_tool.layout.LayoutSerializer
 import com.github.demandss.dayz_workbench_tool.layout.WidgetNode
 import com.github.demandss.dayz_workbench_tool.layout.WidgetType
 import com.github.demandss.dayz_workbench_tool.layout_editor.EditorWidgetNode
+import com.github.demandss.dayz_workbench_tool.layout_editor.behavior.BehaviorCatalogue
+import com.github.demandss.dayz_workbench_tool.layout_editor.behavior.ScriptClassIndex
+import com.github.demandss.dayz_workbench_tool.layout_editor.behavior.ScriptClassInfo
+import com.github.demandss.dayz_workbench_tool.layout_editor.behavior.ScriptDeclaration
+import com.github.demandss.dayz_workbench_tool.layout_editor.behavior.ScriptParam
+import com.github.demandss.dayz_workbench_tool.layout_editor.behavior.ScriptParams
 import com.github.demandss.dayz_workbench_tool.layout_editor.containsId
 import com.github.demandss.dayz_workbench_tool.layout_editor.findNode
 import com.github.demandss.dayz_workbench_tool.layout_editor.removeNode
@@ -378,21 +384,42 @@ class LayoutEditorState(
     }
 
     /** The classes a widget can name in `scriptclass`: those of the game, of the connected mods and of the catalogue of the editor. */
-    internal var scriptClasses by mutableStateOf(
-        com.github.demandss.dayz_workbench_tool.layout_editor.behavior.ScriptClassIndex.editorClasses,
-    )
+    internal var scriptClasses by mutableStateOf(ScriptClassIndex.editorClasses)
         private set
 
     // The declarations of the game's scripts, read once because they do not change while the editor runs
-    private var gameScriptDeclarations: List<com.github.demandss.dayz_workbench_tool.layout_editor.behavior.ScriptDeclaration>? = null
+    private var gameScriptDeclarations: List<ScriptDeclaration>? = null
 
     private fun scanScriptClasses() {
-        val index = com.github.demandss.dayz_workbench_tool.layout_editor.behavior.ScriptClassIndex
+        val index = ScriptClassIndex
         val mods = connectedMods().map(::File).filter { it.isDirectory }
         scope.launch(Dispatchers.IO) {
             val game = gameScriptDeclarations ?: index.readGame(gameFolder).also { gameScriptDeclarations = it }
-            val found = index.build(game + mods.flatMap { index.readMod(it) })
-            withContext(Dispatchers.Main) { scriptClasses = found }
+            val all = game + mods.flatMap { index.readMod(it) }
+            val found = index.build(all)
+            withContext(Dispatchers.Main) {
+                scriptDeclarations = all.distinctBy { it.name }.associateBy { it.name }
+                scriptParamsCache.clear()
+                scriptClasses = found
+            }
+        }
+    }
+
+    // Every class declaration the scan found, by name, to walk up from a class to the classes it extends
+    private var scriptDeclarations: Map<String, ScriptDeclaration> = emptyMap()
+    private val scriptParamsCache = HashMap<String, List<ScriptParam>>()
+
+    /**
+     * The fields of `ScriptParamsClass` the script class [className] reads: for a class of the editor's catalogue its parameters,
+     * for any other the `reference` fields of the class and of the classes it extends, base classes first.
+     */
+    internal fun scriptParamsOf(className: String): List<ScriptParam> {
+        return scriptParamsCache.getOrPut(className) {
+            val entry =
+                BehaviorCatalogue.entries.firstOrNull { className == it.name }
+                    ?: BehaviorCatalogue.entries.firstOrNull { className.endsWith(it.name) && className !in scriptDeclarations }
+            if (entry != null) return@getOrPut ScriptParams.ofEditorClass(entry)
+            ScriptParams.collect(className, scriptDeclarations, gameFolder)
         }
     }
 
