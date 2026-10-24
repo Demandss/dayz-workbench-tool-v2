@@ -59,6 +59,19 @@ class ScriptClassIndexTest {
     }
 
     @Test
+    fun `the tooltip of a class says what it does, what it takes and where it is from`() {
+        val own = ScriptClassIndex.editorClasses.first { it.name == "SelectGroup" }
+        val ownTip = ScriptClassIndex.tooltip(own)
+        assertTrue("Параметры:" in ownTip && "Items = Easy|Normal|Hard" in ownTip && "пустой фрейм" in ownTip)
+        val vanilla =
+            ScriptClassInfo("SizeToChild", "Игра", "ScriptedWidgetEventHandler", "pbo:scripts/3_game/gui/containers/sizetochild.c")
+        val vanillaTip = ScriptClassIndex.tooltip(vanilla)
+        assertTrue("Live Preview" in vanillaTip && "Источник: Игра · sizetochild.c" in vanillaTip)
+        val modTip = ScriptClassIndex.tooltip(ScriptClassInfo("MF_Thing", "MF_CLS_Client", "SpacerBase", "K:/m/Thing.c"))
+        assertTrue("Наследует SpacerBase" in modTip && "MF_CLS_Client" in modTip)
+    }
+
+    @Test
     fun `the scripts of the game give the classes the vanilla layouts use`() {
         val game =
             listOf("F:/steam/steamapps/common/DayZ", "C:/Program Files (x86)/Steam/steamapps/common/DayZ").firstOrNull {

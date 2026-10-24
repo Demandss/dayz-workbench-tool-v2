@@ -42,6 +42,7 @@ import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
 import com.github.demandss.dayz_workbench_tool.layout_editor.EditorWidgetNode
 import com.github.demandss.dayz_workbench_tool.layout_editor.behavior.EDITOR
+import com.github.demandss.dayz_workbench_tool.layout_editor.behavior.ScriptClassIndex
 import com.github.demandss.dayz_workbench_tool.layout_editor.behavior.ScriptClassInfo
 import com.github.demandss.dayz_workbench_tool.layout_editor.behavior.exportScriptClass
 import com.github.demandss.dayz_workbench_tool.layout_editor.behavior.useBehavior
@@ -79,8 +80,15 @@ internal fun RowScope.ScriptClassPicker(
 ) {
     var open by remember { mutableStateOf(false) }
     val below = with(LocalDensity.current) { 24.dp.roundToPx() }
+    // The tooltip of the field tells what the class on the widget does; a class of the editor may carry the prefix of the mod
+    val known =
+        state.scriptClasses.firstOrNull { it.name == current }
+            ?: state.scriptClasses.firstOrNull { it.source == EDITOR && current.isNotEmpty() && current.endsWith(it.name) }
+    val fieldTip =
+        known?.let { ScriptClassIndex.tooltip(it) + System.lineSeparator() + "Клик: выбрать другой класс" }
+            ?: "Скрипт-класс виджета: выбрать из классов игры, модов и редактора"
     Box(Modifier.weight(1f)) {
-        Tip("Скрипт-класс виджета: выбрать из классов игры, модов и редактора") {
+        Tip(fieldTip) {
             Box(
                 Modifier
                     .fillMaxWidth()
@@ -205,27 +213,29 @@ private fun ScriptClassPopup(
                             val info = line.info
                             val interaction = remember { MutableInteractionSource() }
                             val hovered by interaction.collectIsHoveredAsState()
-                            Row(
-                                Modifier
-                                    .fillMaxWidth()
-                                    .height(22.dp)
-                                    .background(
-                                        when {
-                                            hovered -> SubSelectColor
-                                            info?.name == current || (info == null && current.isEmpty()) -> SelectColor
-                                            else -> Color.Transparent
-                                        },
-                                    ).hoverable(interaction)
-                                    .clickable(interaction, null) {
-                                        onDismiss()
-                                        onPick(info)
-                                    }.padding(horizontal = 10.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                            ) {
-                                Text(info?.name ?: "— (нет)", color = TextForeground, fontSize = 11.sp, maxLines = 1)
-                                if (info != null && info.parent.isNotEmpty() && info.parent != "ScriptedWidgetEventHandler") {
-                                    Text(info.parent, color = GhostlyText, fontSize = 9.sp, maxLines = 1)
+                            Tip(info?.let { ScriptClassIndex.tooltip(it) }) {
+                                Row(
+                                    Modifier
+                                        .fillMaxWidth()
+                                        .height(22.dp)
+                                        .background(
+                                            when {
+                                                hovered -> SubSelectColor
+                                                info?.name == current || (info == null && current.isEmpty()) -> SelectColor
+                                                else -> Color.Transparent
+                                            },
+                                        ).hoverable(interaction)
+                                        .clickable(interaction, null) {
+                                            onDismiss()
+                                            onPick(info)
+                                        }.padding(horizontal = 10.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                ) {
+                                    Text(info?.name ?: "— (нет)", color = TextForeground, fontSize = 11.sp, maxLines = 1)
+                                    if (info != null && info.parent.isNotEmpty() && info.parent != "ScriptedWidgetEventHandler") {
+                                        Text(info.parent, color = GhostlyText, fontSize = 9.sp, maxLines = 1)
+                                    }
                                 }
                             }
                         }

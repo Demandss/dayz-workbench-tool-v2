@@ -90,6 +90,61 @@ internal object ScriptClassIndex {
         return editorClasses.filter { it.name !in names } + found
     }
 
+    // What the classes do, for the tooltip of the list; the editor's own classes first, then the vanilla ones a layout often uses
+    private val about =
+        mapOf(
+            "HoverScale" to "Увеличивает виджет, пока курсор над ним.",
+            "PressScale" to "Уменьшает виджет, пока кнопка мыши зажата.",
+            "PressOffset" to "Сдвигает виджет, пока кнопка мыши зажата.",
+            "HoverColor" to "Красит виджет в другой цвет при наведении.",
+            "HoverShow" to "Показывает другой виджет при наведении, иначе он скрыт.",
+            "HoverImage" to "Меняет картинку ImageWidget при наведении.",
+            "HoverText" to "Меняет цвет текста при наведении.",
+            "Blink" to "Плавно мигает: прозрачность ходит между полной и минимальной.",
+            "FadeIn" to "Плавно проявляет виджет при показе лайаута.",
+            "Shake" to "Трясёт виджет по клику.",
+            "ProgressTween" to "Плавно заполняет прогресс-бар до значения.",
+            "CountUp" to "Отсчитывает число в тексте до значения.",
+            "SelectGroup" to "Ряд вариантов, из которых включён один. Строит виджеты в пустом фрейме.",
+            "Collapse" to "Заголовок, который открывает и закрывает другой виджет. Строит виджеты в пустом фрейме.",
+            "NumberStepper" to "Число с кнопками минус и плюс. Строит виджеты в пустом фрейме.",
+            "EditFilter" to "Пропускает в поле ввода только нужные символы и ограничивает длину.",
+            "DragMove" to "Двигает родителя (окно), когда тянут за этот виджет.",
+            "SizeToChild" to "Подгоняет размер виджета под вложенный виджет m_ChildName, с отступами. Играется в Live Preview.",
+            "SizeToParent" to "Делает размер виджета долей родителя по выбранным осям. Играется в Live Preview.",
+            "AutoHeightSpacer" to
+                "Выстраивает детей рядами и берёт высоту стопки (AlignChilds, Gap, MinHeight, MaxHeight). Играется в Live Preview.",
+            "NoticeSpacer" to "AutoHeightSpacer, который пересчитывается по событиям. Играется в Live Preview.",
+            "HorizontalSpacer" to "Делит ширину поровну между детьми, с Border и Gap. Играется в Live Preview.",
+            "VerticalSpacer" to "Делит высоту поровну между детьми, с border и gap. Играется в Live Preview.",
+            "TabberUI" to "Вкладки: кнопки сверху и панели под ними.",
+            "Tabber" to "Простые вкладки: переключает панели по кнопкам.",
+            "HoverEffect" to "Подсвечивает виджет красным и увеличивает при наведении.",
+            "Bouncer" to "Покачивает виджет.",
+            "Rotator" to "Вращает виджет.",
+        )
+
+    /** The text of the tooltip of [info]: what the class does, what it takes and where it is from. */
+    fun tooltip(info: ScriptClassInfo): String {
+        val lines = mutableListOf(info.name)
+        about[info.name]?.let { lines += it }
+        BehaviorCatalogue.find(info.name)?.takeIf { info.source == EDITOR }?.let { entry ->
+            lines += "Параметры: " + entry.params.joinToString(", ") { "${it.name} = ${it.default.ifEmpty { "\"\"" }}" }
+            lines += if (entry.spawner != null) "Ставится на пустой фрейм, виджеты строит сам" else "Ставится на готовый виджет"
+        }
+        if (info.source != EDITOR) {
+            if (info.parent.isNotEmpty() && info.parent != ROOT) lines += "Наследует ${info.parent}"
+            val file =
+                info.location
+                    .removePrefix("pbo:")
+                    .takeIf { it.isNotEmpty() }
+                    ?.let { " · " + File(it).name }
+                    .orEmpty()
+            lines += "Источник: ${info.source}$file"
+        }
+        return lines.joinToString(System.lineSeparator())
+    }
+
     /** The text of the class [name] in [text], from `class` to its closing brace; null when it is not declared there. */
     fun extractClass(
         text: String,
