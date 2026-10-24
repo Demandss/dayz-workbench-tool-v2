@@ -18,6 +18,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.*
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -37,6 +38,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Window
+import androidx.compose.ui.window.WindowPlacement
 import androidx.compose.ui.window.rememberWindowState
 import com.github.demandss.dayz_workbench_tool.layout_editor.mcp.McpHost
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.DragSession
@@ -86,6 +88,8 @@ import com.github.demandss.dayz_workbench_tool.ui.pickFile
 import com.github.demandss.dayz_workbench_tool.ui.theme.*
 import com.github.demandss.dayz_workbench_tool.ui.theme.AppColors
 import com.github.demandss.dayz_workbench_tool.ui.theme.BuiltinThemes
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import javax.imageio.ImageIO
 import kotlin.math.roundToInt
@@ -118,14 +122,52 @@ fun LayoutEditorWindow(
             shownName?.let { append(" — $it") }
         }
 
+    // The window comes back in the size it was left in, kept within the screen it opens on
+    val saved =
+        remember {
+            val screen =
+                java.awt.Toolkit
+                    .getDefaultToolkit()
+                    .screenSize
+            state.savedWindow().fittedTo(screen.width, screen.height)
+        }
+    val windowState =
+        rememberWindowState(
+            width = saved.width.dp,
+            height = saved.height.dp,
+            placement = if (saved.maximized) WindowPlacement.Maximized else WindowPlacement.Floating,
+        )
+    // A change of the size is written down a moment after it stops, so that a crash or a kill does not lose it
+    LaunchedEffect(windowState) {
+        snapshotFlow {
+            Triple(
+                windowState.size.width.value
+                    .toInt(),
+                windowState.size.height.value
+                    .toInt(),
+                windowState.placement,
+            )
+        }.collectLatest { (width, height, placement) ->
+            delay(400)
+            state.saveWindow(width, height, placement == WindowPlacement.Maximized)
+        }
+    }
+
     Window(
         onCloseRequest = {
+            state.saveWindow(
+                windowState.size.width.value
+                    .toInt(),
+                windowState.size.height.value
+                    .toInt(),
+                windowState.placement == WindowPlacement.Maximized,
+            )
             state.close()
             onCloseRequest()
         },
         title = windowTitle,
         icon = appIcon,
-        state = rememberWindowState(width = 1280.dp, height = 800.dp),
+        state = windowState,
         resizable = true,
     ) {
         // The tools of the MCP server work on this editor while its window is open

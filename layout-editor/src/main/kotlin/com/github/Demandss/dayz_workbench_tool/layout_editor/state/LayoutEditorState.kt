@@ -322,6 +322,30 @@ class LayoutEditorState(
         }
     }
 
+    /** The size the window had when it was last changed, in dp, and whether it was maximised; the default when nothing is saved. */
+    fun savedWindow(): WindowSetting {
+        val config = runCatching { ConfigManager.LayoutEditor.load() }.getOrNull() ?: return WindowSetting(1280, 800, false)
+        return WindowSetting(config.windowWidth, config.windowHeight, config.windowMaximized)
+    }
+
+    /** Remembers the window: [width] and [height] only when it is not maximised, so that restoring it brings back the size it had. */
+    fun saveWindow(
+        width: Int,
+        height: Int,
+        maximized: Boolean,
+    ) {
+        runCatching {
+            val config = ConfigManager.LayoutEditor.load()
+            val next =
+                if (maximized) {
+                    config.copy(windowMaximized = true)
+                } else {
+                    config.copy(windowWidth = width, windowHeight = height, windowMaximized = false)
+                }
+            if (next != config) ConfigManager.LayoutEditor.save(next)
+        }
+    }
+
     /** The window the editor is shown in, for screenshots. */
     var hostWindow: java.awt.Window? = null
     var hierarchyBoundsInWindow by mutableStateOf(Rect.Zero)
@@ -2267,3 +2291,20 @@ class LayoutEditorState(
 
 // The sizes the bitmap fonts of the game are made in (gui/fonts/<Family><Size>.fnt)
 private val BITMAP_FONT_SIZES = intArrayOf(12, 14, 16, 22, 28, 48, 58)
+
+/** The window of the editor as it was left. */
+data class WindowSetting(
+    val width: Int,
+    val height: Int,
+    val maximized: Boolean,
+) {
+    /** The same size kept inside a screen of [screenWidth] by [screenHeight] dp and not smaller than a usable window. */
+    fun fittedTo(
+        screenWidth: Int,
+        screenHeight: Int,
+    ): WindowSetting =
+        copy(
+            width = width.coerceIn(minOf(640, screenWidth), maxOf(640, screenWidth)),
+            height = height.coerceIn(minOf(400, screenHeight), maxOf(400, screenHeight)),
+        )
+}

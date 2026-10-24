@@ -14,6 +14,10 @@ data class LayoutEditorConfig(
     val snapToGrid: Boolean = false,
     val gridSize: Int = 10,
     val showWidgetNames: Boolean = true,
+    // The window of the editor when it was last changed: its size in dp, and whether it was maximised
+    val windowWidth: Int = 1280,
+    val windowHeight: Int = 800,
+    val windowMaximized: Boolean = false,
     // What was open when the editor was closed, per work drive (lower-case path without a trailing slash)
     val sessions: Map<String, EditorSession> = emptyMap(),
 )
