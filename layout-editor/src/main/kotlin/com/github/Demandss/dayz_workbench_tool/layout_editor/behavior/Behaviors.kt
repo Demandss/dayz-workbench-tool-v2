@@ -13,12 +13,13 @@ import kotlin.math.sin
 private val SCALE_HOVER = BehaviorParam("Scale", "1.05", "Size while the pointer is over the widget (1 is unchanged)", listOf("HoverScale"))
 private val SCALE_PRESS = BehaviorParam("Scale", "0.95", "Size while the button is held (1 is unchanged)", listOf("PressScale"))
 private val COLOR_HOVER =
-    BehaviorParam("Color", "#FFFFFF", "Colour while the pointer is over the widget, #RRGGBB or #RRGGBBAA", listOf("HoverColor"))
+    BehaviorParam("HoverColor", "#FFFFFF", "Colour while the pointer is over the widget, #RRGGBB or #RRGGBBAA", listOf("Color"))
 private val SHOW_TARGET = BehaviorParam("Target", "", "Name of the widget that appears on hover (hidden until then)")
 private val IMAGE_HOVER =
     BehaviorParam("Image", "", "Picture on hover: set:NAME image:IMAGE or the path of a texture", listOf("HoverImage"))
 private val COLOR_HOVER_TEXT =
-    BehaviorParam("Color", "#FFFFFF", "Colour of the text on hover, #RRGGBB or #RRGGBBAA", listOf("HoverColor", "TextColor"))
+    BehaviorParam("HoverColor", "#FFFFFF", "Colour of the text on hover, #RRGGBB or #RRGGBBAA", listOf("Color", "TextColor"))
+private val COLOR_TEXT_BASE = BehaviorParam("BaseColor", "#FFFFFF", "Colour of the text when the pointer is not over it")
 private val PERIOD = BehaviorParam("Period", "1.2", "Seconds for one full fade out and in")
 private val MIN_ALPHA = BehaviorParam("MinAlpha", "0.2", "Opacity at the dimmest moment, 0 to 1")
 private val DURATION_FADE = BehaviorParam("Duration", "0.5", "Seconds the fade takes")
@@ -105,7 +106,7 @@ internal object Behaviors {
                 "HoverText",
                 BehaviorKind.ON_WIDGET,
                 "Changes the colour of the text while the pointer is over the widget",
-                listOf(COLOR_HOVER_TEXT, TARGET),
+                listOf(COLOR_HOVER_TEXT, COLOR_TEXT_BASE, TARGET),
             ) { c ->
                 if (c.hovered) c.color(COLOR_HOVER_TEXT)?.let { BehaviorEffect(textColor = it) } else null
             },

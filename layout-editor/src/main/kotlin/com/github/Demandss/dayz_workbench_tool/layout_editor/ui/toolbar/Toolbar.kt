@@ -17,6 +17,8 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.github.demandss.dayz_workbench_tool.layout_editor.behavior.BehaviorCatalogue
+import com.github.demandss.dayz_workbench_tool.layout_editor.behavior.useBehavior
 import com.github.demandss.dayz_workbench_tool.layout_editor.mcp.McpHost
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.LayoutEditorState
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.Resolution
@@ -146,6 +148,8 @@ fun Toolbar(
         DarkIconButton(AppIcon.UI_SAVE, "Сохранить (Ctrl+S)", onClick = { state.saveActiveFile() }, enabled = state.activeFile != null)
         ScriptTemplateButton(state)
         Spacer(Modifier.width(4.dp))
+        BehaviorButton(state)
+        Spacer(Modifier.width(4.dp))
         DarkToolButton(
             "Live Preview",
             tooltip = "Чистый вид без рамок, подписей и выделения (F5)",
@@ -273,6 +277,34 @@ private fun ResolutionPicker(
                 { expanded = false },
                 onSelect,
             )
+        }
+    }
+}
+
+/** The script classes that give a widget a behaviour: picking one puts it on the selected widget and copies the script. */
+@Composable
+private fun BehaviorButton(state: LayoutEditorState) {
+    var open by remember { mutableStateOf(false) }
+    Box {
+        DarkIconButton(
+            AppIcon.UI_ANCHOR,
+            "Поведения: поставить скрипт-класс на выбранный виджет и скопировать скрипт",
+            onClick = { open = true },
+            enabled = state.activeFile != null,
+        )
+        if (open) {
+            ContextMenu(IntOffset(0, with(LocalDensity.current) { 28.dp.roundToPx() }), onDismiss = { open = false }) {
+                ContextMenuCaption("Скрипт-класс на выбранный виджет и в буфер")
+                BehaviorCatalogue.entries.groupBy { it.group }.forEach { (group, entries) ->
+                    ContextMenuCaption(group)
+                    entries.forEach { entry ->
+                        ContextMenuItem(entry.name, icon = if (entry.spawner != null) AppIcon.UI_LAYERS else AppIcon.UI_ANCHOR) {
+                            open = false
+                            state.useBehavior(entry.name)
+                        }
+                    }
+                }
+            }
         }
     }
 }

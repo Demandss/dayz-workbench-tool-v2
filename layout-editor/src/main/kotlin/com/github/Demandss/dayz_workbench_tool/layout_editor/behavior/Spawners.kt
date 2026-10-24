@@ -42,13 +42,13 @@ private val COLOR_OFF = BehaviorParam("OffColor", "#3A3D4A", "Colour of the othe
 private val TITLE = BehaviorParam("Title", "Section", "Text of the header")
 private val BODY = BehaviorParam("Body", "", "Name of the widget the header opens and closes")
 private val OPEN = BehaviorParam("Open", "1", "1 when the body is shown at the start, 0 when it is closed")
-private val COLOR_HEADER = BehaviorParam("Color", "#3A3D4A", "Colour of the header, #RRGGBB or #RRGGBBAA")
+private val COLOR_HEADER = BehaviorParam("HeaderColor", "#3A3D4A", "Colour of the header, #RRGGBB or #RRGGBBAA", listOf("Color"))
 
 private val VALUE = BehaviorParam("Value", "5", "Number at the start")
 private val MIN = BehaviorParam("Min", "0", "Lowest number")
 private val MAX = BehaviorParam("Max", "10", "Highest number")
 private val STEP = BehaviorParam("Step", "1", "How much a click adds or takes")
-private val COLOR_STEPPER = BehaviorParam("Color", "#3A3D4A", "Colour of the field, #RRGGBB or #RRGGBBAA")
+private val COLOR_STEPPER = BehaviorParam("FieldColor", "#3A3D4A", "Colour of the field, #RRGGBB or #RRGGBBAA", listOf("Color"))
 
 private fun layoutColor(color: Color) = "${color.red} ${color.green} ${color.blue} ${color.alpha}"
 

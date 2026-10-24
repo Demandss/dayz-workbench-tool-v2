@@ -635,8 +635,8 @@ class LayoutEditorState(
         return file.name
     }
 
-    /** `MF_CLS_` and the name of the layout in Pascal case: the class name offered for a layout of the mod `MF_CLS_Client`. */
-    fun defaultScriptClassName(path: String): String {
+    /** `MF_CLS_` for a layout of the mod `MF_CLS_Client`: what the script classes of the mod start with; empty when the mod is unknown. */
+    fun modClassPrefix(path: String): String {
         val parts =
             (modRootOf(path)?.name ?: "")
                 .split(Regex("[^A-Za-z0-9]+"))
@@ -647,7 +647,12 @@ class LayoutEditorState(
         ) {
             parts.removeAt(parts.lastIndex)
         }
-        val prefix = if (parts.isEmpty()) "" else parts.joinToString("_") + "_"
+        return if (parts.isEmpty()) "" else parts.joinToString("_") + "_"
+    }
+
+    /** `MF_CLS_` and the name of the layout in Pascal case: the class name offered for a layout of the mod `MF_CLS_Client`. */
+    fun defaultScriptClassName(path: String): String {
+        val prefix = modClassPrefix(path)
         val base =
             File(path)
                 .nameWithoutExtension
