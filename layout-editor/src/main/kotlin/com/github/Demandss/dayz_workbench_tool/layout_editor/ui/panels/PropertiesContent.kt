@@ -47,13 +47,19 @@ import com.github.demandss.dayz_workbench_tool.layout_editor.behavior.scriptClas
 import com.github.demandss.dayz_workbench_tool.layout_editor.behavior.setScriptParam
 import com.github.demandss.dayz_workbench_tool.layout_editor.findNode
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.LayoutEditorState
+import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.MIXED
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.convertUnit
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.documentColors
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.formatNumber
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.layoutTree
+import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.mergedProperties
+import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.moveSelectionTo
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.parseWidgetColor
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.sanitizeWidgetName
+import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.scaleSelectionTo
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.screenRect
+import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.selectionRect
+import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.setOnSelected
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.toFileColor
 import com.github.demandss.dayz_workbench_tool.layout_editor.updateNode
 import com.github.demandss.dayz_workbench_tool.ui.components.Tip
@@ -279,8 +285,15 @@ fun PropertiesContent(
         remember(selectedId, doc?.root) {
             if (selectedId != null && doc != null) doc.root.findNode(selectedId) else null
         }
+    // Several widgets are one selection, as in Figma: what they share is shown, what differs is Mixed, and a change goes to all
+    val selected = state.selectedIds.toList()
+    val nodes = remember(selected, doc?.root) { doc?.let { d -> selected.mapNotNull { d.root.findNode(it) } }.orEmpty() }
 
     Column(modifier.background(FrameBackground)) {
+        if (nodes.size > 1) {
+            MultiProperties(state, nodes, doc?.path)
+            return@Column
+        }
         if (node == null) {
             Box(Modifier.fillMaxWidth().padding(8.dp)) {
                 Text("Ничего не выбрано", color = GhostlyText, fontSize = 11.sp)
@@ -1317,5 +1330,97 @@ private fun ScriptParamRows(
                 }
             }
         }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Several widgets at once
+// ---------------------------------------------------------------------------
+
+/** The properties of the selected widgets as one: the same value where they agree, [MIXED] where they do not, and a change goes to all. */
+@Composable
+private fun ColumnScope.MultiProperties(
+    state: LayoutEditorState,
+    nodes: List<EditorWidgetNode>,
+    layoutPath: String?,
+) {
+    val merged = mergedProperties(nodes)
+    // A colour that differs shows as unset; the channels cannot be Mixed one by one
+    val props = merged.filter { (key, value) -> !(key == "color" && value == MIXED) }
+    val commit: (String, String) -> Unit = { key, value -> state.setOnSelected(key, value) }
+    val types = nodes.map { it.node.type }.distinct()
+
+    Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState())) {
+        Row(
+            Modifier.fillMaxWidth().padding(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            AppIconView(AppIcon.UI_LAYERS, size = 18.dp)
+            Column(Modifier.weight(1f)) {
+                Text("${nodes.size} виджетов", color = TextForeground, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                Text(
+                    nodes
+                        .groupingBy {
+                            it.node.type.className
+                                .removeSuffix("WidgetClass")
+                        }.eachCount()
+                        .entries
+                        .joinToString(", ") { (type, count) -> if (count > 1) "$type × $count" else type },
+                    color = GhostlyText,
+                    fontSize = 10.sp,
+                    maxLines = 2,
+                )
+            }
+        }
+        MultiTransform(state)
+        WidgetSection(
+            props,
+            commit,
+            remember(state.activeFile?.root) {
+                state.activeFile
+                    ?.root
+                    ?.let { documentColors(it) }
+                    .orEmpty()
+            },
+            StyleChoice(state, types.singleOrNull() ?: WidgetType.UNKNOWN, layoutPath),
+            {},
+        ) {
+            StringField(props["scriptclass"]?.trim('"').orEmpty(), Modifier.weight(1f)) { commit("scriptclass", it) }
+        }
+        if (types.all { it in IMAGE_TYPES }) ImageWidgetSection(props, commit, state.workDrivePath, state, nodes.first(), layoutPath)
+        val extra = props.filter { it.key !in WIDGET_KEYS && it.key !in IMAGE_KEYS }
+        if (extra.isNotEmpty()) RawSection(extra, commit)
+    }
+}
+
+/** The rectangle around the selected widgets: moving its corner moves them, changing its size scales them together. */
+@Composable
+private fun MultiTransform(state: LayoutEditorState) {
+    var open by remember { mutableStateOf(true) }
+    SectionHeader("Transform", open) { open = !open }
+    if (!open) return
+    val bounds = state.selectionRect() ?: return
+    Column(Modifier.fillMaxWidth().padding(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            NumberField("X", formatNumber(bounds.left), true, Modifier.weight(1f), {
+            }) { v -> v.toFloatOrNull()?.let { state.moveSelectionTo(it, null) } }
+            NumberField("Y", formatNumber(bounds.top), true, Modifier.weight(1f), {
+            }) { v -> v.toFloatOrNull()?.let { state.moveSelectionTo(null, it) } }
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            NumberField("W", formatNumber(bounds.width), true, Modifier.weight(1f), {}) { v ->
+                v.toFloatOrNull()?.takeIf { it > 0f }?.let { state.scaleSelectionTo(it, null) }
+            }
+            NumberField("H", formatNumber(bounds.height), true, Modifier.weight(1f), {}) { v ->
+                v.toFloatOrNull()?.takeIf { it > 0f }?.let { state.scaleSelectionTo(null, it) }
+            }
+        }
+        Text(
+            "Рамка вокруг выбранных. X и Y двигают их вместе, W и H масштабируют вместе. Поля свойств ниже: Mixed там, где значения разные.",
+            color = GhostlyText,
+            fontSize = 10.sp,
+            lineHeight = 13.sp,
+        )
     }
 }

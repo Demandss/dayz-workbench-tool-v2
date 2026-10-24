@@ -24,8 +24,11 @@ import com.github.demandss.dayz_workbench_tool.layout_editor.EditorWidgetNode
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.DragSession
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.DragSource
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.LayoutEditorState
+import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.SelectMode
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.hasBareCenter
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.parentOf
+import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.selectBy
+import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.selectMode
 import com.github.demandss.dayz_workbench_tool.ui.components.Tip
 import com.github.demandss.dayz_workbench_tool.ui.icons.AppIcon
 import com.github.demandss.dayz_workbench_tool.ui.icons.AppIconView
@@ -158,18 +161,9 @@ fun HierarchyPanel(
                                 expandedIds.add(node.id)
                             }
                         },
-                        onSelect = { shift ->
+                        onSelect = { mode ->
                             state.canvasFocusTick++
-                            if (shift) {
-                                if (state.selectedIds.contains(node.id)) {
-                                    state.selectedIds.remove(node.id)
-                                } else {
-                                    state.selectedIds.add(node.id)
-                                }
-                            } else {
-                                state.selectedIds.clear()
-                                state.selectedIds.add(node.id)
-                            }
+                            state.selectBy(node.id, flatList.map { (n, _) -> n.id }, mode)
                         },
                         onDragStart = {
                             state.dragSession = DragSession(DragSource.FromHierarchy(node.id))
@@ -194,7 +188,7 @@ private fun HierarchyRow(
     onToggleHidden: () -> Unit,
     onToggleLocked: () -> Unit,
     onToggleExpand: () -> Unit,
-    onSelect: (shift: Boolean) -> Unit,
+    onSelect: (SelectMode) -> Unit,
     onDragStart: () -> Unit,
 ) {
     val bg =
@@ -262,7 +256,12 @@ private fun HierarchyRow(
                                             if (isDouble && node.children.isNotEmpty()) {
                                                 onToggleExpand()
                                             } else if (!isDouble) {
-                                                onSelect(event.keyboardModifiers.isShiftPressed)
+                                                onSelect(
+                                                    selectMode(
+                                                        event.keyboardModifiers.isShiftPressed,
+                                                        event.keyboardModifiers.isCtrlPressed,
+                                                    ),
+                                                )
                                             }
                                         }
                                         dragStarted = false

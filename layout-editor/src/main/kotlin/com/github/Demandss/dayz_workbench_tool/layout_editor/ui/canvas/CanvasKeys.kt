@@ -86,6 +86,11 @@ internal fun handleCanvasKey(
             true
         }
 
+        ctrl && !shift && ev.key == Key.A -> {
+            state.selectAllSiblings()
+            true
+        }
+
         ctrl && ev.key == Key.G -> {
             state.groupSelected()
             true

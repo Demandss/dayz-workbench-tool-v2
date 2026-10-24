@@ -835,15 +835,11 @@ fun LayoutCanvas(
                                             val hitIsRoot = hit?.id == doc?.root?.id
 
                                             if (doc != null && hit != null && !hitIsRoot) {
-                                                if (event.keyboardModifiers.isShiftPressed) {
-                                                    if (state.selectedIds.contains(hit.id)) {
-                                                        state.selectedIds.remove(hit.id)
-                                                    } else {
-                                                        state.selectedIds.add(hit.id)
-                                                    }
+                                                // Ctrl adds or removes one widget, Shift adds too; a plain click on a widget outside the selection replaces it
+                                                if (event.keyboardModifiers.isShiftPressed || event.keyboardModifiers.isCtrlPressed) {
+                                                    state.selectBy(hit.id, emptyList(), SelectMode.TOGGLE)
                                                 } else if (!state.selectedIds.contains(hit.id)) {
-                                                    state.selectedIds.clear()
-                                                    state.selectedIds.add(hit.id)
+                                                    state.selectBy(hit.id, emptyList(), SelectMode.REPLACE)
                                                 }
                                                 // Alt drags a copy and leaves the original where it is
                                                 var dragDoc = doc
@@ -902,7 +898,11 @@ fun LayoutCanvas(
                                                 undoPushed = false
                                                 event.changes.forEach { it.consume() }
                                             } else {
-                                                if (!event.keyboardModifiers.isShiftPressed) state.selectedIds.clear()
+                                                if (!event.keyboardModifiers.isShiftPressed &&
+                                                    !event.keyboardModifiers.isCtrlPressed
+                                                ) {
+                                                    state.selectedIds.clear()
+                                                }
                                                 isBoxSelecting = true
                                                 boxStartWorld = worldPos
                                                 currentBox = null
@@ -1077,7 +1077,11 @@ fun LayoutCanvas(
                                                 isRoot = true,
                                             )
                                             hits.remove(doc.root.id)
-                                            if (!event.keyboardModifiers.isShiftPressed) state.selectedIds.clear()
+                                            if (!event.keyboardModifiers.isShiftPressed &&
+                                                !event.keyboardModifiers.isCtrlPressed
+                                            ) {
+                                                state.selectedIds.clear()
+                                            }
                                             for (id in hits) if (!state.selectedIds.contains(id)) state.selectedIds.add(id)
                                         }
                                         selectionBox = null

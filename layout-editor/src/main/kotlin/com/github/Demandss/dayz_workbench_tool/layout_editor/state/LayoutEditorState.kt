@@ -164,6 +164,9 @@ class LayoutEditorState(
     var activeFileIndex by mutableStateOf(-1)
     val selectedIds = mutableStateListOf<UUID>()
 
+    // The widget a Shift range starts from: the one clicked last without Shift
+    var selectionAnchor: UUID? = null
+
     // Editor-only: hidden widgets are not drawn or hit, locked ones cannot be picked on the canvas. Never saved.
     val hiddenIds = mutableStateListOf<UUID>()
     val lockedIds = mutableStateListOf<UUID>()
