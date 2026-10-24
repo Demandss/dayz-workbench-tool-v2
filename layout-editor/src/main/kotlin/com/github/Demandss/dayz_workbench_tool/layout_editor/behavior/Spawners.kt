@@ -167,6 +167,25 @@ internal fun expandSpawners(
     root: EditorWidgetNode,
     states: Map<UUID, Map<String, String>>,
 ): EditorWidgetNode {
+    // The view is asked for on every frame while it is dragged, so the tree of the last call is given again when nothing changed
+    lastExpanded?.let { if (it.root === root && it.states === states) return it.result }
+    val result = expandAll(root, states)
+    lastExpanded = Expanded(root, states, result)
+    return result
+}
+
+private class Expanded(
+    val root: EditorWidgetNode,
+    val states: Map<UUID, Map<String, String>>,
+    val result: EditorWidgetNode,
+)
+
+private var lastExpanded: Expanded? = null
+
+private fun expandAll(
+    root: EditorWidgetNode,
+    states: Map<UUID, Map<String, String>>,
+): EditorWidgetNode {
     fun expand(node: EditorWidgetNode): EditorWidgetNode {
         val children = node.children.map { expand(it) }
         val spawner = node.scriptClassName()?.let { Spawners.find(it) }

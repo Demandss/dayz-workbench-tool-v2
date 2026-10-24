@@ -3,6 +3,7 @@ package com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -31,7 +32,11 @@ fun Rulers(
     state: LayoutEditorState,
     modifier: Modifier = Modifier,
 ) {
-    val measurer = rememberTextMeasurer()
+    val measurer = rememberTextMeasurer(cacheSize = 256)
+    // Where the widgets are does not change while the view is dragged, so it is worked out once per tree
+    val doc = state.activeFile
+    val screen = screenRect(state)
+    val layout = remember(doc?.root, screen) { doc?.let { layoutTree(it.root, screen) } }
     Canvas(modifier.fillMaxSize()) {
         val thickness = 18.dp.toPx()
         val zoom = state.zoom
@@ -40,10 +45,8 @@ fun Rulers(
         val style = TextStyle(color = Label, fontSize = 9.sp)
 
         // Where the selected widgets are
-        val doc = state.activeFile
         val rects =
-            if (doc != null && state.selectedIds.isNotEmpty()) {
-                val layout = layoutTree(doc.root, screenRect(state))
+            if (layout != null && state.selectedIds.isNotEmpty()) {
                 state.selectedIds.mapNotNull { layout.rects[it] }
             } else {
                 emptyList()

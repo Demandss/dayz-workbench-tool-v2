@@ -58,7 +58,7 @@ internal fun DrawScope.drawImageWidget(
 
     fun drawTiles() {
         // One draw with a repeating shader: a loop of drawImage calls per tile is far too slow for a large grid
-        val brush = ShaderBrush(ImageShader(image, TileMode.Repeated, TileMode.Repeated))
+        val brush = tileBrush(image)
         withTransform({
             translate(box.left, box.top)
             scale(zoom, zoom, Offset.Zero)
@@ -67,7 +67,7 @@ internal fun DrawScope.drawImageWidget(
                 brush,
                 Offset.Zero,
                 Size(box.width / zoom, box.height / zoom),
-                colorFilter = ColorFilter.tint(tint, BlendMode.Modulate),
+                colorFilter = tintFilter(tint),
                 blendMode = if (additive) BlendMode.Plus else BlendMode.SrcOver,
             )
         }
@@ -84,7 +84,7 @@ internal fun DrawScope.drawImageWidget(
             srcSize = IntSize(image.width, image.height),
             dstOffset = IntOffset(topLeft.x.roundToInt(), topLeft.y.roundToInt()),
             dstSize = IntSize(boxSize.width.roundToInt().coerceAtLeast(1), boxSize.height.roundToInt().coerceAtLeast(1)),
-            colorFilter = ColorFilter.tint(tint, BlendMode.Modulate),
+            colorFilter = tintFilter(tint),
             blendMode = if (additive) BlendMode.Plus else BlendMode.SrcOver,
         )
     }

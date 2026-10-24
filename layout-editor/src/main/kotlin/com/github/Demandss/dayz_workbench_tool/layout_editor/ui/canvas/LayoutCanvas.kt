@@ -404,6 +404,10 @@ internal fun DrawScope.drawWidgetTree(
         if (layerPaint != null) drawIntoCanvas { it.restore() }
         return
     }
+    // Far outside of the view nothing can be seen (a script class moves a widget by far less than this), and a parent that cuts its
+    // children off hides the whole subtree: this is what makes a zoomed view of a big layout cheap to draw and to drag
+    val margin = 1000f
+    if ((br.x < -margin || br.y < -margin || tl.x > size.width + margin || tl.y > size.height + margin) && node.clipsChildren()) return
     val ss = Size((br.x - tl.x).coerceAtLeast(0f), (br.y - tl.y).coerceAtLeast(0f))
     val isSelected = selectedIds.contains(node.id)
 
@@ -645,7 +649,7 @@ fun LayoutCanvas(
     state: LayoutEditorState,
     modifier: Modifier = Modifier,
 ) {
-    val textMeasurer = rememberTextMeasurer()
+    val textMeasurer = rememberTextMeasurer(cacheSize = 256)
     var spacePressed by remember { mutableStateOf(false) }
     var selectionBox by remember { mutableStateOf<Rect?>(null) }
     val focusRequester = remember { FocusRequester() }
@@ -1401,8 +1405,13 @@ internal fun DrawScope.drawSkinTinted(
 private fun skinFilter(
     skin: WidgetSkin,
     tint: Color,
+): ColorFilter = skinFilterFor(skin.lift, tint) { makeSkinFilter(skin, tint) }
+
+private fun makeSkinFilter(
+    skin: WidgetSkin,
+    tint: Color,
 ): ColorFilter {
-    if (skin.lift <= 0f) return ColorFilter.tint(tint, BlendMode.Modulate)
+    if (skin.lift <= 0f) return tintFilter(tint)
     val add = skin.lift * 255f
     return ColorFilter.colorMatrix(
         androidx.compose.ui.graphics.ColorMatrix(
@@ -1451,7 +1460,7 @@ internal fun DrawScope.drawSkinSlot(
             val sx = if (bits and 1 != 0) nat.width * zoom / tile.width else r.width / tile.width
             val sy = if (bits and 2 != 0) nat.height * zoom / tile.height else r.height / tile.height
             if (sx > 0f && sy > 0f) {
-                val brush = ShaderBrush(ImageShader(tile, TileMode.Repeated, TileMode.Repeated))
+                val brush = tileBrush(tile)
                 withTransform({
                     translate(r.left, r.top)
                     scale(sx, sy, Offset.Zero)
@@ -1526,6 +1535,10 @@ private fun layoutOf(
     root: EditorWidgetNode,
     rect: Rect,
 ): TreeLayout {
+    // The same tree on the same screen has the same layout: dragging the view asks for it on every frame, so the last one is kept
+    val stamp = state.layoutStamp()
+    lastLayout?.let { if (it.root === root && it.rect == rect && it.live == state.livePreview && it.stamp == stamp) return it.layout }
+
     fun place(tree: EditorWidgetNode) =
         layoutTree(
             tree,
@@ -1534,8 +1547,20 @@ private fun layoutOf(
             { n, w, h -> state.textSizeFor(n, state.activeFile?.path, w, h) },
         )
     // Live Preview runs the script classes of the game that size and place widgets, as Workbench does
-    return if (state.livePreview && VanillaScripts.present(root)) VanillaScripts.layout(root, ::place) else place(root)
+    val layout = if (state.livePreview && VanillaScripts.present(root)) VanillaScripts.layout(root, ::place) else place(root)
+    lastLayout = LayoutMemo(root, rect, state.livePreview, stamp, layout)
+    return layout
 }
+
+private class LayoutMemo(
+    val root: EditorWidgetNode,
+    val rect: Rect,
+    val live: Boolean,
+    val stamp: Int,
+    val layout: TreeLayout,
+)
+
+private var lastLayout: LayoutMemo? = null
 
 /** How far the value of a slider is between its `minimum` and `maximum`, from 0 to 1. */
 private fun sliderShare(node: EditorWidgetNode): Float {

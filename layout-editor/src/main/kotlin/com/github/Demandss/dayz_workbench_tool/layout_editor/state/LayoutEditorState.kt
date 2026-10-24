@@ -426,6 +426,9 @@ class LayoutEditorState(
         }
     }
 
+    /** Changes when a texture or a mod resource that sizes widgets has loaded, so that a layout kept for a drawing is made again. */
+    internal fun layoutStamp(): Int = textureCache.size * 31 + pictureCache.size * 7 + modScanDone
+
     /** The folder of the game, for the readers of its archives. */
     internal fun gameFolderPath(): String = gameFolder
 
