@@ -20,6 +20,8 @@ internal class ScriptDeclaration(
     val parent: String,
     val source: String,
     val location: String,
+    /** The class has a method `OnWidgetScriptInit` of its own, which is what the game calls on a script class of a widget. */
+    val hasInit: Boolean = false,
 )
 
 internal const val EDITOR = "Поведения редактора"
@@ -29,24 +31,31 @@ internal const val EDITOR = "Поведения редактора"
  * `ScriptedWidgetEventHandler`, found by reading the declarations of every script file, and the catalogue of the editor.
  */
 internal object ScriptClassIndex {
-    private val declaration = Regex("""^\s*class\s+(\w+)\s*(?::|extends)\s*(\w+)""", RegexOption.MULTILINE)
+    // A class line, with or without a parent; a `modded` one is matched too so that its body is not taken for the previous class
+    private val declaration = Regex("""^[ \t]*(modded[ \t]+)?class[ \t]+(\w+)(?:[ \t]*(?::|extends)[ \t]*(\w+))?""", RegexOption.MULTILINE)
+    private val initMethod = Regex("""\bOnWidgetScriptInit\s*\(""")
     private const val ROOT = "ScriptedWidgetEventHandler"
 
     /** The classes of the catalogue of the editor, which come first in the list. */
     val editorClasses: List<ScriptClassInfo> =
         BehaviorCatalogue.entries.map { ScriptClassInfo(it.name, EDITOR, ROOT) }
 
-    /** Every `class A : B` or `class A extends B` in [text] (a `modded class` extends nothing new, so it is not one). */
+    /**
+     * Every `class A`, `class A : B` and `class A extends B` in [text], with whether the body up to the next class has an
+     * `OnWidgetScriptInit` (a `modded class` adds to a class that is declared elsewhere, so it is not a declaration).
+     */
     fun parse(
         text: String,
         source: String,
         location: String,
-    ): List<ScriptDeclaration> =
-        declaration
-            .findAll(text)
-            .map {
-                ScriptDeclaration(it.groupValues[1], it.groupValues[2], source, location)
-            }.toList()
+    ): List<ScriptDeclaration> {
+        val found = declaration.findAll(text).toList()
+        return found.mapIndexedNotNull { i, m ->
+            if (m.groupValues[1].isNotEmpty()) return@mapIndexedNotNull null
+            val body = text.substring(m.range.last + 1, found.getOrNull(i + 1)?.range?.first ?: text.length)
+            ScriptDeclaration(m.groupValues[2], m.groupValues[3], source, location, initMethod.containsMatchIn(body))
+        }
+    }
 
     /** The declarations of every script of `dta/scripts.pbo` in the game folder, read from the archive without unpacking it. */
     fun readGame(gameFolder: String): List<ScriptDeclaration> {
@@ -66,23 +75,30 @@ internal object ScriptClassIndex {
             .flatMap { file -> runCatching { parse(file.readText(), dir.name, file.path) }.getOrDefault(emptyList()) }
             .toList()
 
-    /** The classes among [declarations] that extend `ScriptedWidgetEventHandler`, however far up, by name; the catalogue of the editor first. */
+    /**
+     * The classes among [declarations] the game can start on a widget, which is those with an `OnWidgetScriptInit` of their own or
+     * from a class above them, whatever they extend (the menus of single layouts have none); the catalogue of the editor first.
+     */
     fun build(declarations: List<ScriptDeclaration>): List<ScriptClassInfo> {
         val parents = HashMap<String, String>()
-        for (d in declarations) parents.putIfAbsent(d.name, d.parent)
+        val inits = HashSet<String>()
+        for (d in declarations) {
+            parents.putIfAbsent(d.name, d.parent)
+            if (d.hasInit) inits += d.name
+        }
 
-        fun descends(name: String): Boolean {
-            var current = parents[name]
+        fun runsInit(name: String): Boolean {
+            var current: String? = name
             var steps = 0
-            while (current != null && steps++ < 40) {
-                if (current == ROOT) return true
+            while (!current.isNullOrEmpty() && steps++ < 40) {
+                if (current in inits) return true
                 current = parents[current]
             }
             return false
         }
         val found =
             declarations
-                .filter { descends(it.name) }
+                .filter { runsInit(it.name) }
                 .distinctBy { it.name }
                 .sortedWith(compareBy({ it.source != "Игра" }, { it.source }, { it.name.lowercase() }))
                 .map { ScriptClassInfo(it.name, it.source, it.parent, it.location) }

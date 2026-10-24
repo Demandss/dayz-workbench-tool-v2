@@ -3,6 +3,7 @@ package com.github.demandss.dayz_workbench_tool.layout_editor.behavior
 import java.io.File
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -10,8 +11,10 @@ import kotlin.test.assertTrue
 class ScriptClassIndexTest {
     private fun decls(text: String) = ScriptClassIndex.parse(text, "Mod", "x.c")
 
+    private fun names(text: String) = ScriptClassIndex.build(decls(text)).filter { it.source == "Mod" }.map { it.name }
+
     @Test
-    fun `declarations are read with both ways of naming the parent and modded classes are skipped`() {
+    fun `declarations are read with or without a parent and modded classes are skipped`() {
         val found =
             decls(
                 """
@@ -21,24 +24,58 @@ class ScriptClassIndexTest {
                 class B extends A { }
                 modded class C : A { }
                   class D:B
+                class Loose
+                {
+                }
                 """.trimIndent(),
             )
-        assertEquals(listOf("A" to "ScriptedWidgetEventHandler", "B" to "A", "D" to "B"), found.map { it.name to it.parent })
+        assertEquals(listOf("A" to "ScriptedWidgetEventHandler", "B" to "A", "D" to "B", "Loose" to ""), found.map { it.name to it.parent })
     }
 
     @Test
-    fun `only classes that reach ScriptedWidgetEventHandler are listed, however far up`() {
-        val all =
-            decls(
-                "class A : ScriptedWidgetEventHandler {}\nclass B : A {}\nclass C : B {}\nclass Other : Managed {}\nclass Loose : Missing {}",
+    fun `a class is a script class of a widget when it has OnWidgetScriptInit, whatever it extends`() {
+        val list =
+            names(
+                """
+                class Plain
+                {
+                    void OnWidgetScriptInit(Widget w) { }
+                }
+                class Handler : ScriptedWidgetEventHandler
+                {
+                    void OnWidgetScriptInit( Widget w ) { }
+                }
+                class Menu : UIScriptedMenu
+                {
+                    void Init() { }
+                }
+                class Helper : ScriptedWidgetEventHandler
+                {
+                    void Update() { }
+                }
+                """.trimIndent(),
             )
-        val names = ScriptClassIndex.build(all).filter { it.source == "Mod" }.map { it.name }
-        assertEquals(listOf("A", "B", "C"), names)
+        assertEquals(listOf("Handler", "Plain"), list)
+    }
+
+    @Test
+    fun `a class gets the init of a class above it, and a modded class does not give its init to the one before it`() {
+        val list =
+            names(
+                """
+                class Base { void OnWidgetScriptInit(Widget w) { } }
+                class Child : Base { }
+                class Grand : Child { }
+                class Other { }
+                modded class Other { void OnWidgetScriptInit(Widget w) { } }
+                """.trimIndent(),
+            )
+        assertEquals(listOf("Base", "Child", "Grand"), list)
     }
 
     @Test
     fun `the catalogue of the editor comes first and is not repeated`() {
-        val all = decls("class HoverScale : ScriptedWidgetEventHandler {}\nclass Mine : ScriptedWidgetEventHandler {}")
+        val all = decls("class HoverScale { void OnWidgetScriptInit(Widget w) { } }\nclass Mine { void OnWidgetScriptInit(Widget w) { } }")
         val list = ScriptClassIndex.build(all)
         assertEquals(EDITOR, list.first().source)
         assertEquals(1, list.count { it.name == "HoverScale" })
@@ -47,7 +84,7 @@ class ScriptClassIndexTest {
 
     @Test
     fun `a cycle of parents does not hang`() {
-        assertTrue(ScriptClassIndex.build(decls("class A : B {}\nclass B : A {}")).none { it.source == "Mod" })
+        assertTrue(names("class A : B { }\nclass B : A { }").isEmpty())
     }
 
     @Test
@@ -72,17 +109,38 @@ class ScriptClassIndexTest {
     }
 
     @Test
-    fun `the scripts of the game give the classes the vanilla layouts use`() {
+    fun `the scripts of the game give the helper classes of the vanilla layouts and none of the menus`() {
         val game =
             listOf("F:/steam/steamapps/common/DayZ", "C:/Program Files (x86)/Steam/steamapps/common/DayZ").firstOrNull {
                 File(it, "dta/scripts.pbo").isFile
             }
         if (game == null) return
-        val names = ScriptClassIndex.build(ScriptClassIndex.readGame(game)).map { it.name }.toSet()
-        for (expected in listOf("SizeToChild", "TabberUI", "AutoHeightSpacer", "HoverEffect", "HorizontalSpacer")) {
-            assertTrue(expected in names, expected)
+        val list = ScriptClassIndex.build(ScriptClassIndex.readGame(game))
+        val names = list.map { it.name }.toSet()
+        // The classes the vanilla layouts name in `scriptclass`, with and without ScriptedWidgetEventHandler above them
+        val used =
+            listOf(
+                "SizeToChild",
+                "SizeToParent",
+                "TabberUI",
+                "Tabber",
+                "AutoHeightSpacer",
+                "NoticeSpacer",
+                "HorizontalSpacer",
+                "VerticalSpacer",
+                "HoverEffect",
+                "Bouncer",
+                "Rotator",
+                "RadialProgressBar",
+                "EmbededButtonScript",
+            )
+        for (expected in used) assertTrue(expected in names, expected)
+        for (menu in listOf("UIScriptedMenu", "MainMenu", "InGameMenu", "MissionGameplay", "ScriptedWidgetEventHandler")) {
+            assertFalse(menu in names, menu)
         }
-        val info = ScriptClassIndex.build(ScriptClassIndex.readGame(game)).first { it.name == "SizeToChild" }
+        val ofGame = list.count { it.source == "Игра" }
+        assertTrue(ofGame < 60, "too many classes: $ofGame")
+        val info = list.first { it.name == "SizeToChild" }
         assertTrue(ScriptClassIndex.sourceOf(info, game)!!.contains("ResizeParentToChild"))
     }
 }
