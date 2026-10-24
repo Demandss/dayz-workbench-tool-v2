@@ -658,8 +658,16 @@ fun LayoutCanvas(
     val refW = if (resolution == Resolution.FIT) state.screenSize.width else resolution.width.toFloat()
     val refH = if (resolution == Resolution.FIT) state.screenSize.height else resolution.height.toFloat()
 
+    // A layout that is opened (or switched to) is shown at 100%; a change of the resolution fits the screen into the window again
+    var shownIndex by remember { mutableStateOf(-2) }
     LaunchedEffect(state.activeFileIndex, resolution) {
-        if (state.lastCanvasSize != Size.Zero) state.centerView()
+        if (state.lastCanvasSize == Size.Zero) return@LaunchedEffect
+        if (state.activeFileIndex != shownIndex) {
+            shownIndex = state.activeFileIndex
+            state.zoomActual()
+        } else {
+            state.centerView()
+        }
     }
     // The clock of the script classes that play over time. It only ticks while the open layout has one, so that others cost nothing
     LaunchedEffect(state.livePreview) {
@@ -706,7 +714,10 @@ fun LayoutCanvas(
                     val newSize = Size(it.width.toFloat(), it.height.toFloat())
                     val first = state.lastCanvasSize == Size.Zero
                     state.lastCanvasSize = newSize
-                    if (first && state.activeFile != null) state.centerView()
+                    if (first && state.activeFile != null) {
+                        shownIndex = state.activeFileIndex
+                        state.zoomActual()
+                    }
                 }.pointerInput(Unit) {
                     awaitPointerEventScope {
                         var isPanning = false
