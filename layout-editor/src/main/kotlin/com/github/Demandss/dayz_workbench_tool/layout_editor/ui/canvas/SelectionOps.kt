@@ -3,6 +3,7 @@ package com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas
 import androidx.compose.ui.geometry.Rect
 import com.github.demandss.dayz_workbench_tool.layout_editor.EditorWidgetNode
 import com.github.demandss.dayz_workbench_tool.layout_editor.findNode
+import com.github.demandss.dayz_workbench_tool.layout_editor.pathTo
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.LayoutEditorState
 import com.github.demandss.dayz_workbench_tool.layout_editor.updateNode
 import java.util.UUID
@@ -210,4 +211,56 @@ internal fun LayoutEditorState.setOnSelected(
             acc.updateNode(id) { n -> n.copy(node = n.node.copy(properties = LinkedHashMap(n.node.properties).also { it[key] = value })) }
         },
     )
+}
+
+/** True when [this] holds the whole of [other]. */
+internal fun Rect.containsRect(other: Rect): Boolean =
+    left <= other.left && top <= other.top && right >= other.right && bottom >= other.bottom
+
+/**
+ * True when the widget [id] is a background: another widget that is shown and can be picked lies wholly inside it, whether it is
+ * its child or only sits on top of it. A press on a background does not pick it at once, so that a frame can be dragged out
+ * inside it to select what lies on it; the widget is picked when the button is let go without a drag.
+ */
+internal fun coversOthers(
+    root: EditorWidgetNode,
+    id: UUID,
+    layout: TreeLayout,
+    hidden: Set<UUID>,
+    locked: Set<UUID>,
+): Boolean {
+    val rect = layout.rects[id] ?: return false
+    val ancestors =
+        root
+            .pathTo(id)
+            .orEmpty()
+            .map { it.id }
+            .toSet()
+
+    fun covers(node: EditorWidgetNode): Boolean {
+        if (!node.isVisible() || node.id in hidden) return false
+        val r = layout.rects[node.id]
+        if (node.id != id && node.id !in ancestors && node.id !in locked && r != null && rect.containsRect(r)) return true
+        return node.children.any { covers(it) }
+    }
+    return covers(root)
+}
+
+/**
+ * The widgets a frame dragged out on the canvas selects: those it touches, except the ones that hold the whole frame, because a
+ * frame drawn inside a background is meant for what lies on the background, not for the background itself.
+ */
+internal fun selectInBox(
+    node: EditorWidgetNode,
+    box: Rect,
+    layout: TreeLayout,
+    out: MutableList<UUID>,
+    hidden: Set<UUID>,
+    locked: Set<UUID>,
+    isRoot: Boolean = false,
+) {
+    if (!node.isVisible() || node.id in hidden) return
+    val rect = layout.rects[node.id] ?: return
+    if (!isRoot && node.id !in locked && box.overlaps(rect) && !rect.containsRect(box)) out.add(node.id)
+    for (child in node.children) selectInBox(child, box, layout, out, hidden, locked)
 }

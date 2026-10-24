@@ -155,4 +155,87 @@ class SelectionOpsTest {
         val after = layoutTree(moved, screen)
         assertEquals(30f, after.rects.getValue(root.named("Inner").id).left - layout.rects.getValue(root.named("Inner").id).left, 0.01f)
     }
+
+    private fun backgroundTree(): EditorWidgetNode =
+        LayoutParser
+            .parse(
+                """
+                FrameWidgetClass Root {
+                 size 1 1
+                 {
+                  ImageWidgetClass Background {
+                   position 100 100
+                   size 500 400
+                   hexactpos 1
+                   vexactpos 1
+                   hexactsize 1
+                   vexactsize 1
+                  }
+                  ImageWidgetClass One {
+                   position 150 150
+                   size 50 50
+                   hexactpos 1
+                   vexactpos 1
+                   hexactsize 1
+                   vexactsize 1
+                  }
+                  ImageWidgetClass Two {
+                   position 300 200
+                   size 60 60
+                   hexactpos 1
+                   vexactpos 1
+                   hexactsize 1
+                   vexactsize 1
+                  }
+                  ImageWidgetClass Far {
+                   position 900 700
+                   size 40 40
+                   hexactpos 1
+                   vexactpos 1
+                   hexactsize 1
+                   vexactsize 1
+                  }
+                 }
+                }
+                """.trimIndent(),
+            ).toEditorNode()
+
+    @Test
+    fun `a widget with others lying wholly inside it is a background`() {
+        val root = backgroundTree()
+        val layout = layoutTree(root, screen)
+        assertEquals(true, coversOthers(root, root.named("Background").id, layout, emptySet(), emptySet()))
+        assertEquals(false, coversOthers(root, root.named("One").id, layout, emptySet(), emptySet()))
+        assertEquals(false, coversOthers(root, root.named("Far").id, layout, emptySet(), emptySet()))
+        // What is hidden or locked does not make a background
+        assertEquals(
+            false,
+            coversOthers(root, root.named("Background").id, layout, setOf(root.named("One").id, root.named("Two").id), emptySet()),
+        )
+        assertEquals(
+            false,
+            coversOthers(root, root.named("Background").id, layout, emptySet(), setOf(root.named("One").id, root.named("Two").id)),
+        )
+    }
+
+    @Test
+    fun `a frame drawn inside a background selects what lies on it and not the background`() {
+        val root = backgroundTree()
+        val layout = layoutTree(root, screen)
+
+        fun picked(box: Rect): List<String> {
+            val hits = mutableListOf<UUID>()
+            selectInBox(root, box, layout, hits, emptySet(), emptySet(), isRoot = true)
+            return hits.map { id ->
+                root
+                    .flat()
+                    .first { it.id == id }
+                    .node.name
+            }
+        }
+        assertEquals(listOf("One", "Two"), picked(Rect(140f, 140f, 380f, 280f)))
+        // A frame that crosses the edge of the background takes it too
+        assertEquals(listOf("Background", "One"), picked(Rect(50f, 50f, 200f, 200f)))
+        assertEquals(emptyList(), picked(Rect(500f, 400f, 520f, 420f)))
+    }
 }

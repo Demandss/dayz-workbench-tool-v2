@@ -233,21 +233,6 @@ private fun previewPointer(
     if (state.previewHoverChain != hovered) state.previewHoverChain = hovered
 }
 
-private fun selectInBox(
-    node: EditorWidgetNode,
-    box: Rect,
-    layout: TreeLayout,
-    out: MutableList<UUID>,
-    hidden: Set<UUID>,
-    locked: Set<UUID>,
-    isRoot: Boolean = false,
-) {
-    if (!node.isVisible() || node.id in hidden) return
-    val rect = layout.rects[node.id] ?: return
-    if (!isRoot && node.id !in locked && box.overlaps(rect)) out.add(node.id)
-    for (child in node.children) selectInBox(child, box, layout, out, hidden, locked)
-}
-
 // ---------------------------------------------------------------------------
 // Drag state
 // ---------------------------------------------------------------------------
@@ -740,6 +725,9 @@ fun LayoutCanvas(
                         var resizeStartScreen = Offset.Zero
 
                         var isBoxSelecting = false
+
+                        // A press on a background waits: a drag makes a frame of selection, a release picks the widget
+                        var pendingSelect: UUID? = null
                         var boxStartWorld = Offset.Zero
                         var currentBox: Rect? = null
 
@@ -846,7 +834,20 @@ fun LayoutCanvas(
                                                 }
                                             val hitIsRoot = hit?.id == doc?.root?.id
 
-                                            if (doc != null && hit != null && !hitIsRoot) {
+                                            val plainPress =
+                                                !event.keyboardModifiers.isShiftPressed && !event.keyboardModifiers.isCtrlPressed &&
+                                                    !event.keyboardModifiers.isAltPressed
+                                            if (doc != null && layout != null && hit != null && !hitIsRoot && plainPress &&
+                                                hit.id !in state.selectedIds &&
+                                                coversOthers(doc.root, hit.id, layout, state.hiddenIds.toSet(), state.lockedIds.toSet())
+                                            ) {
+                                                pendingSelect = hit.id
+                                                isBoxSelecting = true
+                                                boxStartWorld = worldPos
+                                                currentBox = null
+                                                selectionBox = null
+                                                event.changes.forEach { it.consume() }
+                                            } else if (doc != null && hit != null && !hitIsRoot) {
                                                 // Ctrl adds or removes one widget, Shift adds too; a plain click on a widget outside the selection replaces it
                                                 if (event.keyboardModifiers.isShiftPressed || event.keyboardModifiers.isCtrlPressed) {
                                                     state.selectBy(hit.id, emptyList(), SelectMode.TOGGLE)
@@ -1077,7 +1078,13 @@ fun LayoutCanvas(
                                     if (isBoxSelecting) {
                                         val box = currentBox
                                         val doc = state.activeFile
-                                        if (box != null && doc != null) {
+                                        // A frame smaller than a drag is a click
+                                        val dragged = box != null && maxOf(box.width, box.height) * state.zoom >= DRAG_THRESHOLD
+                                        val pending = pendingSelect
+                                        pendingSelect = null
+                                        if (pending != null && !dragged) {
+                                            state.selectBy(pending, emptyList(), SelectMode.REPLACE)
+                                        } else if (box != null && dragged && doc != null) {
                                             val hits = mutableListOf<UUID>()
                                             selectInBox(
                                                 doc.root,
