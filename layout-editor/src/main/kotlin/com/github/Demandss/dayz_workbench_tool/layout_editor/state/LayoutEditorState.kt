@@ -57,6 +57,7 @@ import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.sanitizeW
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.screenRect
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.scriptSnippet
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.scriptTemplate
+import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.technicalName
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.ungrouped
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.uniqueName
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.withAppearance
@@ -98,16 +99,6 @@ sealed class DragSource {
 
 data class DragSession(
     val source: DragSource,
-)
-
-// ---------------------------------------------------------------------------
-// Pending widget creation (shown before name dialog)
-// ---------------------------------------------------------------------------
-
-data class PendingAdd(
-    val type: WidgetType,
-    val parentId: UUID?,
-    val worldPos: Offset?,
 )
 
 // ---------------------------------------------------------------------------
@@ -350,9 +341,6 @@ class LayoutEditorState(
     var hostWindow: java.awt.Window? = null
     var hierarchyBoundsInWindow by mutableStateOf(Rect.Zero)
     val hierarchyRowBounds = HashMap<UUID, Rect>()
-
-    // Pending widget add (shows name dialog)
-    var pendingAdd by mutableStateOf<PendingAdd?>(null)
 
     val activeFile get() = openFiles.getOrNull(activeFileIndex)
 
@@ -1136,6 +1124,16 @@ class LayoutEditorState(
                 (cs.width - refW * fitZoom) / 2f,
                 (cs.height - refH * fitZoom) / 2f,
             )
+    }
+
+    /** Adds a widget of [type] under the name of its type (a number is added when that is taken); the user renames it if needed. */
+    fun addWidgetOfType(
+        type: WidgetType,
+        parentId: UUID?,
+        worldPos: Offset?,
+    ) {
+        val doc = activeFile ?: return
+        addWidgetToLayout(type, technicalName(type, doc.root.allNames()), parentId, worldPos)
     }
 
     fun addWidgetToLayout(

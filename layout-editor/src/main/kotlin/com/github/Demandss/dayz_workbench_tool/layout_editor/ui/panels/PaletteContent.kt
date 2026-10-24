@@ -26,7 +26,6 @@ import com.github.demandss.dayz_workbench_tool.layout.WidgetType
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.DragSession
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.DragSource
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.LayoutEditorState
-import com.github.demandss.dayz_workbench_tool.layout_editor.state.PendingAdd
 import com.github.demandss.dayz_workbench_tool.ui.icons.AppIconView
 import com.github.demandss.dayz_workbench_tool.ui.icons.widgetIcon
 import com.github.demandss.dayz_workbench_tool.ui.theme.*
@@ -141,8 +140,8 @@ private fun PaletteRow(
                                     if (pressed) {
                                         pressed = false
                                         if (!dragStarted) {
-                                            // Simple click — show name dialog
-                                            state.pendingAdd = PendingAdd(type, null, null)
+                                            // A simple click adds the widget under its technical name
+                                            state.addWidgetOfType(type, null, null)
                                         }
                                         // Drag drop is handled by the root interceptor
                                         dragStarted = false

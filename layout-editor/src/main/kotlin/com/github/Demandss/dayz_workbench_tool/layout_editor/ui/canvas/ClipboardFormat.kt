@@ -32,6 +32,21 @@ internal fun parseClipboard(text: String): List<EditorWidgetNode>? {
     return nodes.map { it.toEditorNode() }
 }
 
+/**
+ * The name a new widget of [type] gets: the name of its type (`TextWidget`), and when that is taken the same with a number
+ * (`TextWidget0`, `TextWidget1`), so that every widget has a name of its own and the user can rename it later.
+ */
+internal fun technicalName(
+    type: com.github.demandss.dayz_workbench_tool.layout.WidgetType,
+    taken: Set<String>,
+): String {
+    val base = type.className.removeSuffix("Class")
+    if (base !in taken) return base
+    var n = 0
+    while ("$base$n" in taken) n++
+    return "$base$n"
+}
+
 /** [name] if it is free among [taken], otherwise the name with `_copy`, `_copy2`... */
 internal fun uniqueName(
     name: String,

@@ -46,7 +46,6 @@ import com.github.demandss.dayz_workbench_tool.layout_editor.state.DragSource
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.LayoutDocument
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.LayoutEditorState
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.PaletteMode
-import com.github.demandss.dayz_workbench_tool.layout_editor.state.PendingAdd
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.LayoutCanvas
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.TextureViewer
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.findProblems
@@ -485,18 +484,6 @@ fun LayoutEditorWindow(
                         pickFile("Открыть файл", "*", state.workDrivePath.ifBlank { null })?.let { state.openAny(it) }
                     }
                 }
-
-                // ── Name dialog ───────────────────────────────────────────
-                state.pendingAdd?.let { pending ->
-                    NameDialog(
-                        typeName = pending.type.className.removeSuffix("WidgetClass"),
-                        onConfirm = { name ->
-                            state.addWidgetToLayout(pending.type, name, pending.parentId, pending.worldPos)
-                            state.pendingAdd = null
-                        },
-                        onDismiss = { state.pendingAdd = null },
-                    )
-                }
             }
         }
     }
@@ -527,11 +514,11 @@ private fun handleDrop(
                 canvasBounds.contains(releasePos) -> {
                     val localPos = releasePos - Offset(canvasBounds.left, canvasBounds.top)
                     val worldPos = screenToWorld(localPos, state.zoom, state.panOffset)
-                    state.pendingAdd = PendingAdd(src.type, null, worldPos)
+                    state.addWidgetOfType(src.type, null, worldPos)
                 }
 
                 hierarchyBounds.contains(releasePos) && hoverNode != null -> {
-                    state.pendingAdd = PendingAdd(src.type, hoverNode, null)
+                    state.addWidgetOfType(src.type, hoverNode, null)
                 }
             }
         }
@@ -547,64 +534,6 @@ private fun handleDrop(
 // ---------------------------------------------------------------------------
 // Name dialog
 // ---------------------------------------------------------------------------
-
-@Composable
-private fun NameDialog(
-    typeName: String,
-    onConfirm: (String) -> Unit,
-    onDismiss: () -> Unit,
-) {
-    var name by remember { mutableStateOf("") }
-    val focusRequester = remember { FocusRequester() }
-
-    FlatDialog(
-        title = "Новый $typeName",
-        onDismiss = onDismiss,
-        onConfirm = { onConfirm(name) },
-        width = 320.dp,
-        buttons = {
-            DarkButton("Отмена", onClick = onDismiss, muted = true, modifier = Modifier.width(80.dp))
-            DarkButton("Добавить", onClick = { onConfirm(name) }, modifier = Modifier.width(90.dp))
-        },
-    ) {
-        Text("Имя виджета", color = GhostlyText, fontSize = 11.sp)
-        BasicTextField(
-            value = name,
-            onValueChange = { name = it },
-            singleLine = true,
-            textStyle = TextStyle(color = TextForeground, fontSize = 12.sp),
-            cursorBrush = SolidColor(TextForeground),
-            decorationBox = { inner ->
-                Box(
-                    Modifier
-                        .fillMaxWidth()
-                        .height(26.dp)
-                        .background(FrameBackground)
-                        .border(1.dp, DarkenedBorder)
-                        .padding(horizontal = 8.dp),
-                    contentAlignment = Alignment.CenterStart,
-                ) { inner() }
-            },
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .focusRequester(focusRequester)
-                    .onKeyEvent { ev ->
-                        if (ev.key == Key.Enter && ev.type == KeyEventType.KeyDown) {
-                            onConfirm(name)
-                            true
-                        } else {
-                            false
-                        }
-                    },
-        )
-    }
-
-    LaunchedEffect(Unit) {
-        withFrameNanos { }
-        runCatching { focusRequester.requestFocus() }
-    }
-}
 
 // ---------------------------------------------------------------------------
 // File tab bar
