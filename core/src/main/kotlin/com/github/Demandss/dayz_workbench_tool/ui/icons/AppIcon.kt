@@ -526,6 +526,15 @@ enum class AppIcon(
             IconShape("M5 7l2 1.5L5 10M8.5 10.5H11"),
         ),
     ),
+    UI_GEAR(
+        null,
+        listOf(
+            IconShape("M3.2 8a4.8 4.8 0 1 0 9.6 0a4.8 4.8 0 1 0 -9.6 0z"),
+            IconShape("M6 8a2 2 0 1 0 4 0a2 2 0 1 0 -4 0z"),
+            IconShape("M8 1.4v1.8M8 12.8v1.8M1.4 8h1.8M12.8 8h1.8"),
+            IconShape("M3.3 3.3l1.3 1.3M11.4 11.4l1.3 1.3M12.7 3.3l-1.3 1.3M4.6 11.4l-1.3 1.3"),
+        ),
+    ),
     UI_CLOCK(
         null,
         listOf(

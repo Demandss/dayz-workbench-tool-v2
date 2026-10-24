@@ -282,6 +282,9 @@ class LayoutEditorState(
 
     // The preferences window: what the MCP server does and how the view is drawn. Saved with the other settings of the editor.
     var preferencesOpen by mutableStateOf(false)
+
+    // The page the preferences window opens on: the name of a page, so the connection button can open it on the MCP page
+    var preferencesPage by mutableStateOf("GENERAL")
     var mcpEnabled by mutableStateOf(true)
     var mcpPort by mutableStateOf(39871)
 

@@ -160,17 +160,23 @@ fun Toolbar(
             primary = true,
         )
         Spacer(Modifier.width(4.dp))
-        // The colour of the icon tells the state of the MCP connection: green works, red is on but not running
+        // The MCP connection has its own button: lit when the server works, opens the page with its address
+        DarkToolButton(
+            "MCP",
+            tooltip = tr("Подключение (MCP)") + if (McpHost.url != null) tr("  ·  MCP работает") else "",
+            onClick = {
+                state.preferencesPage = "MCP"
+                state.preferencesOpen = true
+            },
+            active = McpHost.url != null,
+        )
         DarkIconButton(
-            AppIcon.UI_CMD,
-            tr("Настройки: MCP и отображение (Ctrl+,)") + if (McpHost.url != null) tr("  ·  MCP работает") else "",
-            onClick = { state.preferencesOpen = true },
-            tint =
-                when {
-                    McpHost.url != null -> Color(0xFF5CB85C)
-                    state.mcpEnabled -> Color(0xFFD06A6A)
-                    else -> null
-                },
+            AppIcon.UI_GEAR,
+            tr("Настройки (Ctrl+,)"),
+            onClick = {
+                state.preferencesPage = "GENERAL"
+                state.preferencesOpen = true
+            },
         )
         Spacer(Modifier.width(4.dp))
         DarkToolButton(

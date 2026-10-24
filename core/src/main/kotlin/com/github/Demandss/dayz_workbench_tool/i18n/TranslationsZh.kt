@@ -186,6 +186,7 @@ internal val translationsZh: Map<String, String> =
         "Найдено: {0}" to "找到：{0}",
         "Найдено: {0} из {1}" to "找到：{0} / {1}",
         "Настройки" to "设置",
+        "Настройки (Ctrl+,)" to "设置 (Ctrl+,)",
         "Настройки: MCP и отображение" to "设置：MCP 与显示",
         "Настройки: MCP и отображение (Ctrl+,)" to "设置：MCP 与显示 (Ctrl+,)",
         "Не задан workdrive" to "未设置 workdrive",

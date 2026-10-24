@@ -193,6 +193,7 @@ internal val translationsEn: Map<String, String> =
         "Найдено: {0}" to "Found: {0}",
         "Найдено: {0} из {1}" to "Found: {0} of {1}",
         "Настройки" to "Settings",
+        "Настройки (Ctrl+,)" to "Settings (Ctrl+,)",
         "Настройки: MCP и отображение" to "Settings: MCP and view",
         "Настройки: MCP и отображение (Ctrl+,)" to "Settings: MCP and view (Ctrl+,)",
         "Не задан workdrive" to "The workdrive is not set",

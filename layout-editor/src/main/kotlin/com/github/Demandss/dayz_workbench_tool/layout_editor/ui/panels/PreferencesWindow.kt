@@ -79,7 +79,9 @@ fun PreferencesWindow(state: LayoutEditorState) {
         state = rememberDialogState(size = DpSize(980.dp, 760.dp)),
         title = tr("Настройки"),
     ) {
-        var page by remember { mutableStateOf(Page.GENERAL) }
+        var page by remember(state.preferencesPage) {
+            mutableStateOf(Page.entries.firstOrNull { it.name == state.preferencesPage } ?: Page.GENERAL)
+        }
         Row(Modifier.fillMaxSize().background(FrameBackground)) {
             Column(
                 Modifier
