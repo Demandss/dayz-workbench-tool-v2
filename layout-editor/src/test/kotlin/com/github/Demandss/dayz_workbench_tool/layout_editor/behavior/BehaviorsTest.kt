@@ -159,6 +159,21 @@ class BehaviorsTest {
     }
 
     @Test
+    fun `an edit filter takes only the characters of its mode and stops at the length`() {
+        val digits = mapOf("Mode" to "digits", "MaxLength" to "3", "Allowed" to ".")
+        assertEquals(true, Behaviors.editFilterAccepts(digits, "", '7'))
+        assertEquals(true, Behaviors.editFilterAccepts(digits, "1", '.'))
+        assertEquals(false, Behaviors.editFilterAccepts(digits, "1", 'a'))
+        assertEquals(false, Behaviors.editFilterAccepts(digits, "123", '4'))
+        val letters = mapOf("Mode" to "letters")
+        assertEquals(true, Behaviors.editFilterAccepts(letters, "", 'z'))
+        assertEquals(false, Behaviors.editFilterAccepts(letters, "", '5'))
+        val custom = mapOf("Mode" to "custom", "Allowed" to "xyz")
+        assertEquals(true, Behaviors.editFilterAccepts(custom, "", 'y'))
+        assertEquals(false, Behaviors.editFilterAccepts(custom, "", 'a'))
+    }
+
+    @Test
     fun `hex colours`() {
         assertEquals(Color(0xFFE8622A), parseHexColor("#E8622A"))
         assertEquals(Color(0x80E8622A), parseHexColor("#E8622A80"))

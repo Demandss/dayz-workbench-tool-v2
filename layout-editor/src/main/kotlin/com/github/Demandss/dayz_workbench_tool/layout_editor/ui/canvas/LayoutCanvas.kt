@@ -174,7 +174,9 @@ private fun previewPointer(
             if (primaryDown) {
                 state.previewHover = target
                 state.previewPressed = target
-                state.previewFocus = target
+                // A click into an edit box with EditFilter puts the keyboard there
+                val typing = path.lastOrNull { owner -> owner.scriptClassName()?.let { Behaviors.find(it)?.name } == "EditFilter" }
+                state.previewFocus = typing?.id ?: target
                 state.previewPressChain = chain
                 state.previewPressTimes = state.previewPressTimes + chain.associateWith { state.previewClock }
                 // A drag starts on the widget that carries DragMove
@@ -507,6 +509,23 @@ internal fun DrawScope.drawWidgetTree(
         )
     }
 
+    // An edit box shows the text that is in it, after a small margin
+    if ((node.node.type == WidgetType.EDIT_BOX || node.node.type == WidgetType.PASSWORD_EDIT_BOX) && node.shownText().isNotEmpty()) {
+        val margin = 6f * zoom
+        drawWidgetText(
+            node,
+            Offset(tl.x + margin, tl.y),
+            Size((ss.width - margin * 2).coerceAtLeast(0f), ss.height),
+            zoom,
+            textMeasurer,
+            textColorFor(node).let { it.copy(alpha = it.alpha * inherited) },
+            centered = false,
+            fontAt = { px -> fontFor(node, px) },
+            fontName = fontNameFor(node),
+            verticalCenter = true,
+        )
+    }
+
     // The label of a check box starts after its box (measured: the box is 22 px wide, the text begins 6 px after it)
     if ((node.node.type == WidgetType.CHECKBOX || node.node.type == WidgetType.THREE_STATE_CHECKBOX) && node.shownText().isNotEmpty()) {
         val boxWidth = ((skin?.native?.get("CheckBox")?.width ?: 22f) + 6f) * zoom
@@ -715,6 +734,8 @@ fun LayoutCanvas(
                             if (state.livePreview && event.type != PointerEventType.Scroll && !isPanning &&
                                 !event.buttons.isTertiaryPressed && !spacePressed
                             ) {
+                                // A click gives the canvas the keyboard, so that typing goes into the field that was clicked
+                                if (event.type == PointerEventType.Press) runCatching { focusRequester.requestFocus() }
                                 previewPointer(state, event.type, event.buttons.isPrimaryPressed, screenToWorld(pos, zoom, pan))
                                 continue
                             }

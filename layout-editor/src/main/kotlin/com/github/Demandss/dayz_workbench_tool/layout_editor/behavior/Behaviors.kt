@@ -43,6 +43,9 @@ private fun tweenShare(
 }
 
 private val DRAG_TARGET = BehaviorParam("Target", "parent", "Widget that moves with the pointer: parent, self or the name of a widget")
+private val FILTER_MODE = BehaviorParam("Mode", "digits", "What may be typed: digits, letters, letters_digits or custom (only Allowed)")
+private val FILTER_ALLOWED = BehaviorParam("Allowed", "", "Extra characters that may be typed, or all of them in the custom mode")
+private val FILTER_MAX = BehaviorParam("MaxLength", "0", "Most characters the field takes, 0 for no limit")
 private val OFFSET_X = BehaviorParam("OffsetX", "0", "Shift to the right in pixels while the button is held")
 private val OFFSET_Y = BehaviorParam("OffsetY", "2", "Shift down in pixels while the button is held")
 
@@ -105,6 +108,14 @@ internal object Behaviors {
                 listOf(COLOR_HOVER_TEXT, TARGET),
             ) { c ->
                 if (c.hovered) c.color(COLOR_HOVER_TEXT)?.let { BehaviorEffect(textColor = it) } else null
+            },
+            WidgetBehavior(
+                "EditFilter",
+                BehaviorKind.ON_WIDGET,
+                "Lets an edit box take only some characters and no more than a number of them",
+                listOf(FILTER_MODE, FILTER_ALLOWED, FILTER_MAX),
+            ) { c ->
+                c.state["text"]?.let { BehaviorEffect(text = it) }
             },
             WidgetBehavior(
                 "DragMove",
@@ -177,6 +188,24 @@ internal object Behaviors {
     fun hasTimed(root: EditorWidgetNode): Boolean {
         if (root.scriptClassName()?.let { find(it) }?.timed == true) return true
         return root.children.any { hasTimed(it) }
+    }
+
+    /** True when the edit box with the settings [params] takes the character [ch] after [typed]. */
+    fun editFilterAccepts(
+        params: Map<String, String>,
+        typed: String,
+        ch: Char,
+    ): Boolean {
+        if (ch.isISOControl()) return false
+        val max = paramText(params, FILTER_MAX).toIntOrNull() ?: 0
+        if (max > 0 && typed.length >= max) return false
+        val allowed = paramText(params, FILTER_ALLOWED)
+        return when (paramText(params, FILTER_MODE).lowercase()) {
+            "digits" -> ch.isDigit() || ch in allowed
+            "letters" -> ch.isLetter() || ch in allowed
+            "letters_digits" -> ch.isLetterOrDigit() || ch in allowed
+            else -> ch in allowed
+        }
     }
 
     /** The behaviour a `scriptclass` value stands for: its own name, or that of a class of a mod such as `MF_CLS_HoverColorHandler`. */
