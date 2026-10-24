@@ -583,12 +583,36 @@ internal class McpTools(
                 "Property '$key' is a text and needs quotes: write \"$value\" (without them the game cannot read the file)"
             }
 
+    /** Workbench stops reading the layout after a widget whose text size is not a whole number. */
+    private fun numberWarnings(values: Map<String, String?>): List<String> {
+        val size = values["exact text size"]?.trim() ?: return emptyList()
+        if (size.isEmpty() || size.toIntOrNull() != null) return emptyList()
+        val whole = size.toDoubleOrNull()?.let { Math.round(it).toString() } ?: "an integer"
+        return listOf("exact text size $size is not a whole number: Workbench stops reading the layout after this widget, use $whole")
+    }
+
     /** A font name the game cannot find is drawn in its system font, a small pixel font without Cyrillic. */
     private fun fontWarnings(values: Map<String, String?>): List<String> {
         val value = values["font"]?.takeIf { it.isNotBlank() } ?: return emptyList()
         if (state.fontExists(value, state.activeFile?.path)) return emptyList()
         return listOf(
             "Font ${value.trim()} is not among list_fonts (a family needs its .xml descriptor): the game draws its small system font instead",
+        )
+    }
+
+    /** A style the game and the mods do not have paints nothing in Workbench. */
+    private fun styleWarnings(node: EditorWidgetNode): List<String> {
+        val name =
+            node.node.properties["style"]
+                ?.trim()
+                ?.trim('"') ?: return emptyList()
+        if (name.isEmpty() || state.styleExists(node, state.activeFile?.path)) return emptyList()
+        val className =
+            node.node.type.className
+                .removeSuffix("Class")
+        return listOf(
+            "Style $name is not in list_styles for $className: Workbench draws nothing for a style it does not have " +
+                "(flat fills: rover_sim_colorable on a panel, Colorable on a button)",
         )
     }
 
@@ -623,7 +647,7 @@ internal class McpTools(
         val texts = given.mapValues { (_, v) -> (v as? JsonPrimitive)?.content }
         return withWarnings(
             widgetJson(after, withRect = true),
-            warningsFor(after, given.keys) + unquotedWarnings(texts) + fontWarnings(texts),
+            warningsFor(after, given.keys) + unquotedWarnings(texts) + fontWarnings(texts) + styleWarnings(after) + numberWarnings(texts),
         )
     }
 
@@ -706,7 +730,8 @@ internal class McpTools(
         return withWarnings(
             widgetJson(created, withRect = false),
             warningsFor(created, created.node.properties.keys) + unquotedWarnings(created.node.properties) +
-                fontWarnings(created.node.properties),
+                fontWarnings(created.node.properties) + styleWarnings(created) +
+                numberWarnings(created.node.properties),
         )
     }
 
@@ -738,7 +763,8 @@ internal class McpTools(
                         warningsFor(
                             widget,
                             widget.node.properties.keys,
-                        ) + unquotedWarnings(widget.node.properties) + fontWarnings(widget.node.properties)
+                        ) + unquotedWarnings(widget.node.properties) + fontWarnings(widget.node.properties) +
+                            styleWarnings(widget) + numberWarnings(widget.node.properties)
                     ).map { "${widget.node.name}: $it" }
             } catch (e: ToolFailure) {
                 throw ToolFailure("widgets[$i]: ${e.message}. Nothing was added")

@@ -2100,8 +2100,8 @@ class LayoutEditorState(
         return skinFromPlan(plan, key, if (lifted) HIGHLIGHT_LIFT else 0f)
     }
 
-    /** True when the style of [node] is one of the vanilla styles of its type: whatever it paints, it is not a guess. */
-    fun styleKnown(
+    /** True when the style of [node] is one of the styles of its type that the game or a connected mod has. */
+    fun styleExists(
         node: EditorWidgetNode,
         nearPath: String?,
     ): Boolean {
@@ -2112,6 +2112,25 @@ class LayoutEditorState(
                 .orEmpty()
         return name.isNotEmpty() &&
             vanillaStylesFor(node.node.originalClassName.ifEmpty { node.node.type.className }, nearPath).any { it.name == name }
+    }
+
+    /**
+     * True when what the style paints is decided: the widget has a style, and either it is one the game or a mod has (it paints
+     * its images, or nothing) or the styles of the class are known and it is not among them (Workbench paints nothing for a
+     * style it does not have, measured with `style Colorable` on a panel). No guess of a fill is made then.
+     */
+    fun styleKnown(
+        node: EditorWidgetNode,
+        nearPath: String?,
+    ): Boolean {
+        val name =
+            node.node.properties["style"]
+                ?.trim()
+                ?.trim('"')
+                .orEmpty()
+        if (name.isEmpty()) return false
+        val styles = vanillaStylesFor(node.node.originalClassName.ifEmpty { node.node.type.className }, nearPath)
+        return styles.isNotEmpty()
     }
 
     /** What [style] paints in the state [stateName], for the preview of the style editor. Null while the atlas loads. */

@@ -41,6 +41,28 @@ fun findProblems(root: EditorWidgetNode): List<Problem> {
             out += Problem(node.id, name, Severity.ERROR, "Размер ${node.prop("size")}: ширина или высота не больше нуля")
         }
 
+        // Workbench 1.30 stops reading the layout after a widget whose "exact text size" is not a whole number (measured)
+        val textSize = node.prop("exact text size")?.trim()
+        if (textSize != null && textSize.toIntOrNull() == null) {
+            out +=
+                Problem(
+                    node.id,
+                    name,
+                    Severity.ERROR,
+                    "«exact text size» $textSize не целое: Workbench перестаёт читать layout после этого виджета",
+                )
+        }
+        // The style Colorable does not exist for a panel: Workbench draws nothing for it (the flat fill is rover_sim_colorable)
+        if (node.node.type == WidgetType.PANEL && node.prop("style")?.trim()?.trim('"') == "Colorable") {
+            out +=
+                Problem(
+                    node.id,
+                    name,
+                    Severity.WARNING,
+                    "У панели нет стиля Colorable, Workbench ничего не нарисует: для заливки нужен rover_sim_colorable",
+                )
+        }
+
         node.children
             .filter { it.node.name.isNotEmpty() }
             .groupBy { it.node.name }

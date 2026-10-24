@@ -30,6 +30,7 @@ internal object McpGuide {
         Rules of the format
         - Property values are written as they stand in the .layout file: text and paths in quotes ("set:Icons image:Cross"), numbers and flags without.
         - A property name with a space (text color, exact text size) is given without quotes: the file writer quotes it. A name the editor does not know is written all the same, with a warning in the answer: read the warnings.
+        - "exact text size" must be a whole number. Workbench 1.30 stops reading the layout after a widget with a fractional size and shows nothing of what follows, while this preview still draws it.
         - Text has no line breaks: \n shows as it is. Give each line its own TextWidget, or set wrap 1 so that it wraps by the width of the widget.
         - position and size are pixels when hexactpos/vexactpos and hexactsize/vexactsize are 1, otherwise shares of the parent (0.5 is half).
         - halign and valign anchor to the parent: left_ref, center_ref, right_ref (and top_ref, bottom_ref). A bare center does not centre.
@@ -37,7 +38,7 @@ internal object McpGuide {
         - Names of widgets are Latin letters, digits and underscore, because scripts find a widget by name (FindAnyWidget).
         - Fonts: list_fonts gives the paths that exist; put one in quotes into font. The game has no monospaced font, and a name that is not in the list is drawn as Metron.
         - Icons come from imagesets: list_icons gives set:NAME image:IMAGE, which goes into image0. Textures go into imageTexture with a path from the mod folder.
-        - Styles: list_styles for a widget class, then set the style property. A panel without a style draws nothing, so give it style Colorable to get a flat fill of its color (Colorable works on panels and buttons although list_styles may not show it). On a button Colorable colours the text too.
+        - Styles: list_styles for a widget class, then set the style property. A panel without a style draws nothing. For a flat fill of its color use style rover_sim_colorable on a panel: the style Colorable exists for buttons, windows, scrolls and spacers, and on a panel the game draws nothing for it. On a button Colorable colours the text too. A style that list_styles does not show for the class draws nothing in the game, and the tools warn about it.
         - Files inside the game's PBO are read-only.
 
         Scripts

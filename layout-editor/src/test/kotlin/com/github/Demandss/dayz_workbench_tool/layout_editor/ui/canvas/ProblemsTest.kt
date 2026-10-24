@@ -63,4 +63,27 @@ class ProblemsTest {
         val root = frame("Root", widget("кнопка", "style" to "x"))
         assertEquals(1, findProblems(root).size)
     }
+
+    @Test
+    fun `a text size that is not a whole number is an error`() {
+        val root =
+            frame(
+                "Root",
+                widget("a", "style" to "x", "exact text size" to "8.1"),
+                widget(
+                    "b",
+                    "style" to "x",
+                    "exact text size" to "8",
+                ),
+            )
+        val problems = findProblems(root)
+        assertEquals(listOf("a"), problems.map { it.widgetName })
+        assertEquals(Severity.ERROR, problems.single().severity)
+    }
+
+    @Test
+    fun `the style Colorable on a panel is reported`() {
+        val root = frame("Root", widget("a", "style" to "Colorable"), widget("b", "style" to "rover_sim_colorable"))
+        assertEquals(listOf("a"), findProblems(root).map { it.widgetName })
+    }
 }
