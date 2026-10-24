@@ -64,6 +64,8 @@ internal class BehaviorContext(
     // Seconds since Live Preview started, and since the widget was last pressed (null if it has not been)
     val time: Float = 0f,
     val sincePress: Float? = null,
+    // What the user did to this widget in Live Preview, such as how far it was dragged
+    val state: Map<String, String> = emptyMap(),
 ) {
     fun text(param: BehaviorParam): String = paramText(values, param)
 
@@ -114,5 +116,13 @@ internal val TARGET =
         "Widget it works on: self, parent or the name of a widget",
         aliases = listOf("ColorParent", "HoverParent"),
     )
+
+/** A drag in Live Preview: which widget grabbed the pointer, where it was and how far the target had already been moved. */
+internal data class PreviewDrag(
+    val owner: java.util.UUID,
+    val start: Offset,
+    val startX: Float,
+    val startY: Float,
+)
 
 internal fun EditorWidgetNode.scriptClassName(): String? = prop("scriptclass")?.trim('"', ' ')?.takeIf { it.isNotEmpty() }

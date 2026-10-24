@@ -44,6 +44,12 @@ private val BODY = BehaviorParam("Body", "", "Name of the widget the header open
 private val OPEN = BehaviorParam("Open", "1", "1 when the body is shown at the start, 0 when it is closed")
 private val COLOR_HEADER = BehaviorParam("Color", "#3A3D4A", "Colour of the header, #RRGGBB or #RRGGBBAA")
 
+private val VALUE = BehaviorParam("Value", "5", "Number at the start")
+private val MIN = BehaviorParam("Min", "0", "Lowest number")
+private val MAX = BehaviorParam("Max", "10", "Highest number")
+private val STEP = BehaviorParam("Step", "1", "How much a click adds or takes")
+private val COLOR_STEPPER = BehaviorParam("Color", "#3A3D4A", "Colour of the field, #RRGGBB or #RRGGBBAA")
+
 private fun layoutColor(color: Color) = "${color.red} ${color.green} ${color.blue} ${color.alpha}"
 
 private fun share(value: Float) = "%.5f".format(java.util.Locale.ROOT, value)
@@ -97,6 +103,52 @@ internal object Spawners {
                 effects = { c ->
                     val body = c.text(BODY)
                     if (body.isEmpty()) emptyMap() else mapOf(body to BehaviorEffect(visible = (c.state["open"] ?: c.text(OPEN)) != "0"))
+                },
+            ),
+            Spawner(
+                "NumberStepper",
+                "A number with a minus and a plus button: a quantity, a count of items, a page",
+                listOf(VALUE, MIN, MAX, STEP, COLOR_STEPPER),
+                fragment = { c ->
+                    val low = c.int(MIN)
+                    val high = c.int(MAX).coerceAtLeast(low)
+                    val value = (c.state["value"]?.toIntOrNull() ?: c.int(VALUE)).coerceIn(low, high)
+
+                    // The three parts share the width of the frame: 25% for the minus, 50% for the number, 25% for the plus
+                    fun part(
+                        kind: String,
+                        name: String,
+                        left: String,
+                        width: String,
+                        vararg lines: String,
+                    ) = listOf(" ${kind}WidgetClass $name {", "  position $left 0", "  size $width 1", *lines, " }")
+                    listOf(
+                        listOf("FrameWidgetClass NumberStepperRoot {", " size 1 1", " {"),
+                        listOf(" ImageWidgetClass Back {", "  size 1 1", "  color ${layoutColor(c.color(COLOR_STEPPER))}", " }"),
+                        part("Button", "Minus", "0", "0.25", "  text \"-\"", "  style Empty"),
+                        part(
+                            "Text",
+                            "ValueText",
+                            "0.25",
+                            "0.5",
+                            "  text \"$value\"",
+                            "  \"text halign\" center",
+                            "  \"text valign\" center",
+                            "  ignorepointer 1",
+                        ),
+                        part("Button", "Plus", "0.75", "0.25", "  text \"+\"", "  style Empty"),
+                        listOf(" }", "}"),
+                    ).flatten().joinToString("\n", postfix = "\n")
+                },
+                onClick = { clicked, state, c ->
+                    val low = c.int(MIN)
+                    val high = c.int(MAX).coerceAtLeast(low)
+                    val step = c.int(STEP).coerceAtLeast(1)
+                    val now = c.state["value"]?.toIntOrNull() ?: c.int(VALUE)
+                    when (clicked) {
+                        "Minus" -> state["value"] = (now - step).coerceIn(low, high).toString()
+                        "Plus" -> state["value"] = (now + step).coerceIn(low, high).toString()
+                    }
                 },
             ),
         )

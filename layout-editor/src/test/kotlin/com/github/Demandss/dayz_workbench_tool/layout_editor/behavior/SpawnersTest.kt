@@ -111,6 +111,37 @@ class SpawnersTest {
     }
 
     @Test
+    fun `a number stepper stays between its limits`() {
+        val stepper = frame("S", "NumberStepper", mapOf("Value" to "9", "Max" to "10", "Step" to "2"))
+        val up = assertNotNull(spawnerClick(stepper, "Plus", emptyMap()))
+        assertEquals("10", up["value"])
+        assertNull(spawnerClick(stepper, "Plus", up))
+        val down = assertNotNull(spawnerClick(stepper, "Minus", up))
+        assertEquals("8", down["value"])
+        val shown = expandSpawners(stepper, mapOf(stepper.id to down)).children.single()
+        assertEquals(
+            "\"8\"",
+            shown.children
+                .first { it.node.name == "ValueText" }
+                .node.properties["text"],
+        )
+    }
+
+    @Test
+    fun `a dragged widget moves its parent by the stored distance`() {
+        val handle = frame("Handle", "DragMove")
+        val window = frame("Window", children = arrayOf(handle))
+        val root = frame("Root", children = arrayOf(window))
+        assertNull(previewEffects(root, emptySet(), emptySet())[window.id])
+        val moved = previewEffects(root, emptySet(), emptySet(), states = mapOf(handle.id to mapOf("dx" to "30", "dy" to "-12")))
+        assertEquals(
+            androidx.compose.ui.geometry
+                .Offset(30f, -12f),
+            moved[window.id]?.offset,
+        )
+    }
+
+    @Test
     fun `a layout without spawners is returned as it is`() {
         val root = frame("Root", children = arrayOf(frame("A")))
         assertTrue(expandSpawners(root, emptyMap()) === root)

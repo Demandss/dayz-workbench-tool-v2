@@ -42,6 +42,7 @@ private fun tweenShare(
     return 1f - (1f - linear) * (1f - linear)
 }
 
+private val DRAG_TARGET = BehaviorParam("Target", "parent", "Widget that moves with the pointer: parent, self or the name of a widget")
 private val OFFSET_X = BehaviorParam("OffsetX", "0", "Shift to the right in pixels while the button is held")
 private val OFFSET_Y = BehaviorParam("OffsetY", "2", "Shift down in pixels while the button is held")
 
@@ -104,6 +105,16 @@ internal object Behaviors {
                 listOf(COLOR_HOVER_TEXT, TARGET),
             ) { c ->
                 if (c.hovered) c.color(COLOR_HOVER_TEXT)?.let { BehaviorEffect(textColor = it) } else null
+            },
+            WidgetBehavior(
+                "DragMove",
+                BehaviorKind.ON_WIDGET,
+                "Moves a widget (by default the parent, such as a window) when this one is dragged",
+                listOf(DRAG_TARGET),
+            ) { c ->
+                val x = c.state["dx"]?.toFloatOrNull()
+                val y = c.state["dy"]?.toFloatOrNull()
+                if (x == null || y == null) null else BehaviorEffect(offset = Offset(x, y))
             },
             WidgetBehavior(
                 "Blink",
@@ -232,6 +243,7 @@ internal fun previewEffects(
                     node.id in pressed,
                     time,
                     pressTimes[node.id]?.let { time - it },
+                    states[node.id].orEmpty(),
                 )
             behavior.effect(context)?.let { out[target.id] = (out[target.id] ?: BehaviorEffect()) + it }
         }

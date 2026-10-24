@@ -40,8 +40,10 @@ import com.github.demandss.dayz_workbench_tool.layout.WidgetType
 import com.github.demandss.dayz_workbench_tool.layout_editor.EditorWidgetNode
 import com.github.demandss.dayz_workbench_tool.layout_editor.behavior.BehaviorEffect
 import com.github.demandss.dayz_workbench_tool.layout_editor.behavior.Behaviors
+import com.github.demandss.dayz_workbench_tool.layout_editor.behavior.PreviewDrag
 import com.github.demandss.dayz_workbench_tool.layout_editor.behavior.expandSpawners
 import com.github.demandss.dayz_workbench_tool.layout_editor.behavior.previewEffects
+import com.github.demandss.dayz_workbench_tool.layout_editor.behavior.scriptClassName
 import com.github.demandss.dayz_workbench_tool.layout_editor.behavior.spawnerClick
 import com.github.demandss.dayz_workbench_tool.layout_editor.behavior.withEffectProperties
 import com.github.demandss.dayz_workbench_tool.layout_editor.findNode
@@ -113,30 +115,35 @@ private fun hitTest(
 /** Every widget under [worldPos], the topmost first, for the menu of the right button. */
 private fun hitsAt(
     node: EditorWidgetNode,
-    worldPos: Offset,
+    point: Offset,
     layout: TreeLayout,
     hidden: Set<UUID>,
     out: MutableList<EditorWidgetNode>,
+    // How far a script class has moved a widget (and with it everything in it) away from where the layout puts it
+    shift: (EditorWidgetNode) -> Offset = { Offset.Zero },
 ) {
     if (!node.isVisible() || node.id in hidden) return
     val rect = layout.rects[node.id] ?: return
+    val worldPos = point - shift(node)
     val inside = rect.contains(worldPos)
     if (!inside && node.clipsChildren()) return
-    for (child in node.drawOrder().asReversed()) hitsAt(child, worldPos, layout, hidden, out)
+    for (child in node.drawOrder().asReversed()) hitsAt(child, worldPos, layout, hidden, out, shift)
     if (inside) out += node
 }
 
 /** The button under [worldPos] that takes the pointer, the topmost one; null when there is none. */
 private fun buttonAt(
     node: EditorWidgetNode,
-    worldPos: Offset,
+    point: Offset,
     layout: TreeLayout,
+    shift: (EditorWidgetNode) -> Offset = { Offset.Zero },
 ): EditorWidgetNode? {
     if (!node.isVisible()) return null
     val rect = layout.rects[node.id] ?: return null
+    val worldPos = point - shift(node)
     val inside = rect.contains(worldPos)
     if (!inside && node.clipsChildren()) return null
-    for (child in node.drawOrder().asReversed()) buttonAt(child, worldPos, layout)?.let { return it }
+    for (child in node.drawOrder().asReversed()) buttonAt(child, worldPos, layout, shift)?.let { return it }
     val takes = node.node.type == WidgetType.BUTTON && node.node.properties["ignorepointer"]?.trim() != "1"
     return if (inside && takes) node else null
 }
@@ -152,10 +159,13 @@ private fun previewPointer(
     // The layout with the widgets that the script classes build in it
     val tree = expandSpawners(doc.root, state.previewBehaviorState)
     val layout = layoutOf(state, tree, screenRect(state))
-    val target = buttonAt(tree, world, layout)?.id
+    // Widgets that a script class has moved are hit where they are shown
+    val moved = previewEffects(tree, emptySet(), emptySet(), states = state.previewBehaviorState)
+    val shift = { n: EditorWidgetNode -> moved[n.id]?.offset ?: Offset.Zero }
+    val target = buttonAt(tree, world, layout, shift)?.id
     // The topmost widget that takes the pointer and the widgets around it
     val hits = mutableListOf<EditorWidgetNode>()
-    hitsAt(tree, world, layout, emptySet(), hits)
+    hitsAt(tree, world, layout, emptySet(), hits, shift)
     val top = hits.firstOrNull { it.prop("ignorepointer") != "1" }
     val path = top?.let { tree.pathTo(it.id) }.orEmpty()
     val chain = path.map { it.id }.toSet()
@@ -167,6 +177,12 @@ private fun previewPointer(
                 state.previewFocus = target
                 state.previewPressChain = chain
                 state.previewPressTimes = state.previewPressTimes + chain.associateWith { state.previewClock }
+                // A drag starts on the widget that carries DragMove
+                path.lastOrNull { owner -> owner.scriptClassName()?.let { Behaviors.find(it)?.name } == "DragMove" }?.let { owner ->
+                    val moved = state.previewBehaviorState[owner.id].orEmpty()
+                    state.previewDrag =
+                        PreviewDrag(owner.id, world, moved["dx"]?.toFloatOrNull() ?: 0f, moved["dy"]?.toFloatOrNull() ?: 0f)
+                }
                 // A click is seen by every script class that builds widgets and has the clicked widget inside it
                 if (top != null) {
                     for (owner in path) {
@@ -191,6 +207,16 @@ private fun previewPointer(
 
         else -> {
             state.previewHover = target
+        }
+    }
+    val drag = state.previewDrag
+    if (drag != null) {
+        if (type == PointerEventType.Release || type == PointerEventType.Exit || !primaryDown) {
+            state.previewDrag = null
+        } else if (type != PointerEventType.Press) {
+            val moved = world - drag.start
+            state.previewBehaviorState +=
+                (drag.owner to mapOf("dx" to (drag.startX + moved.x).toString(), "dy" to (drag.startY + moved.y).toString()))
         }
     }
     val hovered = if (type == PointerEventType.Exit) emptySet() else chain

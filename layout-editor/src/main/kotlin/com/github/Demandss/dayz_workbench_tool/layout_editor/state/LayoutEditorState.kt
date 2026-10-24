@@ -239,6 +239,8 @@ class LayoutEditorState(
     var previewPressTimes by mutableStateOf<Map<UUID, Float>>(emptyMap())
 
     // What the user did to the script classes that build widgets (the choice made, a header opened), by the widget they sit on
+    internal var previewDrag by mutableStateOf<com.github.demandss.dayz_workbench_tool.layout_editor.behavior.PreviewDrag?>(null)
+
     var previewBehaviorState by mutableStateOf<Map<UUID, Map<String, String>>>(emptyMap())
 
     /** The state a widget is in while Live Preview runs: Disabled, Pushed, Highlight (the pointer is over it), Focus or Normal. */
