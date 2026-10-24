@@ -268,7 +268,21 @@ private fun commitProp(
     state.pushUndo(idx, doc.root, "$key = $value")
     state.updateActiveRoot(
         doc.root.updateNode(id) { n ->
-            n.copy(node = n.node.copy(properties = LinkedHashMap(n.node.properties).also { it[key] = value }))
+            // An empty value takes the property out of the file
+            n.copy(
+                node =
+                    n.node.copy(
+                        properties =
+                            LinkedHashMap(n.node.properties).also {
+                                if (value.isEmpty()) {
+                                    it.remove(key)
+                                } else {
+                                    it[key] =
+                                        value
+                                }
+                            },
+                    ),
+            )
         },
     )
 }
@@ -321,7 +335,9 @@ fun PropertiesContent(
                 ScriptClassPicker(state, node, props["scriptclass"]?.trim()?.trim('"').orEmpty()) { commit("scriptclass", it) }
             }
             if (node.node.type in IMAGE_TYPES) ImageWidgetSection(props, commit, state.workDrivePath, state, node, doc?.path)
-            val extra = props.filter { it.key !in WIDGET_KEYS && it.key !in IMAGE_KEYS }
+            SchemaSections(node.node.type, node.node.originalClassName, props, commit)
+            val schema = schemaKeys(node.node.type, node.node.originalClassName)
+            val extra = props.filter { it.key !in WIDGET_KEYS && it.key !in IMAGE_KEYS && it.key !in schema }
             if (extra.isNotEmpty()) RawSection(extra, commit)
         }
     }
@@ -719,6 +735,69 @@ private fun ImagePreview(
 // ---------------------------------------------------------------------------
 // Raw extra properties
 // ---------------------------------------------------------------------------
+
+@Composable
+private fun SchemaSections(
+    type: WidgetType,
+    originalClassName: String,
+    props: Map<String, String>,
+    commit: (String, String) -> Unit,
+) {
+    for ((index, section) in schemaFor(type, originalClassName).withIndex()) {
+        // The group of the focus keys is rare to touch, so it starts closed unless the file sets one of them
+        var expanded by remember(section.title) { mutableStateOf(section.title != "Focus" || section.specs.any { it.key in props }) }
+        SectionHeader(section.title, expanded) { expanded = !expanded }
+        if (expanded) for (spec in section.specs) SchemaRow(spec, props, commit)
+    }
+}
+
+/** A row of a property of the widget class: set in the file or not, with a button that takes it out of the file again. */
+@Composable
+private fun SchemaRow(
+    spec: PropSpec,
+    props: Map<String, String>,
+    commit: (String, String) -> Unit,
+) {
+    val raw = props[spec.key]
+    val hint = spec.hint + if (spec.default.isNotEmpty()) "\nПо умолчанию: ${spec.default}" else ""
+    if (spec.kind == PropKind.CHECK) {
+        CheckRow(spec.key, raw, commit, hint, spec.default == "1")
+        return
+    }
+    PropRow(spec.key, raw != null, hint) {
+        when (spec.kind) {
+            PropKind.ENUM -> {
+                val current = raw?.trim()?.trim('"').orEmpty()
+                CompactDropdown(
+                    current,
+                    (
+                        listOf("") + spec.options +
+                            listOfNotNull(current.takeIf { it.isNotEmpty() && it !in spec.options })
+                    ).distinct(),
+                ) {
+                    commit(spec.key, it)
+                }
+            }
+
+            PropKind.TEXT -> {
+                StringField(raw?.trim()?.removeSurrounding("\"").orEmpty(), Modifier.weight(1f)) {
+                    commit(spec.key, if (it.isEmpty()) "" else "\"$it\"")
+                }
+            }
+
+            PropKind.COLOR -> {
+                val shown = raw?.let { parseWidgetColor(it) }
+                if (shown != null) Box(Modifier.size(14.dp).background(shown).border(1.dp, DarkenedBorder))
+                StringField(raw.orEmpty(), Modifier.weight(1f)) { commit(spec.key, it.trim()) }
+            }
+
+            else -> {
+                StringField(raw.orEmpty(), Modifier.weight(1f)) { commit(spec.key, it.trim()) }
+            }
+        }
+        if (raw != null) SmallButton("×") { commit(spec.key, "") }
+    }
+}
 
 @Composable
 private fun RawSection(
@@ -1392,7 +1471,10 @@ private fun ColumnScope.MultiProperties(
             StringField(props["scriptclass"]?.trim('"').orEmpty(), Modifier.weight(1f)) { commit("scriptclass", it) }
         }
         if (types.all { it in IMAGE_TYPES }) ImageWidgetSection(props, commit, state.workDrivePath, state, nodes.first(), layoutPath)
-        val extra = props.filter { it.key !in WIDGET_KEYS && it.key !in IMAGE_KEYS }
+        val sameType = nodes.map { it.node.type to it.node.originalClassName }.distinct().singleOrNull()
+        if (sameType != null) SchemaSections(sameType.first, sameType.second, props, commit)
+        val schema = sameType?.let { schemaKeys(it.first, it.second) }.orEmpty()
+        val extra = props.filter { it.key !in WIDGET_KEYS && it.key !in IMAGE_KEYS && it.key !in schema }
         if (extra.isNotEmpty()) RawSection(extra, commit)
     }
 }

@@ -208,7 +208,22 @@ internal fun LayoutEditorState.setOnSelected(
     pushUndo(activeFileIndex, doc.root, "$key = $value")
     updateActiveRoot(
         ids.fold(doc.root) { acc, id ->
-            acc.updateNode(id) { n -> n.copy(node = n.node.copy(properties = LinkedHashMap(n.node.properties).also { it[key] = value })) }
+            acc.updateNode(id) { n ->
+                n.copy(
+                    node =
+                        n.node.copy(
+                            properties =
+                                LinkedHashMap(n.node.properties).also {
+                                    if (value.isEmpty()) {
+                                        it.remove(key)
+                                    } else {
+                                        it[key] =
+                                            value
+                                    }
+                                },
+                        ),
+                )
+            }
         },
     )
 }
