@@ -9,9 +9,15 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.IntOffset
@@ -224,6 +230,18 @@ private fun ScriptTemplateButton(state: LayoutEditorState) {
 @Composable
 private fun GridSizeField(state: LayoutEditorState) {
     var text by remember(state.gridSize) { mutableStateOf(state.gridSize.toString()) }
+    var focused by remember { mutableStateOf(false) }
+
+    // Applied with Enter or when the field loses the focus, held inside 1 to 512
+    fun apply() {
+        val number = text.toIntOrNull()?.coerceIn(1, 512)
+        if (number == null) {
+            text = state.gridSize.toString()
+        } else {
+            text = number.toString()
+            state.gridSize = number
+        }
+    }
     Tip(tr("Шаг сетки в пикселях")) {
         Row(
             Modifier
@@ -235,14 +253,24 @@ private fun GridSizeField(state: LayoutEditorState) {
         ) {
             BasicTextField(
                 value = text,
-                onValueChange = { v ->
-                    text = v.filter(Char::isDigit).take(3)
-                    text.toIntOrNull()?.takeIf { it in 1..512 }?.let { state.gridSize = it }
-                },
+                onValueChange = { v -> text = v.filter(Char::isDigit).take(3) },
                 singleLine = true,
                 textStyle = TextStyle(color = TextForeground, fontSize = 11.sp),
                 cursorBrush = SolidColor(TextForeground),
-                modifier = Modifier.width(24.dp),
+                modifier =
+                    Modifier
+                        .width(24.dp)
+                        .onFocusChanged { fs ->
+                            if (focused && !fs.isFocused) apply()
+                            focused = fs.isFocused
+                        }.onKeyEvent { ev ->
+                            if (ev.key == Key.Enter && ev.type == KeyEventType.KeyDown) {
+                                apply()
+                                true
+                            } else {
+                                false
+                            }
+                        },
             )
             Text("px", color = GhostlyText, fontSize = 10.sp)
         }

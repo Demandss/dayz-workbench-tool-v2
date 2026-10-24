@@ -28,9 +28,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -167,7 +173,7 @@ private fun Check(
     }
 }
 
-/** A number typed into a small field; [onValue] gets it when it is a whole number inside the limits. */
+/** A number typed into a small field; [onValue] gets it on Enter or when the field loses the focus, held inside the limits. */
 @Composable
 private fun NumberField(
     value: Int,
@@ -175,6 +181,17 @@ private fun NumberField(
     onValue: (Int) -> Unit,
 ) {
     var text by remember(value) { mutableStateOf(value.toString()) }
+    var focused by remember { mutableStateOf(false) }
+
+    fun apply() {
+        val number = text.toIntOrNull()?.coerceIn(range)
+        if (number == null) {
+            text = value.toString()
+        } else {
+            text = number.toString()
+            if (number != value) onValue(number)
+        }
+    }
     Box(
         Modifier
             .width(70.dp)
@@ -184,13 +201,23 @@ private fun NumberField(
     ) {
         BasicTextField(
             value = text,
-            onValueChange = { v ->
-                text = v.filter(Char::isDigit).take(5)
-                text.toIntOrNull()?.takeIf { it in range }?.let(onValue)
-            },
+            onValueChange = { v -> text = v.filter(Char::isDigit).take(5) },
             singleLine = true,
             textStyle = TextStyle(color = TextForeground, fontSize = 12.sp),
             cursorBrush = SolidColor(TextForeground),
+            modifier =
+                Modifier
+                    .onFocusChanged { fs ->
+                        if (focused && !fs.isFocused) apply()
+                        focused = fs.isFocused
+                    }.onKeyEvent { ev ->
+                        if (ev.key == Key.Enter && ev.type == KeyEventType.KeyDown) {
+                            apply()
+                            true
+                        } else {
+                            false
+                        }
+                    },
         )
     }
 }
