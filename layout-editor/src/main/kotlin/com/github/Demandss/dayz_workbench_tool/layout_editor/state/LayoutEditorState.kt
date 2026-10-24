@@ -2144,13 +2144,16 @@ class LayoutEditorState(
         // A three state check box has no Normal: its resting look is Empty
         val resting = if (style.states.none { it.name == "Normal" } && style.states.any { it.name == "Empty" }) "Empty" else "Normal"
         val own = imagesOf(stateName)
-        val images = own.ifEmpty { imagesOf(resting) }
+        // A disabled widget paints only what the style gives its Disabled state: nothing when that is empty, and not the
+        // resting look under it (measured in Workbench 1.30 on DayZDefaultButton and MenuDefault)
+        val disabled = stateName == "Disabled" && style.states.any { it.name == "Disabled" }
+        val images = if (disabled) own else own.ifEmpty { imagesOf(resting) }
         if (images.isEmpty()) return null
         val texture = set.textures.maxByOrNull { it.mpix } ?: return null
         val file = resolveImageSetTexture(setFile.absolutePath, texture.path) ?: return null
         val color = styleColorOf(style.color)
         val base =
-            imagesOf(resting).takeIf { own.isNotEmpty() && stateName != resting && it.isNotEmpty() }?.let {
+            imagesOf(resting).takeIf { !disabled && own.isNotEmpty() && stateName != resting && it.isNotEmpty() }?.let {
                 SkinPlan(file, set.refWidth, set.refHeight, it, color)
             }
         return SkinPlan(file, set.refWidth, set.refHeight, images, color, imagesOf("Highlight").isEmpty(), base)
