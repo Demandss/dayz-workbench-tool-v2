@@ -36,7 +36,11 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.sp
 import com.github.demandss.dayz_workbench_tool.layout.WidgetType
 import com.github.demandss.dayz_workbench_tool.layout_editor.EditorWidgetNode
+import com.github.demandss.dayz_workbench_tool.layout_editor.behavior.BehaviorEffect
+import com.github.demandss.dayz_workbench_tool.layout_editor.behavior.previewEffects
+import com.github.demandss.dayz_workbench_tool.layout_editor.behavior.withEffectColors
 import com.github.demandss.dayz_workbench_tool.layout_editor.findNode
+import com.github.demandss.dayz_workbench_tool.layout_editor.pathTo
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.CanvasMenu
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.LayoutEditorState
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.Resolution
@@ -141,29 +145,46 @@ private fun previewPointer(
     val doc = state.activeFile ?: return
     val layout = layoutOf(state, doc.root, screenRect(state))
     val target = buttonAt(doc.root, world, layout)?.id
+    // The topmost widget that takes the pointer and the widgets around it
+    val hits = mutableListOf<EditorWidgetNode>()
+    hitsAt(doc.root, world, layout, emptySet(), hits)
+    val chain =
+        hits
+            .firstOrNull { it.prop("ignorepointer") != "1" }
+            ?.let { top ->
+                doc.root
+                    .pathTo(top.id)
+                    ?.map { it.id }
+                    ?.toSet()
+            }.orEmpty()
     when (type) {
         PointerEventType.Press -> {
             if (primaryDown) {
                 state.previewHover = target
                 state.previewPressed = target
                 state.previewFocus = target
+                state.previewPressChain = chain
             }
         }
 
         PointerEventType.Release -> {
             state.previewPressed = null
             state.previewHover = target
+            state.previewPressChain = emptySet()
         }
 
         PointerEventType.Exit -> {
             state.previewHover = null
             state.previewPressed = null
+            state.previewPressChain = emptySet()
         }
 
         else -> {
             state.previewHover = target
         }
     }
+    val hovered = if (type == PointerEventType.Exit) emptySet() else chain
+    if (state.previewHoverChain != hovered) state.previewHoverChain = hovered
 }
 
 private fun selectInBox(
@@ -295,6 +316,8 @@ internal fun DrawScope.drawWidgetTree(
     // The SDF font a text widget uses, if it has one, and the name of the font it uses
     fontFor: (EditorWidgetNode, Float) -> GameFont? = { _, _ -> null },
     fontNameFor: (EditorWidgetNode) -> String = { "" },
+    // What a script class does to a widget in Live Preview: scale and shift around its centre, drawn together with its children
+    effectFor: (EditorWidgetNode) -> BehaviorEffect? = { null },
 ) {
     if (!node.isVisible() || node.id in hidden) return
     val wRect = layout.rects[node.id] ?: return
@@ -302,6 +325,36 @@ internal fun DrawScope.drawWidgetTree(
     val ownAlpha = (node.prop("color")?.let { parseWidgetColor(it).alpha } ?: 1f) * inherited
     val tl = worldToScreen(Offset(wRect.left, wRect.top), zoom, pan)
     val br = worldToScreen(Offset(wRect.right, wRect.bottom), zoom, pan)
+    val effect = effectFor(node)
+    if (effect != null && effect.moves) {
+        val pivot = Offset((tl.x + br.x) / 2f, (tl.y + br.y) / 2f)
+        withTransform({
+            translate(effect.offset.x * zoom, effect.offset.y * zoom)
+            scale(effect.scale, effect.scale, pivot)
+        }) {
+            drawWidgetTree(
+                node,
+                layout,
+                isRoot,
+                selectedIds,
+                hidden,
+                showBorders,
+                showLabels,
+                textMeasurer,
+                zoom,
+                pan,
+                textureFor,
+                skinFor,
+                styleKnown,
+                pictureFor,
+                textColorFor,
+                parentAlpha,
+                fontFor,
+                fontNameFor,
+            ) { if (it.id == node.id) null else effectFor(it) }
+        }
+        return
+    }
     val ss = Size((br.x - tl.x).coerceAtLeast(0f), (br.y - tl.y).coerceAtLeast(0f))
     val isSelected = selectedIds.contains(node.id)
 
@@ -477,6 +530,7 @@ internal fun DrawScope.drawWidgetTree(
                     ownAlpha,
                     fontFor,
                     fontNameFor,
+                    effectFor,
                 )
             }
         }
@@ -501,6 +555,7 @@ internal fun DrawScope.drawWidgetTree(
                 ownAlpha,
                 fontFor,
                 fontNameFor,
+                effectFor,
             )
         }
     }
@@ -978,8 +1033,9 @@ fun LayoutCanvas(
 
         fun DrawScope.widgets(pan: Offset) {
             if (doc == null || layout == null) return
+            val effects = if (state.livePreview) previewEffects(doc.root, state.previewHoverChain, state.previewPressChain) else emptyMap()
             drawWidgetTree(
-                doc.root,
+                doc.root.withEffectColors(effects),
                 layout,
                 isRoot = true,
                 if (state.livePreview) emptySet() else selectedSet,
@@ -996,6 +1052,7 @@ fun LayoutCanvas(
                 { n -> state.textColorFor(n, doc.path) },
                 fontFor = { n, px -> state.gameFontFor(state.fontNameFor(n, doc.path), doc.path, px) },
                 fontNameFor = { n -> state.fontNameFor(n, doc.path) },
+                effectFor = { n -> effects[n.id] },
             )
         }
         if (state.livePreview && !state.workbenchColors) {

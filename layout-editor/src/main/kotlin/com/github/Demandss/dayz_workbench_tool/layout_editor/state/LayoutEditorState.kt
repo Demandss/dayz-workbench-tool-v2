@@ -230,6 +230,10 @@ class LayoutEditorState(
     var previewPressed by mutableStateOf<UUID?>(null)
     var previewFocus by mutableStateOf<UUID?>(null)
 
+    // The widget under the pointer and everything it sits in, and the same for the held button: what script classes on frames see
+    var previewHoverChain by mutableStateOf<Set<UUID>>(emptySet())
+    var previewPressChain by mutableStateOf<Set<UUID>>(emptySet())
+
     /** The state a widget is in while Live Preview runs: Disabled, Pushed, Highlight (the pointer is over it), Focus or Normal. */
     fun previewStateOf(node: EditorWidgetNode): String {
         if (!livePreview) return "Normal"
