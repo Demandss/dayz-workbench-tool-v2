@@ -1,5 +1,6 @@
 package com.github.demandss.dayz_workbench_tool.layout_editor.behavior
 
+import com.github.demandss.dayz_workbench_tool.layout_editor.EditorWidgetNode
 import com.github.demandss.dayz_workbench_tool.layout_editor.findNode
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.LayoutEditorState
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.ToastKind
@@ -118,14 +119,45 @@ internal fun LayoutEditorState.useBehavior(name: String) {
             },
         )
     }
-    val text = behaviorExportText(entry, className, existing, mod)
+    copyToClipboard(
+        behaviorExportText(entry, className, existing, mod),
+        if (widget != null) "$className поставлен на «${widget.node.name}», скрипт в буфере" else "Скрипт $className в буфере",
+    )
+}
+
+private fun LayoutEditorState.copyToClipboard(
+    text: String,
+    message: String,
+) {
     runCatching { Toolkit.getDefaultToolkit().systemClipboard.setContents(StringSelection(text), null) }
         .onFailure {
             notify("Не удалось скопировать: ${it.message ?: it.javaClass.simpleName}", ToastKind.ERROR)
             return
         }
-    notify(
-        if (widget != null) "$className поставлен на «${widget.node.name}», скрипт в буфере" else "Скрипт $className в буфере",
-        ToastKind.SUCCESS,
-    )
+    notify(message, ToastKind.SUCCESS)
+}
+
+/**
+ * Copies the script class the widget [node] names: for a class of the editor the script, the layout fragment and the lines of the
+ * layout, for any other the source of the class from the game or from the mod it was found in.
+ */
+internal fun LayoutEditorState.exportScriptClass(node: EditorWidgetNode) {
+    val className = node.scriptClassName() ?: return
+    val doc = activeFile ?: return
+    val prefix = modClassPrefix(doc.path)
+    val entry =
+        BehaviorCatalogue.entries.firstOrNull { className == prefix + it.name || className == it.name }
+            ?: BehaviorCatalogue.entries.firstOrNull { className.endsWith(it.name) && scriptClasses.none { c -> c.name == className } }
+    if (entry != null) {
+        val mod = gameLayoutPath(doc.path).takeIf { '/' in it }?.substringBefore('/') ?: "MyMod"
+        copyToClipboard(behaviorExportText(entry, className, node.node.scriptParams.orEmpty(), mod), "Скрипт $className в буфере")
+        return
+    }
+    val info = scriptClasses.firstOrNull { it.name == className }
+    val source = info?.let { ScriptClassIndex.sourceOf(it, gameFolderPath()) }
+    if (source == null) {
+        notify("Исходник класса $className не найден среди скриптов игры и подключённых модов", ToastKind.INFO)
+        return
+    }
+    copyToClipboard(source, "Исходник $className в буфере (${info.source})")
 }

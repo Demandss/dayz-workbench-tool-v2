@@ -296,7 +296,9 @@ fun PropertiesContent(
                     doc?.root?.let { documentColors(it) }.orEmpty()
                 },
                 StyleChoice(state, node.node.type, doc?.path),
-            )
+            ) {
+                ScriptClassPicker(state, node, props["scriptclass"]?.trim()?.trim('"').orEmpty()) { commit("scriptclass", it) }
+            }
             if (node.node.type in IMAGE_TYPES) ImageWidgetSection(props, commit, state.workDrivePath, state, node, doc?.path)
             val extra = props.filter { it.key !in WIDGET_KEYS && it.key !in IMAGE_KEYS }
             if (extra.isNotEmpty()) RawSection(extra, commit)
@@ -459,6 +461,7 @@ private fun WidgetSection(
     commit: (String, String) -> Unit,
     documentColors: List<Color>,
     styles: StyleChoice,
+    scriptClass: @Composable RowScope.() -> Unit,
 ) {
     var expanded by remember { mutableStateOf(true) }
     SectionHeader("Widget", expanded) { expanded = !expanded }
@@ -489,9 +492,7 @@ private fun WidgetSection(
         StringField(props["userID"] ?: "", Modifier.weight(1f)) { commit("userID", it) }
     }
     CheckRow("draggable", props["draggable"], commit)
-    PropRow("scriptclass", "scriptclass" in props) {
-        StringField(props["scriptclass"] ?: "", Modifier.weight(1f)) { commit("scriptclass", it) }
-    }
+    PropRow("scriptclass", "scriptclass" in props, content = scriptClass)
     PropRow("style", "style" in props) {
         val names = styles.names
         val current = props["style"]?.trim('"').orEmpty()

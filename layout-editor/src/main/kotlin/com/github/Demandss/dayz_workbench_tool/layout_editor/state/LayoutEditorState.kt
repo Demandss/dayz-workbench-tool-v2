@@ -374,7 +374,30 @@ class LayoutEditorState(
         resourceRootsCache.clear()
         bitmapSizesCache.clear()
         scanMods()
+        scanScriptClasses()
     }
+
+    /** The classes a widget can name in `scriptclass`: those of the game, of the connected mods and of the catalogue of the editor. */
+    internal var scriptClasses by mutableStateOf(
+        com.github.demandss.dayz_workbench_tool.layout_editor.behavior.ScriptClassIndex.editorClasses,
+    )
+        private set
+
+    // The declarations of the game's scripts, read once because they do not change while the editor runs
+    private var gameScriptDeclarations: List<com.github.demandss.dayz_workbench_tool.layout_editor.behavior.ScriptDeclaration>? = null
+
+    private fun scanScriptClasses() {
+        val index = com.github.demandss.dayz_workbench_tool.layout_editor.behavior.ScriptClassIndex
+        val mods = connectedMods().map(::File).filter { it.isDirectory }
+        scope.launch(Dispatchers.IO) {
+            val game = gameScriptDeclarations ?: index.readGame(gameFolder).also { gameScriptDeclarations = it }
+            val found = index.build(game + mods.flatMap { index.readMod(it) })
+            withContext(Dispatchers.Main) { scriptClasses = found }
+        }
+    }
+
+    /** The folder of the game, for the readers of its archives. */
+    internal fun gameFolderPath(): String = gameFolder
 
     /** The `.styles` and `.imageset` files of the connected mods, found by a scan in the background. */
     private var modStyleFiles: List<File> = emptyList()
@@ -2205,6 +2228,7 @@ class LayoutEditorState(
     init {
         loadPreferences()
         scanMods()
+        scanScriptClasses()
     }
 }
 
