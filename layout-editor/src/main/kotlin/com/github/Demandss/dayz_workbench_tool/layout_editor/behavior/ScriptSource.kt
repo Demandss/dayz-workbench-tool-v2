@@ -873,7 +873,7 @@ class __CLASS__ : ScriptedWidgetEventHandler
     reference string Value;
     reference string Min;
     reference string Max;
-    reference string Step;
+    reference string Increment;
     reference string FieldColor;
 
     ref Widget          layoutRoot;
@@ -901,8 +901,8 @@ class __CLASS__ : ScriptedWidgetEventHandler
             m_High = Max.ToInt();
 
         m_Step = 1;
-        if (Step != "")
-            m_Step = Math.Max(Step.ToInt(), 1);
+        if (Increment != "")
+            m_Step = Math.Max(Increment.ToInt(), 1);
 
         m_Value = 5;
         if (Value != "")

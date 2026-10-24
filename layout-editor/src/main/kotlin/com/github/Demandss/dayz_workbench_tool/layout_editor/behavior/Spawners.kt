@@ -47,7 +47,7 @@ private val COLOR_HEADER = BehaviorParam("HeaderColor", "#3A3D4A", "Colour of th
 private val VALUE = BehaviorParam("Value", "5", "Number at the start")
 private val MIN = BehaviorParam("Min", "0", "Lowest number")
 private val MAX = BehaviorParam("Max", "10", "Highest number")
-private val STEP = BehaviorParam("Step", "1", "How much a click adds or takes")
+private val INCREMENT = BehaviorParam("Increment", "1", "How much a click adds or takes", listOf("Step"))
 private val COLOR_STEPPER = BehaviorParam("FieldColor", "#3A3D4A", "Colour of the field, #RRGGBB or #RRGGBBAA", listOf("Color"))
 
 private fun layoutColor(color: Color) = "${color.red} ${color.green} ${color.blue} ${color.alpha}"
@@ -108,7 +108,7 @@ internal object Spawners {
             Spawner(
                 "NumberStepper",
                 "A number with a minus and a plus button: a quantity, a count of items, a page",
-                listOf(VALUE, MIN, MAX, STEP, COLOR_STEPPER),
+                listOf(VALUE, MIN, MAX, INCREMENT, COLOR_STEPPER),
                 fragment = { c ->
                     val low = c.int(MIN)
                     val high = c.int(MAX).coerceAtLeast(low)
@@ -143,7 +143,7 @@ internal object Spawners {
                 onClick = { clicked, state, c ->
                     val low = c.int(MIN)
                     val high = c.int(MAX).coerceAtLeast(low)
-                    val step = c.int(STEP).coerceAtLeast(1)
+                    val step = c.int(INCREMENT).coerceAtLeast(1)
                     val now = c.state["value"]?.toIntOrNull() ?: c.int(VALUE)
                     when (clicked) {
                         "Minus" -> state["value"] = (now - step).coerceIn(low, high).toString()
