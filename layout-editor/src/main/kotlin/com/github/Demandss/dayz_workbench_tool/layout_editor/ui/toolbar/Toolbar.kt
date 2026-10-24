@@ -168,7 +168,12 @@ fun Toolbar(
                 state.preferencesPage = "MCP"
                 state.preferencesOpen = true
             },
-            active = McpHost.url != null,
+            dot =
+                when {
+                    McpHost.url != null -> Color(0xFF5CB85C)
+                    state.mcpEnabled -> Color(0xFFD06A6A)
+                    else -> Color(0xFF777777)
+                },
         )
         DarkIconButton(
             AppIcon.UI_GEAR,
