@@ -5,6 +5,10 @@ import androidx.compose.ui.graphics.Color
 import com.github.demandss.dayz_workbench_tool.layout.WidgetType
 import com.github.demandss.dayz_workbench_tool.layout_editor.EditorWidgetNode
 import java.util.UUID
+import kotlin.math.PI
+import kotlin.math.cos
+import kotlin.math.roundToInt
+import kotlin.math.sin
 
 private val SCALE_HOVER = BehaviorParam("Scale", "1.05", "Size while the pointer is over the widget (1 is unchanged)", listOf("HoverScale"))
 private val SCALE_PRESS = BehaviorParam("Scale", "0.95", "Size while the button is held (1 is unchanged)", listOf("PressScale"))
@@ -15,6 +19,29 @@ private val IMAGE_HOVER =
     BehaviorParam("Image", "", "Picture on hover: set:NAME image:IMAGE or the path of a texture", listOf("HoverImage"))
 private val COLOR_HOVER_TEXT =
     BehaviorParam("Color", "#FFFFFF", "Colour of the text on hover, #RRGGBB or #RRGGBBAA", listOf("HoverColor", "TextColor"))
+private val PERIOD = BehaviorParam("Period", "1.2", "Seconds for one full fade out and in")
+private val MIN_ALPHA = BehaviorParam("MinAlpha", "0.2", "Opacity at the dimmest moment, 0 to 1")
+private val DURATION_FADE = BehaviorParam("Duration", "0.5", "Seconds the fade takes")
+private val DELAY = BehaviorParam("Delay", "0", "Seconds to wait before it starts")
+private val AMPLITUDE = BehaviorParam("Amplitude", "8", "Pixels the widget swings at the start")
+private val DURATION_SHAKE = BehaviorParam("Duration", "0.4", "Seconds the shake lasts")
+private val VALUE_PROGRESS = BehaviorParam("Value", "75", "Value the bar fills up to, on the scale of its `current`")
+private val DURATION_TWEEN = BehaviorParam("Duration", "1.2", "Seconds the fill takes")
+private val VALUE_COUNT = BehaviorParam("Value", "100", "Number the text counts up to")
+private val DURATION_COUNT = BehaviorParam("Duration", "1.5", "Seconds the count takes")
+private const val SHAKE_HERTZ = 7f
+
+/** How far a value that is played again and again has come [time] seconds in: it eases out, then waits a second and starts over. */
+private fun tweenShare(
+    time: Float,
+    duration: Float,
+): Float {
+    val length = duration.coerceAtLeast(0.05f)
+    val phase = time % (length + 1f)
+    val linear = (phase / length).coerceIn(0f, 1f)
+    return 1f - (1f - linear) * (1f - linear)
+}
+
 private val OFFSET_X = BehaviorParam("OffsetX", "0", "Shift to the right in pixels while the button is held")
 private val OFFSET_Y = BehaviorParam("OffsetY", "2", "Shift down in pixels while the button is held")
 
@@ -78,7 +105,68 @@ internal object Behaviors {
             ) { c ->
                 if (c.hovered) c.color(COLOR_HOVER_TEXT)?.let { BehaviorEffect(textColor = it) } else null
             },
+            WidgetBehavior(
+                "Blink",
+                BehaviorKind.ON_WIDGET,
+                "Fades the widget in and out all the time",
+                listOf(PERIOD, MIN_ALPHA, TARGET),
+                timed = true,
+            ) { c ->
+                val period = c.float(PERIOD).coerceAtLeast(0.05f)
+                val low = c.float(MIN_ALPHA).coerceIn(0f, 1f)
+                BehaviorEffect(alpha = low + (1f - low) * (0.5f + 0.5f * cos(2f * PI.toFloat() * c.time / period)))
+            },
+            WidgetBehavior(
+                "FadeIn",
+                BehaviorKind.ON_WIDGET,
+                "Makes the widget appear smoothly when the layout is shown",
+                listOf(DURATION_FADE, DELAY, TARGET),
+                timed = true,
+            ) { c ->
+                val done = ((c.time - c.float(DELAY)) / c.float(DURATION_FADE).coerceAtLeast(0.01f)).coerceIn(0f, 1f)
+                if (done < 1f) BehaviorEffect(alpha = done) else null
+            },
+            WidgetBehavior(
+                "Shake",
+                BehaviorKind.ON_WIDGET,
+                "Shakes the widget sideways after it is clicked",
+                listOf(AMPLITUDE, DURATION_SHAKE, TARGET),
+                timed = true,
+            ) { c ->
+                val since = c.sincePress
+                val length = c.float(DURATION_SHAKE).coerceAtLeast(0.05f)
+                if (since == null || since >= length) {
+                    null
+                } else {
+                    val fade = 1f - since / length
+                    BehaviorEffect(offset = Offset(c.float(AMPLITUDE) * fade * sin(2f * PI.toFloat() * SHAKE_HERTZ * since), 0f))
+                }
+            },
+            WidgetBehavior(
+                "ProgressTween",
+                BehaviorKind.ON_WIDGET,
+                "Fills a progress bar smoothly up to a value, again and again so that it can be watched",
+                listOf(VALUE_PROGRESS, DURATION_TWEEN, TARGET),
+                timed = true,
+            ) { c ->
+                BehaviorEffect(current = c.float(VALUE_PROGRESS) * tweenShare(c.time, c.float(DURATION_TWEEN)))
+            },
+            WidgetBehavior(
+                "CountUp",
+                BehaviorKind.ON_WIDGET,
+                "Counts a number up to a value in a text widget, again and again so that it can be watched",
+                listOf(VALUE_COUNT, DURATION_COUNT, TARGET),
+                timed = true,
+            ) { c ->
+                BehaviorEffect(text = (c.float(VALUE_COUNT) * tweenShare(c.time, c.float(DURATION_COUNT))).roundToInt().toString())
+            },
         )
+
+    /** True when the layout has a behaviour that plays by itself, so that Live Preview has to run a clock. */
+    fun hasTimed(root: EditorWidgetNode): Boolean {
+        if (root.scriptClassName()?.let { find(it) }?.timed == true) return true
+        return root.children.any { hasTimed(it) }
+    }
 
     /** The behaviour a `scriptclass` value stands for: its own name, or that of a class of a mod such as `MF_CLS_HoverColorHandler`. */
     fun find(scriptClass: String): WidgetBehavior? {
@@ -122,6 +210,8 @@ internal fun previewEffects(
     root: EditorWidgetNode,
     hovered: Set<UUID>,
     pressed: Set<UUID>,
+    time: Float = 0f,
+    pressTimes: Map<UUID, Float> = emptyMap(),
 ): Map<UUID, BehaviorEffect> {
     val out = HashMap<UUID, BehaviorEffect>()
 
@@ -132,7 +222,16 @@ internal fun previewEffects(
         val behavior = node.scriptClassName()?.let { Behaviors.find(it) }
         if (behavior != null && behavior.kind == BehaviorKind.ON_WIDGET) {
             val target = targetOf(root, node, parent, behavior)
-            val context = BehaviorContext(node, target, node.paramValues(), node.id in hovered, node.id in pressed)
+            val context =
+                BehaviorContext(
+                    node,
+                    target,
+                    node.paramValues(),
+                    node.id in hovered,
+                    node.id in pressed,
+                    time,
+                    pressTimes[node.id]?.let { time - it },
+                )
             behavior.effect(context)?.let { out[target.id] = (out[target.id] ?: BehaviorEffect()) + it }
         }
         for (child in node.children) walk(child, node)
@@ -155,6 +254,8 @@ internal fun EditorWidgetNode.withEffectProperties(effects: Map<UUID, BehaviorEf
             effect.visible?.let { props["visible"] = if (it) "1" else "0" }
             effect.image?.let { props["image0"] = if (it.startsWith("set:")) "\"$it\"" else it }
             effect.textColor?.let { props[if (node.node.type == WidgetType.BUTTON) "text color" else "color"] = colorProperty(it) }
+            effect.text?.let { props["text"] = "\"$it\"" }
+            effect.current?.let { props["current"] = it.toString() }
         }
         return node.copy(node = node.node.copy(properties = props), children = children.toMutableList())
     }

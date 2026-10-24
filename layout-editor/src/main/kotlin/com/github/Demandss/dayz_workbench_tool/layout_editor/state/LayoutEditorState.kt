@@ -234,6 +234,10 @@ class LayoutEditorState(
     var previewHoverChain by mutableStateOf<Set<UUID>>(emptySet())
     var previewPressChain by mutableStateOf<Set<UUID>>(emptySet())
 
+    // The clock of the script classes that play over time: seconds since Live Preview started, and when each widget was last pressed
+    var previewClock by mutableStateOf(0f)
+    var previewPressTimes by mutableStateOf<Map<UUID, Float>>(emptyMap())
+
     /** The state a widget is in while Live Preview runs: Disabled, Pushed, Highlight (the pointer is over it), Focus or Normal. */
     fun previewStateOf(node: EditorWidgetNode): String {
         if (!livePreview) return "Normal"

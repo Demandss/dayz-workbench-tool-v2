@@ -120,6 +120,45 @@ class BehaviorsTest {
     }
 
     @Test
+    fun `blink goes between full and the lowest opacity`() {
+        val w = widget("W", "Blink", mapOf("Period" to "2", "MinAlpha" to "0.25"))
+        assertEquals(1f, previewEffects(w, emptySet(), emptySet(), 0f)[w.id]?.alpha)
+        assertEquals(0.25f, previewEffects(w, emptySet(), emptySet(), 1f)[w.id]?.alpha ?: 0f, 0.001f)
+    }
+
+    @Test
+    fun `fade in is finished after its duration`() {
+        val w = widget("W", "FadeIn", mapOf("Duration" to "1"))
+        assertEquals(0.5f, previewEffects(w, emptySet(), emptySet(), 0.5f)[w.id]?.alpha)
+        assertNull(previewEffects(w, emptySet(), emptySet(), 1.5f)[w.id])
+    }
+
+    @Test
+    fun `shake only plays after a press and dies down`() {
+        val w = widget("W", "Shake", mapOf("Amplitude" to "10", "Duration" to "0.4"))
+        assertNull(previewEffects(w, emptySet(), emptySet(), 3f)[w.id])
+        val during = previewEffects(w, emptySet(), emptySet(), 3.05f, mapOf(w.id to 3f))[w.id]
+        assertNotNull(during)
+        assertNull(previewEffects(w, emptySet(), emptySet(), 3.5f, mapOf(w.id to 3f))[w.id])
+    }
+
+    @Test
+    fun `a progress bar and a counter reach their value and start over`() {
+        val bar = widget("Bar", "ProgressTween", mapOf("Value" to "80", "Duration" to "1"))
+        assertEquals(0f, previewEffects(bar, emptySet(), emptySet(), 0f)[bar.id]?.current)
+        assertEquals(80f, previewEffects(bar, emptySet(), emptySet(), 1.5f)[bar.id]?.current)
+        assertEquals(0f, previewEffects(bar, emptySet(), emptySet(), 2f)[bar.id]?.current)
+        val count = widget("Count", "CountUp", mapOf("Value" to "250", "Duration" to "1"))
+        assertEquals("250", previewEffects(count, emptySet(), emptySet(), 1.2f)[count.id]?.text)
+    }
+
+    @Test
+    fun `only a layout with a timed class needs the clock`() {
+        assertEquals(true, Behaviors.hasTimed(widget("R", children = arrayOf(widget("W", "Blink")))))
+        assertEquals(false, Behaviors.hasTimed(widget("R", children = arrayOf(widget("W", "HoverScale")))))
+    }
+
+    @Test
     fun `hex colours`() {
         assertEquals(Color(0xFFE8622A), parseHexColor("#E8622A"))
         assertEquals(Color(0x80E8622A), parseHexColor("#E8622A80"))

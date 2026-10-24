@@ -17,6 +17,7 @@ import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.ImageBitmapConfig
 import androidx.compose.ui.graphics.ImageShader
+import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.ShaderBrush
 import androidx.compose.ui.graphics.TileMode
 import androidx.compose.ui.graphics.colorspace.ColorSpaces
@@ -24,6 +25,7 @@ import androidx.compose.ui.graphics.drawscope.CanvasDrawScope
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipRect
+import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.input.key.*
 import androidx.compose.ui.input.pointer.*
@@ -37,6 +39,7 @@ import androidx.compose.ui.unit.sp
 import com.github.demandss.dayz_workbench_tool.layout.WidgetType
 import com.github.demandss.dayz_workbench_tool.layout_editor.EditorWidgetNode
 import com.github.demandss.dayz_workbench_tool.layout_editor.behavior.BehaviorEffect
+import com.github.demandss.dayz_workbench_tool.layout_editor.behavior.Behaviors
 import com.github.demandss.dayz_workbench_tool.layout_editor.behavior.previewEffects
 import com.github.demandss.dayz_workbench_tool.layout_editor.behavior.withEffectProperties
 import com.github.demandss.dayz_workbench_tool.layout_editor.findNode
@@ -46,6 +49,7 @@ import com.github.demandss.dayz_workbench_tool.layout_editor.state.LayoutEditorS
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.Resolution
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.WidgetSkin
 import com.github.demandss.dayz_workbench_tool.layout_editor.updateNode
+import kotlinx.coroutines.delay
 import java.awt.Cursor
 import java.util.UUID
 import kotlin.math.round
@@ -164,6 +168,7 @@ private fun previewPointer(
                 state.previewPressed = target
                 state.previewFocus = target
                 state.previewPressChain = chain
+                state.previewPressTimes = state.previewPressTimes + chain.associateWith { state.previewClock }
             }
         }
 
@@ -328,6 +333,9 @@ internal fun DrawScope.drawWidgetTree(
     val effect = effectFor(node)
     if (effect != null && effect.moves) {
         val pivot = Offset((tl.x + br.x) / 2f, (tl.y + br.y) / 2f)
+        // A faded widget is drawn into a layer together with its children, so that they fade as one
+        val layerPaint = if (effect.alpha < 1f) Paint().apply { alpha = effect.alpha.coerceAtLeast(0f) } else null
+        if (layerPaint != null) drawIntoCanvas { it.saveLayer(Rect(Offset.Zero, size), layerPaint) }
         withTransform({
             translate(effect.offset.x * zoom, effect.offset.y * zoom)
             scale(effect.scale, effect.scale, pivot)
@@ -353,6 +361,7 @@ internal fun DrawScope.drawWidgetTree(
                 fontNameFor,
             ) { if (it.id == node.id) null else effectFor(it) }
         }
+        if (layerPaint != null) drawIntoCanvas { it.restore() }
         return
     }
     val ss = Size((br.x - tl.x).coerceAtLeast(0f), (br.y - tl.y).coerceAtLeast(0f))
@@ -590,6 +599,27 @@ fun LayoutCanvas(
 
     LaunchedEffect(state.activeFileIndex, resolution) {
         if (state.lastCanvasSize != Size.Zero) state.centerView()
+    }
+    // The clock of the script classes that play over time. It only ticks while the open layout has one, so that others cost nothing
+    LaunchedEffect(state.livePreview) {
+        if (!state.livePreview) return@LaunchedEffect
+        state.previewClock = 0f
+        state.previewPressTimes = emptyMap()
+        val start = System.nanoTime()
+        var seen: Any? = null
+        var timed = false
+        while (true) {
+            val root = state.activeFile?.root
+            if (root !== seen) {
+                seen = root
+                timed = root?.let { Behaviors.hasTimed(it) } ?: false
+            }
+            if (timed) {
+                withFrameNanos { state.previewClock = (System.nanoTime() - start) / 1_000_000_000f }
+            } else {
+                delay(250)
+            }
+        }
     }
     LaunchedEffect(Unit) { focusRequester.requestFocus() }
     LaunchedEffect(state.canvasFocusTick) { if (state.canvasFocusTick > 0) runCatching { focusRequester.requestFocus() } }
@@ -1033,7 +1063,12 @@ fun LayoutCanvas(
 
         fun DrawScope.widgets(pan: Offset) {
             if (doc == null || layout == null) return
-            val effects = if (state.livePreview) previewEffects(doc.root, state.previewHoverChain, state.previewPressChain) else emptyMap()
+            val effects =
+                if (state.livePreview) {
+                    previewEffects(doc.root, state.previewHoverChain, state.previewPressChain, state.previewClock, state.previewPressTimes)
+                } else {
+                    emptyMap()
+                }
             drawWidgetTree(
                 doc.root.withEffectProperties(effects),
                 layout,

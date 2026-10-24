@@ -27,11 +27,18 @@ internal data class BehaviorEffect(
     val visible: Boolean? = null,
     val image: String? = null,
     val textColor: Color? = null,
+    // How opaque the widget and everything in it is drawn, 1 is as it is
+    val alpha: Float = 1f,
+    // The text of a text widget and the `current` value of a progress bar
+    val text: String? = null,
+    val current: Float? = null,
 ) {
-    val moves: Boolean get() = scale != 1f || offset != Offset.Zero
+    /** True when the widget has to be drawn in a transformed or faded layer. */
+    val moves: Boolean get() = scale != 1f || offset != Offset.Zero || alpha < 1f
 
     /** True when the widget has to be drawn from a changed copy of itself. */
-    val changesProperties: Boolean get() = color != null || visible != null || image != null || textColor != null
+    val changesProperties: Boolean
+        get() = color != null || visible != null || image != null || textColor != null || text != null || current != null
 
     operator fun plus(other: BehaviorEffect) =
         BehaviorEffect(
@@ -41,6 +48,9 @@ internal data class BehaviorEffect(
             other.visible ?: visible,
             other.image ?: image,
             other.textColor ?: textColor,
+            alpha * other.alpha,
+            other.text ?: text,
+            other.current ?: current,
         )
 }
 
@@ -51,6 +61,9 @@ internal class BehaviorContext(
     private val values: Map<String, String>,
     val hovered: Boolean,
     val pressed: Boolean,
+    // Seconds since Live Preview started, and since the widget was last pressed (null if it has not been)
+    val time: Float = 0f,
+    val sincePress: Float? = null,
 ) {
     fun text(param: BehaviorParam): String =
         (listOf(param.name) + param.aliases)
@@ -68,6 +81,8 @@ internal class WidgetBehavior(
     val kind: BehaviorKind,
     val summary: String,
     val params: List<BehaviorParam>,
+    // Plays by itself over time (or after a press), so that Live Preview has to keep a clock running
+    val timed: Boolean = false,
     val effect: (BehaviorContext) -> BehaviorEffect?,
 )
 
