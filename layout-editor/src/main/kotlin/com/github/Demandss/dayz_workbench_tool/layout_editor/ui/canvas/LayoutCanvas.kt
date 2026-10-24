@@ -498,7 +498,11 @@ internal fun DrawScope.drawWidgetTree(
     }
 
     // An edit box shows the text that is in it, after a small margin
-    if ((node.node.type == WidgetType.EDIT_BOX || node.node.type == WidgetType.PASSWORD_EDIT_BOX) && node.shownText().isNotEmpty()) {
+    // A password box with `hide text` shows nothing at all in the Workbench preview (measured)
+    val textHidden = node.node.type == WidgetType.PASSWORD_EDIT_BOX && node.prop("hide text")?.trim() == "1"
+    if ((node.node.type == WidgetType.EDIT_BOX || node.node.type == WidgetType.PASSWORD_EDIT_BOX) && node.shownText().isNotEmpty() &&
+        !textHidden
+    ) {
         val margin = 6f * zoom
         drawWidgetText(
             node,
@@ -512,6 +516,36 @@ internal fun DrawScope.drawWidgetTree(
             fontName = fontNameFor(node),
             verticalCenter = true,
         )
+    }
+
+    // A combo box shows its first item between the arrows, whatever `current item` says (measured in Workbench 1.30)
+    if (node.node.type == WidgetType.XCOMBO_BOX) {
+        val first =
+            node
+                .prop("items")
+                ?.trim()
+                ?.trim('"')
+                ?.split(';')
+                ?.firstOrNull()
+                ?.trim()
+                .orEmpty()
+        if (first.isNotEmpty()) {
+            val shown =
+                node.copy(
+                    node = node.node.copy(properties = LinkedHashMap(node.node.properties).also { it["text"] = "\"$first\"" }),
+                )
+            drawWidgetText(
+                shown,
+                tl,
+                ss,
+                zoom,
+                textMeasurer,
+                textColorFor(node).let { it.copy(alpha = it.alpha * inherited) },
+                centered = true,
+                fontAt = { px -> fontFor(node, px) },
+                fontName = fontNameFor(node),
+            )
+        }
     }
 
     // The label of a check box starts after its box (measured: the box is 22 px wide, the text begins 6 px after it)

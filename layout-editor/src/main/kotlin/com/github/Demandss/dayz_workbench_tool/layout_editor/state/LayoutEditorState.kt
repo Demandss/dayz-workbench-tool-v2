@@ -1498,6 +1498,14 @@ class LayoutEditorState(
                 ?: Color.White
         // A button names the colour of its letters itself with `text color` (a dark label on a white button)
         if (node.node.type == WidgetType.BUTTON) {
+            // A disabled button shows `disabled text color` when it has one (measured in Workbench 1.30)
+            if (node.node.properties["disabled"]?.trim() == "1") {
+                node.node.properties["disabled text color"]?.let { return parseWidgetColor(it) }
+            }
+            node.node.properties["text color"]?.let { return parseWidgetColor(it) }
+        }
+        // An edit box takes the colour of its letters from `text color` as well (measured in Workbench 1.30)
+        if (node.node.type == WidgetType.EDIT_BOX || node.node.type == WidgetType.PASSWORD_EDIT_BOX) {
             node.node.properties["text color"]?.let { return parseWidgetColor(it) }
         }
         // The `color` of a button tints its skin; the letters keep the colour of the style (measured: a red button, white text)
