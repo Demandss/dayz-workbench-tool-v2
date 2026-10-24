@@ -1,0 +1,1998 @@
+FrameWidgetClass Root {
+ size 1920 1080
+ hexactsize 1
+ vexactsize 1
+ {
+  ImageWidgetClass PanelCustom {
+   position 20 80
+   size 940 960
+   hexactpos 1
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   color 0.12 0.13 0.16 1
+  }
+  ImageWidgetClass PanelVanilla {
+   position 980 80
+   size 920 960
+   hexactpos 1
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   color 0.12 0.13 0.16 1
+  }
+  TextWidgetClass TitleCustom {
+   position 40 35
+   size 900 36
+   hexactpos 1
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   color 0.91 0.38 0.16 1
+   text "Кастомные классы редактора (17)"
+   "exact text" 1
+   "exact text size" 26
+   "text valign" center
+  }
+  TextWidgetClass TitleVanilla {
+   position 1000 35
+   size 900 36
+   hexactpos 1
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   color 0.29 0.62 1 1
+   text "Ванильные классы игры (16)"
+   "exact text" 1
+   "exact text size" 26
+   "text valign" center
+  }
+  TextWidgetClass T_c_HoverScale {
+   position 40 110
+   size 280 20
+   hexactpos 1
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   color 1 1 1 1
+   text "HoverScale"
+   "exact text" 1
+   "exact text size" 15
+   "text valign" center
+  }
+  TextWidgetClass H_c_HoverScale {
+   position 40 130
+   size 285 18
+   hexactpos 1
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   color 0.7 0.7 0.7 1
+   text "курсор над виджетом: растёт"
+   "exact text" 1
+   "exact text size" 11
+   "text valign" center
+  }
+   ImageWidgetClass Card_c_HoverScale {
+    position 40 154
+    size 280 100
+    hexactpos 1
+    vexactpos 1
+    hexactsize 1
+    vexactsize 1
+    color 0.22 0.24 0.30 1
+    scriptclass "HoverScale"
+    {
+     ScriptParamsClass {
+      Scale "1.1"
+     }
+    }
+   }
+  TextWidgetClass T_c_PressScale {
+   position 340 110
+   size 280 20
+   hexactpos 1
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   color 1 1 1 1
+   text "PressScale"
+   "exact text" 1
+   "exact text size" 15
+   "text valign" center
+  }
+  TextWidgetClass H_c_PressScale {
+   position 340 130
+   size 285 18
+   hexactpos 1
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   color 0.7 0.7 0.7 1
+   text "зажми кнопку мыши: уменьшается"
+   "exact text" 1
+   "exact text size" 11
+   "text valign" center
+  }
+   ImageWidgetClass Card_c_PressScale {
+    position 340 154
+    size 280 100
+    hexactpos 1
+    vexactpos 1
+    hexactsize 1
+    vexactsize 1
+    color 0.22 0.24 0.30 1
+    scriptclass "PressScale"
+    {
+     ScriptParamsClass {
+      Scale "0.9"
+     }
+    }
+   }
+  TextWidgetClass T_c_PressOffset {
+   position 640 110
+   size 280 20
+   hexactpos 1
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   color 1 1 1 1
+   text "PressOffset"
+   "exact text" 1
+   "exact text size" 15
+   "text valign" center
+  }
+  TextWidgetClass H_c_PressOffset {
+   position 640 130
+   size 285 18
+   hexactpos 1
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   color 0.7 0.7 0.7 1
+   text "зажми кнопку мыши: сдвигается вниз"
+   "exact text" 1
+   "exact text size" 11
+   "text valign" center
+  }
+   ImageWidgetClass Card_c_PressOffset {
+    position 640 154
+    size 280 100
+    hexactpos 1
+    vexactpos 1
+    hexactsize 1
+    vexactsize 1
+    color 0.22 0.24 0.30 1
+    scriptclass "PressOffset"
+    {
+     ScriptParamsClass {
+      OffsetX "0"
+      OffsetY "6"
+     }
+    }
+   }
+  TextWidgetClass T_c_HoverColor {
+   position 40 260
+   size 280 20
+   hexactpos 1
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   color 1 1 1 1
+   text "HoverColor"
+   "exact text" 1
+   "exact text size" 15
+   "text valign" center
+  }
+  TextWidgetClass H_c_HoverColor {
+   position 40 280
+   size 285 18
+   hexactpos 1
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   color 0.7 0.7 0.7 1
+   text "курсор над виджетом: другой цвет"
+   "exact text" 1
+   "exact text size" 11
+   "text valign" center
+  }
+   ImageWidgetClass Card_c_HoverColor {
+    position 40 304
+    size 280 100
+    hexactpos 1
+    vexactpos 1
+    hexactsize 1
+    vexactsize 1
+    color 0.22 0.24 0.30 1
+    scriptclass "HoverColor"
+    {
+     ScriptParamsClass {
+      HoverColor "#E8622A"
+     }
+    }
+   }
+  TextWidgetClass T_c_HoverShow {
+   position 340 260
+   size 280 20
+   hexactpos 1
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   color 1 1 1 1
+   text "HoverShow"
+   "exact text" 1
+   "exact text size" 15
+   "text valign" center
+  }
+  TextWidgetClass H_c_HoverShow {
+   position 340 280
+   size 285 18
+   hexactpos 1
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   color 0.7 0.7 0.7 1
+   text "курсор над виджетом: появляется полоса"
+   "exact text" 1
+   "exact text size" 11
+   "text valign" center
+  }
+   ImageWidgetClass Trigger_c_HoverShow {
+    position 340 304
+    size 280 100
+    hexactpos 1
+    vexactpos 1
+    hexactsize 1
+    vexactsize 1
+    color 0.22 0.24 0.30 1
+    scriptclass "HoverShow"
+    {
+     ScriptParamsClass {
+      Target "Tip_c_HoverShow"
+     }
+    }
+   }
+   ImageWidgetClass Tip_c_HoverShow {
+    position 360 366
+    size 240 24
+    hexactpos 1
+    vexactpos 1
+    hexactsize 1
+    vexactsize 1
+    color 0.91 0.38 0.16 1
+   }
+  TextWidgetClass T_c_HoverImage {
+   position 640 260
+   size 280 20
+   hexactpos 1
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   color 1 1 1 1
+   text "HoverImage"
+   "exact text" 1
+   "exact text size" 15
+   "text valign" center
+  }
+  TextWidgetClass H_c_HoverImage {
+   position 640 280
+   size 285 18
+   hexactpos 1
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   color 0.7 0.7 0.7 1
+   text "курсор над значком: другая картинка"
+   "exact text" 1
+   "exact text size" 11
+   "text valign" center
+  }
+   ImageWidgetClass Back_c_HoverImage {
+    position 640 304
+    size 280 100
+    hexactpos 1
+    vexactpos 1
+    hexactsize 1
+    vexactsize 1
+    color 0.22 0.24 0.30 1
+   }
+   ImageWidgetClass Icon_c_HoverImage {
+    position 740 314
+    size 80 80
+    hexactpos 1
+    vexactpos 1
+    hexactsize 1
+    vexactsize 1
+    color 1 1 1 1
+    image0 "set:dayz_gui image:icon_plus"
+    "src alpha" 1
+    scriptclass "HoverImage"
+    {
+     ScriptParamsClass {
+      Image "set:dayz_gui image:icon_minus"
+     }
+    }
+   }
+  TextWidgetClass T_c_HoverText {
+   position 40 410
+   size 280 20
+   hexactpos 1
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   color 1 1 1 1
+   text "HoverText"
+   "exact text" 1
+   "exact text size" 15
+   "text valign" center
+  }
+  TextWidgetClass H_c_HoverText {
+   position 40 430
+   size 285 18
+   hexactpos 1
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   color 0.7 0.7 0.7 1
+   text "курсор над текстом: другой цвет"
+   "exact text" 1
+   "exact text size" 11
+   "text valign" center
+  }
+   ImageWidgetClass Back_c_HoverText {
+    position 40 454
+    size 280 100
+    hexactpos 1
+    vexactpos 1
+    hexactsize 1
+    vexactsize 1
+    color 0.22 0.24 0.30 1
+   }
+   TextWidgetClass Label_c_HoverText {
+    position 60 482
+    size 240 44
+    hexactpos 1
+    vexactpos 1
+    hexactsize 1
+    vexactsize 1
+    color 1 1 1 1
+    text "Наведи на меня"
+    "exact text" 1
+    "exact text size" 24
+    "text valign" center
+    scriptclass "HoverText"
+    {
+     ScriptParamsClass {
+      HoverColor "#E8622A"
+     }
+    }
+   }
+  TextWidgetClass T_c_Blink {
+   position 340 410
+   size 280 20
+   hexactpos 1
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   color 1 1 1 1
+   text "Blink"
+   "exact text" 1
+   "exact text size" 15
+   "text valign" center
+  }
+  TextWidgetClass H_c_Blink {
+   position 340 430
+   size 285 18
+   hexactpos 1
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   color 0.7 0.7 0.7 1
+   text "мигает сам"
+   "exact text" 1
+   "exact text size" 11
+   "text valign" center
+  }
+   ImageWidgetClass Card_c_Blink {
+    position 340 454
+    size 280 100
+    hexactpos 1
+    vexactpos 1
+    hexactsize 1
+    vexactsize 1
+    color 0.22 0.24 0.30 1
+    scriptclass "Blink"
+    {
+     ScriptParamsClass {
+      Period "1.2"
+      MinAlpha "0.2"
+     }
+    }
+   }
+  TextWidgetClass T_c_FadeIn {
+   position 640 410
+   size 280 20
+   hexactpos 1
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   color 1 1 1 1
+   text "FadeIn"
+   "exact text" 1
+   "exact text size" 15
+   "text valign" center
+  }
+  TextWidgetClass H_c_FadeIn {
+   position 640 430
+   size 285 18
+   hexactpos 1
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   color 0.7 0.7 0.7 1
+   text "проявляется при включении Live Preview"
+   "exact text" 1
+   "exact text size" 11
+   "text valign" center
+  }
+   ImageWidgetClass Card_c_FadeIn {
+    position 640 454
+    size 280 100
+    hexactpos 1
+    vexactpos 1
+    hexactsize 1
+    vexactsize 1
+    color 0.22 0.24 0.30 1
+    scriptclass "FadeIn"
+    {
+     ScriptParamsClass {
+      Duration "1.2"
+      Delay "0.3"
+     }
+    }
+   }
+  TextWidgetClass T_c_Shake {
+   position 40 560
+   size 280 20
+   hexactpos 1
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   color 1 1 1 1
+   text "Shake"
+   "exact text" 1
+   "exact text size" 15
+   "text valign" center
+  }
+  TextWidgetClass H_c_Shake {
+   position 40 580
+   size 285 18
+   hexactpos 1
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   color 0.7 0.7 0.7 1
+   text "клик: трясётся"
+   "exact text" 1
+   "exact text size" 11
+   "text valign" center
+  }
+   ImageWidgetClass Card_c_Shake {
+    position 40 604
+    size 280 100
+    hexactpos 1
+    vexactpos 1
+    hexactsize 1
+    vexactsize 1
+    color 0.22 0.24 0.30 1
+    scriptclass "Shake"
+    {
+     ScriptParamsClass {
+      Amplitude "12"
+      Duration "0.5"
+     }
+    }
+   }
+  TextWidgetClass T_c_ProgressTween {
+   position 340 560
+   size 280 20
+   hexactpos 1
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   color 1 1 1 1
+   text "ProgressTween"
+   "exact text" 1
+   "exact text size" 15
+   "text valign" center
+  }
+  TextWidgetClass H_c_ProgressTween {
+   position 340 580
+   size 285 18
+   hexactpos 1
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   color 0.7 0.7 0.7 1
+   text "полоса заполняется до 80 и заново"
+   "exact text" 1
+   "exact text size" 11
+   "text valign" center
+  }
+   ImageWidgetClass Back_c_ProgressTween {
+    position 340 634
+    size 280 36
+    hexactpos 1
+    vexactpos 1
+    hexactsize 1
+    vexactsize 1
+    color 0.22 0.24 0.30 1
+   }
+   ProgressBarWidgetClass Bar_c_ProgressTween {
+    position 340 634
+    size 280 36
+    hexactpos 1
+    vexactpos 1
+    hexactsize 1
+    vexactsize 1
+    color 0.91 0.38 0.16 1
+    current 0
+    scriptclass "ProgressTween"
+    {
+     ScriptParamsClass {
+      Value "80"
+      Duration "1.2"
+     }
+    }
+   }
+  TextWidgetClass T_c_CountUp {
+   position 640 560
+   size 280 20
+   hexactpos 1
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   color 1 1 1 1
+   text "CountUp"
+   "exact text" 1
+   "exact text size" 15
+   "text valign" center
+  }
+  TextWidgetClass H_c_CountUp {
+   position 640 580
+   size 285 18
+   hexactpos 1
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   color 0.7 0.7 0.7 1
+   text "число растёт до 250 и заново"
+   "exact text" 1
+   "exact text size" 11
+   "text valign" center
+  }
+   ImageWidgetClass Back_c_CountUp {
+    position 640 604
+    size 280 100
+    hexactpos 1
+    vexactpos 1
+    hexactsize 1
+    vexactsize 1
+    color 0.22 0.24 0.30 1
+   }
+   TextWidgetClass Num_c_CountUp {
+    position 660 624
+    size 240 60
+    hexactpos 1
+    vexactpos 1
+    hexactsize 1
+    vexactsize 1
+    color 1 1 1 1
+    text "0"
+    "exact text" 1
+    "exact text size" 44
+    "text valign" center
+    "text halign" center
+    scriptclass "CountUp"
+    {
+     ScriptParamsClass {
+      Value "250"
+      Duration "1.5"
+     }
+    }
+   }
+  TextWidgetClass T_c_SelectGroup {
+   position 40 710
+   size 280 20
+   hexactpos 1
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   color 1 1 1 1
+   text "SelectGroup"
+   "exact text" 1
+   "exact text size" 15
+   "text valign" center
+  }
+  TextWidgetClass H_c_SelectGroup {
+   position 40 730
+   size 285 18
+   hexactpos 1
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   color 0.7 0.7 0.7 1
+   text "пустой фрейм строит ряд выбора, клик"
+   "exact text" 1
+   "exact text size" 11
+   "text valign" center
+  }
+   FrameWidgetClass Group_c_SelectGroup {
+    position 40 774
+    size 280 50
+    hexactpos 1
+    vexactpos 1
+    hexactsize 1
+    vexactsize 1
+    scriptclass "SelectGroup"
+    {
+     ScriptParamsClass {
+      Items "Easy|Normal|Hard"
+      Selected "1"
+     }
+    }
+   }
+  TextWidgetClass T_c_Collapse {
+   position 340 710
+   size 280 20
+   hexactpos 1
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   color 1 1 1 1
+   text "Collapse"
+   "exact text" 1
+   "exact text size" 15
+   "text valign" center
+  }
+  TextWidgetClass H_c_Collapse {
+   position 340 730
+   size 285 18
+   hexactpos 1
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   color 0.7 0.7 0.7 1
+   text "клик по заголовку открывает и закрывает"
+   "exact text" 1
+   "exact text size" 11
+   "text valign" center
+  }
+   FrameWidgetClass Head_c_Collapse {
+    position 340 754
+    size 280 34
+    hexactpos 1
+    vexactpos 1
+    hexactsize 1
+    vexactsize 1
+    scriptclass "Collapse"
+    {
+     ScriptParamsClass {
+      Title "Details"
+      Body "Body_c_Collapse"
+     }
+    }
+   }
+   ImageWidgetClass Body_c_Collapse {
+    position 340 792
+    size 280 62
+    hexactpos 1
+    vexactpos 1
+    hexactsize 1
+    vexactsize 1
+    color 0.22 0.24 0.30 1
+   }
+  TextWidgetClass T_c_NumberStepper {
+   position 640 710
+   size 280 20
+   hexactpos 1
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   color 1 1 1 1
+   text "NumberStepper"
+   "exact text" 1
+   "exact text size" 15
+   "text valign" center
+  }
+  TextWidgetClass H_c_NumberStepper {
+   position 640 730
+   size 285 18
+   hexactpos 1
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   color 0.7 0.7 0.7 1
+   text "пустой фрейм строит кнопки, клик"
+   "exact text" 1
+   "exact text size" 11
+   "text valign" center
+  }
+   FrameWidgetClass Stepper_c_NumberStepper {
+    position 640 779
+    size 220 50
+    hexactpos 1
+    vexactpos 1
+    hexactsize 1
+    vexactsize 1
+    scriptclass "NumberStepper"
+    {
+     ScriptParamsClass {
+      Value "3"
+      Min "0"
+      Max "5"
+     }
+    }
+   }
+  TextWidgetClass T_c_EditFilter {
+   position 40 860
+   size 280 20
+   hexactpos 1
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   color 1 1 1 1
+   text "EditFilter"
+   "exact text" 1
+   "exact text size" 15
+   "text valign" center
+  }
+  TextWidgetClass H_c_EditFilter {
+   position 40 880
+   size 285 18
+   hexactpos 1
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   color 0.7 0.7 0.7 1
+   text "клик в поле и печатай: только цифры, до 6"
+   "exact text" 1
+   "exact text size" 11
+   "text valign" center
+  }
+   ImageWidgetClass Back_c_EditFilter {
+    position 40 929
+    size 280 50
+    hexactpos 1
+    vexactpos 1
+    hexactsize 1
+    vexactsize 1
+    color 0.22 0.24 0.30 1
+   }
+   EditBoxWidgetClass Edit_c_EditFilter {
+    position 40 929
+    size 280 50
+    hexactpos 1
+    vexactpos 1
+    hexactsize 1
+    vexactsize 1
+    text "12"
+    scriptclass "EditFilter"
+    {
+     ScriptParamsClass {
+      Mode "digits"
+      MaxLength "6"
+     }
+    }
+   }
+  TextWidgetClass T_c_DragMove {
+   position 340 860
+   size 280 20
+   hexactpos 1
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   color 1 1 1 1
+   text "DragMove"
+   "exact text" 1
+   "exact text size" 15
+   "text valign" center
+  }
+  TextWidgetClass H_c_DragMove {
+   position 340 880
+   size 285 18
+   hexactpos 1
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   color 0.7 0.7 0.7 1
+   text "тяни за оранжевую полосу"
+   "exact text" 1
+   "exact text size" 11
+   "text valign" center
+  }
+   ImageWidgetClass Window_c_DragMove {
+    position 340 904
+    size 280 100
+    hexactpos 1
+    vexactpos 1
+    hexactsize 1
+    vexactsize 1
+    color 0.22 0.24 0.30 1
+    {
+     ImageWidgetClass Handle_c_DragMove {
+      position 0 0
+      size 280 30
+      hexactpos 1
+      vexactpos 1
+      hexactsize 1
+      vexactsize 1
+      color 0.91 0.38 0.16 1
+      scriptclass "DragMove"
+      {
+       ScriptParamsClass {
+       }
+      }
+     }
+    }
+   }
+  TextWidgetClass T_v_SizeToChild {
+   position 1000 110
+   size 280 20
+   hexactpos 1
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   color 1 1 1 1
+   text "SizeToChild"
+   "exact text" 1
+   "exact text size" 15
+   "text valign" center
+  }
+  TextWidgetClass H_v_SizeToChild {
+   position 1000 130
+   size 285 18
+   hexactpos 1
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   color 0.7 0.7 0.7 1
+   text "коробка подгоняется под вложенный блок"
+   "exact text" 1
+   "exact text size" 11
+   "text valign" center
+  }
+   PanelWidgetClass Box_v_SizeToChild {
+    position 1000 154
+    size 20 20
+    hexactpos 1
+    vexactpos 1
+    hexactsize 1
+    vexactsize 1
+    color 0.22 0.24 0.30 1
+    scriptclass "SizeToChild"
+    {
+     ImageWidgetClass Content_v_SizeToChild {
+      position 0 0
+      size 120 50
+      hexactpos 1
+      vexactpos 1
+      hexactsize 1
+      vexactsize 1
+      color 0.91 0.38 0.16 1
+     }
+    }
+    {
+     ScriptParamsClass {
+      m_ChildName "Content_v_SizeToChild"
+      m_HorizontalOffset "24"
+      m_VerticalOffset "16"
+      m_ResizeHorizontal "1"
+      m_ResizeVertical "1"
+     }
+    }
+   }
+  TextWidgetClass T_v_SizeToParent {
+   position 1300 110
+   size 280 20
+   hexactpos 1
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   color 1 1 1 1
+   text "SizeToParent"
+   "exact text" 1
+   "exact text size" 15
+   "text valign" center
+  }
+  TextWidgetClass H_v_SizeToParent {
+   position 1300 130
+   size 285 18
+   hexactpos 1
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   color 0.7 0.7 0.7 1
+   text "размер становится долей родителя"
+   "exact text" 1
+   "exact text size" 11
+   "text valign" center
+  }
+   ImageWidgetClass Parent_v_SizeToParent {
+    position 1300 154
+    size 280 100
+    hexactpos 1
+    vexactpos 1
+    hexactsize 1
+    vexactsize 1
+    color 0.22 0.24 0.30 1
+    {
+     ImageWidgetClass Fill_v_SizeToParent {
+      position 10 10
+      size 1 1
+      hexactpos 1
+      vexactpos 1
+      hexactsize 1
+      vexactsize 1
+      color 0.91 0.38 0.16 1
+      scriptclass "SizeToParent"
+      {
+       ScriptParamsClass {
+        m_ResizeHorizontal "1"
+        m_ResizeVertical "1"
+       }
+      }
+     }
+    }
+   }
+  TextWidgetClass T_v_AutoHeightSpacer {
+   position 1600 110
+   size 280 20
+   hexactpos 1
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   color 1 1 1 1
+   text "AutoHeightSpacer"
+   "exact text" 1
+   "exact text size" 15
+   "text valign" center
+  }
+  TextWidgetClass H_v_AutoHeightSpacer {
+   position 1600 130
+   size 285 18
+   hexactpos 1
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   color 0.7 0.7 0.7 1
+   text "дети рядами, высота по стопке"
+   "exact text" 1
+   "exact text size" 11
+   "text valign" center
+  }
+   ImageWidgetClass List_v_AutoHeightSpacer {
+    position 1600 154
+    size 280 10
+    hexactpos 1
+    vexactpos 1
+    hexactsize 1
+    vexactsize 1
+    color 0.22 0.24 0.30 1
+    scriptclass "AutoHeightSpacer"
+    {
+     ImageWidgetClass Item0_v_AutoHeightSpacer {
+      position 0 0
+      size 80 24
+      hexactpos 1
+      vexactpos 1
+      hexactsize 1
+      vexactsize 1
+      color 0.91 0.38 0.16 1
+     }
+     ImageWidgetClass Item1_v_AutoHeightSpacer {
+      position 0 0
+      size 80 24
+      hexactpos 1
+      vexactpos 1
+      hexactsize 1
+      vexactsize 1
+      color 0.29 0.62 1 1
+     }
+     ImageWidgetClass Item2_v_AutoHeightSpacer {
+      position 0 0
+      size 80 24
+      hexactpos 1
+      vexactpos 1
+      hexactsize 1
+      vexactsize 1
+      color 0.35 0.72 0.36 1
+     }
+     ImageWidgetClass Item3_v_AutoHeightSpacer {
+      position 0 0
+      size 80 24
+      hexactpos 1
+      vexactpos 1
+      hexactsize 1
+      vexactsize 1
+      color 1 1 1 1
+     }
+    }
+    {
+     ScriptParamsClass {
+      AlignChilds "1"
+      Gap "6"
+      MinHeight "30"
+     }
+    }
+   }
+  TextWidgetClass T_v_NoticeSpacer {
+   position 1000 260
+   size 280 20
+   hexactpos 1
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   color 1 1 1 1
+   text "NoticeSpacer"
+   "exact text" 1
+   "exact text size" 15
+   "text valign" center
+  }
+  TextWidgetClass H_v_NoticeSpacer {
+   position 1000 280
+   size 285 18
+   hexactpos 1
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   color 0.7 0.7 0.7 1
+   text "то же, что AutoHeightSpacer"
+   "exact text" 1
+   "exact text size" 11
+   "text valign" center
+  }
+   ImageWidgetClass List_v_NoticeSpacer {
+    position 1000 304
+    size 280 10
+    hexactpos 1
+    vexactpos 1
+    hexactsize 1
+    vexactsize 1
+    color 0.22 0.24 0.30 1
+    scriptclass "NoticeSpacer"
+    {
+     ImageWidgetClass Item0_v_NoticeSpacer {
+      position 0 0
+      size 80 24
+      hexactpos 1
+      vexactpos 1
+      hexactsize 1
+      vexactsize 1
+      color 0.91 0.38 0.16 1
+     }
+     ImageWidgetClass Item1_v_NoticeSpacer {
+      position 0 0
+      size 80 24
+      hexactpos 1
+      vexactpos 1
+      hexactsize 1
+      vexactsize 1
+      color 0.29 0.62 1 1
+     }
+     ImageWidgetClass Item2_v_NoticeSpacer {
+      position 0 0
+      size 80 24
+      hexactpos 1
+      vexactpos 1
+      hexactsize 1
+      vexactsize 1
+      color 0.35 0.72 0.36 1
+     }
+     ImageWidgetClass Item3_v_NoticeSpacer {
+      position 0 0
+      size 80 24
+      hexactpos 1
+      vexactpos 1
+      hexactsize 1
+      vexactsize 1
+      color 1 1 1 1
+     }
+    }
+    {
+     ScriptParamsClass {
+      AlignChilds "1"
+      Gap "6"
+      MinHeight "30"
+     }
+    }
+   }
+  TextWidgetClass T_v_HorizontalSpacer {
+   position 1300 260
+   size 280 20
+   hexactpos 1
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   color 1 1 1 1
+   text "HorizontalSpacer"
+   "exact text" 1
+   "exact text size" 15
+   "text valign" center
+  }
+  TextWidgetClass H_v_HorizontalSpacer {
+   position 1300 280
+   size 285 18
+   hexactpos 1
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   color 0.7 0.7 0.7 1
+   text "ширина поровну между детьми"
+   "exact text" 1
+   "exact text size" 11
+   "text valign" center
+  }
+   ImageWidgetClass Row_v_HorizontalSpacer {
+    position 1300 304
+    size 280 70
+    hexactpos 1
+    vexactpos 1
+    hexactsize 1
+    vexactsize 1
+    color 0.22 0.24 0.30 1
+    scriptclass "HorizontalSpacer"
+    {
+     ImageWidgetClass Cell0_v_HorizontalSpacer {
+      position 0 0
+      size 5 5
+      hexactpos 1
+      vexactpos 1
+      hexactsize 1
+      vexactsize 1
+      color 0.91 0.38 0.16 1
+     }
+     ImageWidgetClass Cell1_v_HorizontalSpacer {
+      position 0 0
+      size 5 5
+      hexactpos 1
+      vexactpos 1
+      hexactsize 1
+      vexactsize 1
+      color 0.29 0.62 1 1
+     }
+     ImageWidgetClass Cell2_v_HorizontalSpacer {
+      position 0 0
+      size 5 5
+      hexactpos 1
+      vexactpos 1
+      hexactsize 1
+      vexactsize 1
+      color 0.35 0.72 0.36 1
+     }
+    }
+    {
+     ScriptParamsClass {
+      Border "8"
+      Gap "8"
+     }
+    }
+   }
+  TextWidgetClass T_v_VerticalSpacer {
+   position 1600 260
+   size 280 20
+   hexactpos 1
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   color 1 1 1 1
+   text "VerticalSpacer"
+   "exact text" 1
+   "exact text size" 15
+   "text valign" center
+  }
+  TextWidgetClass H_v_VerticalSpacer {
+   position 1600 280
+   size 285 18
+   hexactpos 1
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   color 0.7 0.7 0.7 1
+   text "высота поровну между детьми"
+   "exact text" 1
+   "exact text size" 11
+   "text valign" center
+  }
+   ImageWidgetClass Column_v_VerticalSpacer {
+    position 1600 304
+    size 140 100
+    hexactpos 1
+    vexactpos 1
+    hexactsize 1
+    vexactsize 1
+    color 0.22 0.24 0.30 1
+    scriptclass "VerticalSpacer"
+    {
+     ImageWidgetClass Cell0_v_VerticalSpacer {
+      position 0 0
+      size 5 5
+      hexactpos 1
+      vexactpos 1
+      hexactsize 1
+      vexactsize 1
+      color 0.91 0.38 0.16 1
+     }
+     ImageWidgetClass Cell1_v_VerticalSpacer {
+      position 0 0
+      size 5 5
+      hexactpos 1
+      vexactpos 1
+      hexactsize 1
+      vexactsize 1
+      color 0.29 0.62 1 1
+     }
+     ImageWidgetClass Cell2_v_VerticalSpacer {
+      position 0 0
+      size 5 5
+      hexactpos 1
+      vexactpos 1
+      hexactsize 1
+      vexactsize 1
+      color 0.35 0.72 0.36 1
+     }
+    }
+    {
+     ScriptParamsClass {
+      border "6"
+      gap "6"
+     }
+    }
+   }
+  TextWidgetClass T_v_HorizontalSpacerWithFixedAspect {
+   position 1000 410
+   size 280 20
+   hexactpos 1
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   color 1 1 1 1
+   text "HorizontalSpacerWithFixedAspect"
+   "exact text" 1
+   "exact text size" 15
+   "text valign" center
+  }
+  TextWidgetClass H_v_HorizontalSpacerWithFixedAspect {
+   position 1000 430
+   size 285 18
+   hexactpos 1
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   color 0.7 0.7 0.7 1
+   text "второй правее первого"
+   "exact text" 1
+   "exact text size" 11
+   "text valign" center
+  }
+   ImageWidgetClass Row_v_HorizontalSpacerWithFixedAspect {
+    position 1000 454
+    size 280 70
+    hexactpos 1
+    vexactpos 1
+    hexactsize 1
+    vexactsize 1
+    color 0.22 0.24 0.30 1
+    scriptclass "HorizontalSpacerWithFixedAspect"
+    {
+     ImageWidgetClass Cell0_v_HorizontalSpacerWithFixedAspect {
+      position 0 0
+      size 70 70
+      hexactpos 1
+      vexactpos 1
+      hexactsize 1
+      vexactsize 1
+      color 0.91 0.38 0.16 1
+     }
+     ImageWidgetClass Cell1_v_HorizontalSpacerWithFixedAspect {
+      position 0 0
+      size 70 70
+      hexactpos 1
+      vexactpos 1
+      hexactsize 1
+      vexactsize 1
+      color 0.29 0.62 1 1
+     }
+    }
+    {
+     ScriptParamsClass {
+      coef "0.5"
+     }
+    }
+   }
+  TextWidgetClass T_v_RightGap {
+   position 1300 410
+   size 280 20
+   hexactpos 1
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   color 1 1 1 1
+   text "RightGap"
+   "exact text" 1
+   "exact text size" 15
+   "text valign" center
+  }
+  TextWidgetClass H_v_RightGap {
+   position 1300 430
+   size 285 18
+   hexactpos 1
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   color 0.7 0.7 0.7 1
+   text "ширина родителя без gap 60"
+   "exact text" 1
+   "exact text size" 11
+   "text valign" center
+  }
+   ImageWidgetClass Parent_v_RightGap {
+    position 1300 454
+    size 280 100
+    hexactpos 1
+    vexactpos 1
+    hexactsize 1
+    vexactsize 1
+    color 0.22 0.24 0.30 1
+    {
+     ImageWidgetClass Strip_v_RightGap {
+      position 0 0
+      size 10 10
+      hexactpos 1
+      vexactpos 1
+      hexactsize 1
+      vexactsize 1
+      color 0.91 0.38 0.16 1
+      scriptclass "RightGap"
+      {
+       ScriptParamsClass {
+        gap "60"
+       }
+      }
+     }
+    }
+   }
+  TextWidgetClass T_v_Tabber {
+   position 1600 410
+   size 280 20
+   hexactpos 1
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   color 1 1 1 1
+   text "Tabber"
+   "exact text" 1
+   "exact text size" 15
+   "text valign" center
+  }
+  TextWidgetClass H_v_Tabber {
+   position 1600 430
+   size 285 18
+   hexactpos 1
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   color 0.7 0.7 0.7 1
+   text "клик по A, B, C показывает панель"
+   "exact text" 1
+   "exact text size" 11
+   "text valign" center
+  }
+   FrameWidgetClass Tabs_v_Tabber {
+    position 1600 454
+    size 280 100
+    hexactpos 1
+    vexactpos 1
+    hexactsize 1
+    vexactsize 1
+    scriptclass "Tabber"
+    {
+     FrameWidgetClass ButtonsPanel {
+      position 0 0
+      size 280 26
+      hexactpos 1
+      vexactpos 1
+      hexactsize 1
+      vexactsize 1
+      {
+       ImageWidgetClass Button0_v_Tabber {
+        position 0 0
+        size 70 26
+        hexactpos 1
+        vexactpos 1
+        hexactsize 1
+        vexactsize 1
+        color 0.29 0.62 1 1
+        {
+         TextWidgetClass Label0_v_Tabber {
+          position 0 0
+          size 70 26
+          hexactpos 1
+          vexactpos 1
+          hexactsize 1
+          vexactsize 1
+          color 1 1 1 1
+          text "A"
+          "exact text" 1
+          "exact text size" 14
+          "text valign" center
+          "text halign" center
+          ignorepointer 1
+         }
+        }
+       }
+       ImageWidgetClass Button1_v_Tabber {
+        position 74 0
+        size 70 26
+        hexactpos 1
+        vexactpos 1
+        hexactsize 1
+        vexactsize 1
+        color 0.29 0.62 1 1
+        {
+         TextWidgetClass Label1_v_Tabber {
+          position 0 0
+          size 70 26
+          hexactpos 1
+          vexactpos 1
+          hexactsize 1
+          vexactsize 1
+          color 1 1 1 1
+          text "B"
+          "exact text" 1
+          "exact text size" 14
+          "text valign" center
+          "text halign" center
+          ignorepointer 1
+         }
+        }
+       }
+       ImageWidgetClass Button2_v_Tabber {
+        position 148 0
+        size 70 26
+        hexactpos 1
+        vexactpos 1
+        hexactsize 1
+        vexactsize 1
+        color 0.29 0.62 1 1
+        {
+         TextWidgetClass Label2_v_Tabber {
+          position 0 0
+          size 70 26
+          hexactpos 1
+          vexactpos 1
+          hexactsize 1
+          vexactsize 1
+          color 1 1 1 1
+          text "C"
+          "exact text" 1
+          "exact text size" 14
+          "text valign" center
+          "text halign" center
+          ignorepointer 1
+         }
+        }
+       }
+      }
+     }
+     FrameWidgetClass ContentPanel {
+      position 0 32
+      size 280 66
+      hexactpos 1
+      vexactpos 1
+      hexactsize 1
+      vexactsize 1
+      {
+       ImageWidgetClass Panel0_v_Tabber {
+        position 0 0
+        size 280 66
+        hexactpos 1
+        vexactpos 1
+        hexactsize 1
+        vexactsize 1
+        color 0.91 0.38 0.16 1
+       }
+       ImageWidgetClass Panel1_v_Tabber {
+        position 0 0
+        size 280 66
+        hexactpos 1
+        vexactpos 1
+        hexactsize 1
+        vexactsize 1
+        color 0.35 0.72 0.36 1
+       }
+       ImageWidgetClass Panel2_v_Tabber {
+        position 0 0
+        size 280 66
+        hexactpos 1
+        vexactpos 1
+        hexactsize 1
+        vexactsize 1
+        color 1 1 1 1
+       }
+      }
+     }
+    }
+    {
+     ScriptParamsClass {
+      SelectedTab "0"
+     }
+    }
+   }
+  TextWidgetClass T_v_TabberUI {
+   position 1000 560
+   size 280 20
+   hexactpos 1
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   color 1 1 1 1
+   text "TabberUI"
+   "exact text" 1
+   "exact text size" 15
+   "text valign" center
+  }
+  TextWidgetClass H_v_TabberUI {
+   position 1000 580
+   size 285 18
+   hexactpos 1
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   color 0.7 0.7 0.7 1
+   text "клик по вкладке, наведение"
+   "exact text" 1
+   "exact text size" 11
+   "text valign" center
+  }
+   FrameWidgetClass TabberUI_v_TabberUI {
+    position 1000 604
+    size 280 100
+    hexactpos 1
+    vexactpos 1
+    hexactsize 1
+    vexactsize 1
+    scriptclass "TabberUI"
+    {
+     FrameWidgetClass Tab_Control_Container {
+      position 0 0
+      size 280 28
+      hexactpos 1
+      vexactpos 1
+      hexactsize 1
+      vexactsize 1
+      {
+       ImageWidgetClass Tab_Control_0 {
+        position 0 0
+        size 86 28
+        hexactpos 1
+        vexactpos 1
+        hexactsize 1
+        vexactsize 1
+        color 0 0 0 0
+        {
+         TextWidgetClass Tab_Control_0_Title {
+          position 0 0
+          size 86 28
+          hexactpos 1
+          vexactpos 1
+          hexactsize 1
+          vexactsize 1
+          color 1 1 1 1
+          text "One"
+          "exact text" 1
+          "exact text size" 14
+          "text valign" center
+          "text halign" center
+          ignorepointer 1
+         }
+        }
+       }
+       ImageWidgetClass Tab_Control_1 {
+        position 90 0
+        size 86 28
+        hexactpos 1
+        vexactpos 1
+        hexactsize 1
+        vexactsize 1
+        color 0 0 0 0
+        {
+         TextWidgetClass Tab_Control_1_Title {
+          position 0 0
+          size 86 28
+          hexactpos 1
+          vexactpos 1
+          hexactsize 1
+          vexactsize 1
+          color 1 1 1 1
+          text "Two"
+          "exact text" 1
+          "exact text size" 14
+          "text valign" center
+          "text halign" center
+          ignorepointer 1
+         }
+        }
+       }
+       ImageWidgetClass Tab_Control_2 {
+        position 180 0
+        size 86 28
+        hexactpos 1
+        vexactpos 1
+        hexactsize 1
+        vexactsize 1
+        color 0 0 0 0
+        {
+         TextWidgetClass Tab_Control_2_Title {
+          position 0 0
+          size 86 28
+          hexactpos 1
+          vexactpos 1
+          hexactsize 1
+          vexactsize 1
+          color 1 1 1 1
+          text "Three"
+          "exact text" 1
+          "exact text size" 14
+          "text valign" center
+          "text halign" center
+          ignorepointer 1
+         }
+        }
+       }
+      }
+     }
+     ImageWidgetClass Tab_0 {
+      position 0 34
+      size 280 66
+      hexactpos 1
+      vexactpos 1
+      hexactsize 1
+      vexactsize 1
+      color 0.22 0.24 0.30 1
+      visible 1
+     }
+     ImageWidgetClass Tab_1 {
+      position 0 34
+      size 280 66
+      hexactpos 1
+      vexactpos 1
+      hexactsize 1
+      vexactsize 1
+      color 0.29 0.62 1 1
+      visible 0
+     }
+     ImageWidgetClass Tab_2 {
+      position 0 34
+      size 280 66
+      hexactpos 1
+      vexactpos 1
+      hexactsize 1
+      vexactsize 1
+      color 0.35 0.72 0.36 1
+      visible 0
+     }
+    }
+   }
+  TextWidgetClass T_v_MainMenuButtonEffect {
+   position 1300 560
+   size 280 20
+   hexactpos 1
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   color 1 1 1 1
+   text "MainMenuButtonEffect"
+   "exact text" 1
+   "exact text size" 15
+   "text valign" center
+  }
+  TextWidgetClass H_v_MainMenuButtonEffect {
+   position 1300 580
+   size 285 18
+   hexactpos 1
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   color 0.7 0.7 0.7 1
+   text "клик: текст красный и сдвинут"
+   "exact text" 1
+   "exact text size" 11
+   "text valign" center
+  }
+   ImageWidgetClass Back_v_MainMenuButtonEffect {
+    position 1300 629
+    size 280 50
+    hexactpos 1
+    vexactpos 1
+    hexactsize 1
+    vexactsize 1
+    color 0.22 0.24 0.30 1
+   }
+   ButtonWidgetClass Button_v_MainMenuButtonEffect {
+    position 1300 629
+    size 280 50
+    hexactpos 1
+    vexactpos 1
+    hexactsize 1
+    vexactsize 1
+    text "PLAY"
+    "text_halign" left
+    scriptclass "MainMenuButtonEffect"
+    {
+     ScriptParamsClass {
+      speed "5"
+      amount "5"
+     }
+    }
+   }
+  TextWidgetClass T_v_EmbededButtonScript {
+   position 1600 560
+   size 280 20
+   hexactpos 1
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   color 1 1 1 1
+   text "EmbededButtonScript"
+   "exact text" 1
+   "exact text size" 15
+   "text valign" center
+  }
+  TextWidgetClass H_v_EmbededButtonScript {
+   position 1600 580
+   size 285 18
+   hexactpos 1
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   color 0.7 0.7 0.7 1
+   text "текст Caption на кнопке внутри"
+   "exact text" 1
+   "exact text size" 11
+   "text valign" center
+  }
+   ImageWidgetClass Holder_v_EmbededButtonScript {
+    position 1600 629
+    size 280 50
+    hexactpos 1
+    vexactpos 1
+    hexactsize 1
+    vexactsize 1
+    color 0.22 0.24 0.30 1
+    scriptclass "EmbededButtonScript"
+    {
+     ButtonWidgetClass Button_v_EmbededButtonScript {
+      position 0 0
+      size 280 50
+      hexactpos 1
+      vexactpos 1
+      hexactsize 1
+      vexactsize 1
+      text "-"
+     }
+    }
+    {
+     ScriptParamsClass {
+      Caption "Играть"
+     }
+    }
+   }
+  TextWidgetClass T_v_RadialProgressBar {
+   position 1000 710
+   size 280 20
+   hexactpos 1
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   color 1 1 1 1
+   text "RadialProgressBar"
+   "exact text" 1
+   "exact text size" 15
+   "text valign" center
+  }
+  TextWidgetClass H_v_RadialProgressBar {
+   position 1000 730
+   size 285 18
+   hexactpos 1
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   color 0.7 0.7 0.7 1
+   text "начальный вид: половины скрыты"
+   "exact text" 1
+   "exact text size" 11
+   "text valign" center
+  }
+   FrameWidgetClass Ring {
+    position 1100 759
+    size 80 90
+    hexactpos 1
+    vexactpos 1
+    hexactsize 1
+    vexactsize 1
+    scriptclass "RadialProgressBar"
+    {
+     FrameWidgetClass BarHider_Ring {
+      position 0 0
+      size 40 80
+      hexactpos 1
+      vexactpos 1
+      hexactsize 1
+      vexactsize 1
+      {
+       ImageWidgetClass Half_v_RadialProgressBar {
+        position 0 0
+        size 40 80
+        hexactpos 1
+        vexactpos 1
+        hexactsize 1
+        vexactsize 1
+        color 0.91 0.38 0.16 1
+       }
+      }
+     }
+     ImageWidgetClass BarPart2_Ring {
+      position 40 0
+      size 40 80
+      hexactpos 1
+      vexactpos 1
+      hexactsize 1
+      vexactsize 1
+      color 0.29 0.62 1 1
+     }
+     ImageWidgetClass Base_v_RadialProgressBar {
+      position 0 80
+      size 80 8
+      hexactpos 1
+      vexactpos 1
+      hexactsize 1
+      vexactsize 1
+      color 0.22 0.24 0.30 1
+     }
+    }
+    {
+     ScriptParamsClass {
+      speed "1"
+      start_rotation "0"
+     }
+    }
+   }
+  TextWidgetClass T_v_HoverEffect {
+   position 1300 710
+   size 280 20
+   hexactpos 1
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   color 1 1 1 1
+   text "HoverEffect"
+   "exact text" 1
+   "exact text size" 15
+   "text valign" center
+  }
+  TextWidgetClass H_v_HoverEffect {
+   position 1300 730
+   size 285 18
+   hexactpos 1
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   color 0.7 0.7 0.7 1
+   text "по исходнику ничего не делает"
+   "exact text" 1
+   "exact text size" 11
+   "text valign" center
+  }
+   ImageWidgetClass Card_v_HoverEffect {
+    position 1300 754
+    size 280 100
+    hexactpos 1
+    vexactpos 1
+    hexactsize 1
+    vexactsize 1
+    color 0.22 0.24 0.30 1
+    scriptclass "HoverEffect"
+    {
+     ScriptParamsClass {
+      speed "5"
+      amount "0.2"
+     }
+    }
+   }
+  TextWidgetClass T_v_Bouncer {
+   position 1600 710
+   size 280 20
+   hexactpos 1
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   color 1 1 1 1
+   text "Bouncer"
+   "exact text" 1
+   "exact text size" 15
+   "text valign" center
+  }
+  TextWidgetClass H_v_Bouncer {
+   position 1600 730
+   size 285 18
+   hexactpos 1
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   color 0.7 0.7 0.7 1
+   text "по исходнику ничего не делает"
+   "exact text" 1
+   "exact text size" 11
+   "text valign" center
+  }
+   ImageWidgetClass Card_v_Bouncer {
+    position 1600 754
+    size 280 100
+    hexactpos 1
+    vexactpos 1
+    hexactsize 1
+    vexactsize 1
+    color 0.22 0.24 0.30 1
+    scriptclass "Bouncer"
+    {
+     ScriptParamsClass {
+      speed "1"
+      amount "0.2"
+     }
+    }
+   }
+  TextWidgetClass T_v_Rotator {
+   position 1000 860
+   size 280 20
+   hexactpos 1
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   color 1 1 1 1
+   text "Rotator"
+   "exact text" 1
+   "exact text size" 15
+   "text valign" center
+  }
+  TextWidgetClass H_v_Rotator {
+   position 1000 880
+   size 285 18
+   hexactpos 1
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   color 0.7 0.7 0.7 1
+   text "по исходнику ничего не делает"
+   "exact text" 1
+   "exact text size" 11
+   "text valign" center
+  }
+   ImageWidgetClass Card_v_Rotator {
+    position 1000 904
+    size 280 100
+    hexactpos 1
+    vexactpos 1
+    hexactsize 1
+    vexactsize 1
+    color 0.22 0.24 0.30 1
+    scriptclass "Rotator"
+    {
+     ScriptParamsClass {
+      speed "1"
+     }
+    }
+   }
+ }
+}
