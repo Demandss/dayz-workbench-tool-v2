@@ -20,6 +20,7 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.github.demandss.dayz_workbench_tool.i18n.tr
 import com.github.demandss.dayz_workbench_tool.layout_editor.EditorWidgetNode
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.DragSession
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.DragSource
@@ -92,11 +93,11 @@ fun HierarchyPanel(
         ) {
             Text("Hierarchy", color = GhostlyText, fontSize = 10.sp)
         }
-        SearchField(query, "Поиск виджета…") { query = it }
+        SearchField(query, tr("Поиск виджета…")) { query = it }
 
         if (doc == null) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("Нет открытых файлов", color = GhostlyText, fontSize = 11.sp)
+                Text(tr("Нет открытых файлов"), color = GhostlyText, fontSize = 11.sp)
             }
             return@Column
         }
@@ -303,10 +304,15 @@ private fun HierarchyRow(
             modifier = Modifier.padding(start = 2.dp).weight(1f),
         )
         if (node.hasBareCenter()) AppIconView(AppIcon.UI_WARN, size = 13.dp, modifier = Modifier.padding(end = 2.dp))
-        RowToggle(if (isHidden) AppIcon.UI_EYEOFF else AppIcon.UI_EYE, "Скрыть на холсте (только в редакторе)", isHidden, onToggleHidden)
+        RowToggle(
+            if (isHidden) AppIcon.UI_EYEOFF else AppIcon.UI_EYE,
+            tr("Скрыть на холсте (только в редакторе)"),
+            isHidden,
+            onToggleHidden,
+        )
         RowToggle(
             if (isLocked) AppIcon.UI_LOCK else AppIcon.UI_UNLOCK,
-            "Заблокировать выбор на холсте (только в редакторе)",
+            tr("Заблокировать выбор на холсте (только в редакторе)"),
             isLocked,
             onToggleLocked,
         )

@@ -13,6 +13,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.github.demandss.dayz_workbench_tool.i18n.tr
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.LayoutEditorState
 import com.github.demandss.dayz_workbench_tool.ui.components.DarkButton
 import com.github.demandss.dayz_workbench_tool.ui.theme.GhostlyText
@@ -20,7 +21,7 @@ import com.github.demandss.dayz_workbench_tool.ui.theme.TextForeground
 
 private val SHORTCUTS: List<Pair<String, List<Pair<String, String>>>> =
     listOf(
-        "Общие" to
+        tr("Общие") to
             listOf(
                 "Ctrl+Shift+P" to "Палитра команд",
                 "Ctrl+P" to "Открыть файл по имени",
@@ -71,12 +72,12 @@ private val SHORTCUTS: List<Pair<String, List<Pair<String, String>>>> =
 fun ShortcutsDialog(state: LayoutEditorState) {
     if (!state.shortcutsOpen) return
     FlatDialog(
-        title = "Горячие клавиши",
+        title = tr("Горячие клавиши"),
         onDismiss = { state.shortcutsOpen = false },
         onConfirm = { state.shortcutsOpen = false },
         width = 560.dp,
         buttons = {
-            DarkButton("Закрыть", onClick = { state.shortcutsOpen = false }, modifier = Modifier.width(90.dp))
+            DarkButton(tr("Закрыть"), onClick = { state.shortcutsOpen = false }, modifier = Modifier.width(90.dp))
         },
     ) {
         Column(Modifier.heightIn(max = 460.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(3.dp)) {

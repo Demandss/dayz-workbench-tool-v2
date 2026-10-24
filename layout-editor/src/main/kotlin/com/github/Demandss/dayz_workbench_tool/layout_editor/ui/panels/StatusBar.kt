@@ -15,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.github.demandss.dayz_workbench_tool.i18n.tr
 import com.github.demandss.dayz_workbench_tool.layout_editor.EditorWidgetNode
 import com.github.demandss.dayz_workbench_tool.layout_editor.pathTo
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.LayoutEditorState
@@ -47,7 +48,7 @@ fun StatusBar(state: LayoutEditorState) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             AppIconView(AppIcon.UI_CLOCK, size = 14.dp, tint = OnAccent)
             Spacer(Modifier.width(5.dp))
-            Text("Сессия сохранена", color = OnAccent, fontSize = 11.sp)
+            Text(tr("Сессия сохранена"), color = OnAccent, fontSize = 11.sp)
         }
     }
 }
@@ -56,22 +57,22 @@ private fun leftText(state: LayoutEditorState): String {
     state.activeStyles?.let { doc ->
         val styles = doc.sheet.widgets.sumOf { it.styles.size }
         val picked = doc.selectedStyle
-        return if (picked == null) "$styles стилей" else "Стиль: ${picked.name} · ${picked.imageSet}"
+        return if (picked == null) tr("{0} стилей", styles) else tr("Стиль: {0} · {1}", picked.name, picked.imageSet)
     }
     state.activeImageSet?.let { doc ->
         val picked = doc.selected.mapNotNull { doc.model.entry(it) }
         return when (picked.size) {
             0 -> {
-                "${doc.model.entries.size} картинок · RefSize ${doc.model.refWidth} × ${doc.model.refHeight}"
+                tr("{0} картинок · RefSize {1} × {2}", doc.model.entries.size, doc.model.refWidth, doc.model.refHeight)
             }
 
             1 -> {
                 val d = picked[0].def
-                "Выбрано: ${d.name} · ${d.x}, ${d.y} · ${d.width} × ${d.height}"
+                tr("Выбрано: {0} · {1}, {2} · {3} × {4}", d.name, d.x, d.y, d.width, d.height)
             }
 
             else -> {
-                "Выбрано: ${picked.size}"
+                tr("Выбрано: {0}", picked.size)
             }
         }
     }
@@ -82,7 +83,7 @@ private fun leftText(state: LayoutEditorState): String {
     val doc = state.activeFile ?: return "Нет открытых файлов"
     return when (state.selectedIds.size) {
         0 -> {
-            "Ничего не выбрано"
+            tr("Ничего не выбрано")
         }
 
         1 -> {
@@ -92,12 +93,12 @@ private fun leftText(state: LayoutEditorState): String {
             if (rect == null) {
                 node
             } else {
-                "Выбрано: $node · ${rect.width.roundToInt()} × ${rect.height.roundToInt()}"
+                tr("Выбрано: {0} · {1} × {2}", node, rect.width.roundToInt(), rect.height.roundToInt())
             }
         }
 
         else -> {
-            "Выбрано: ${state.selectedIds.size}"
+            tr("Выбрано: {0}", state.selectedIds.size)
         }
     }
 }

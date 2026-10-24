@@ -20,6 +20,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.github.demandss.dayz_workbench_tool.i18n.tr
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.LayoutEditorState
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.Severity
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.findProblems
@@ -41,13 +42,13 @@ fun ProblemsPanel(
 
     if (problems.isEmpty()) {
         Box(modifier.background(FrameBackground).fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text(if (doc == null) "Нет открытых файлов" else "Проблем не найдено", color = GhostlyText, fontSize = 11.sp)
+            Text(if (doc == null) tr("Нет открытых файлов") else tr("Проблем не найдено"), color = GhostlyText, fontSize = 11.sp)
         }
         return
     }
     LazyColumn(modifier.background(FrameBackground)) {
         items(problems) { p ->
-            Tip("Выбрать виджет «${p.widgetName}»") {
+            Tip(tr("Выбрать виджет «{0}»", p.widgetName)) {
                 Row(
                     Modifier
                         .fillMaxWidth()

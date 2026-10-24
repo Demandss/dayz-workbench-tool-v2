@@ -21,6 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.github.demandss.dayz_workbench_tool.i18n.tr
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.LayoutEditorState
 import com.github.demandss.dayz_workbench_tool.ui.components.DarkButton
 import com.github.demandss.dayz_workbench_tool.ui.components.Tip
@@ -42,19 +43,19 @@ fun EmptyState(
     Box(modifier.fillMaxSize().background(FrameBackground), contentAlignment = Alignment.Center) {
         Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
             AppIconView(AppIcon.LAYOUT, size = 44.dp)
-            Text("Откройте layout или текстуру", color = TextForeground, fontSize = 14.sp)
-            Text("Двойной клик по файлу в дереве или кнопка ниже", color = GhostlyText, fontSize = 11.sp)
+            Text(tr("Откройте layout или текстуру"), color = TextForeground, fontSize = 14.sp)
+            Text(tr("Двойной клик по файлу в дереве или кнопка ниже"), color = GhostlyText, fontSize = 11.sp)
             DarkButton(
-                "Открыть файл…",
+                tr("Открыть файл…"),
                 onClick = onOpenFile,
                 modifier = Modifier.width(140.dp),
-                tooltip = "Выбрать .layout, .edds или картинку",
+                tooltip = tr("Выбрать .layout, .edds или картинку"),
             )
 
             val recent = state.recentFiles.take(5)
             if (recent.isNotEmpty()) {
                 Spacer(Modifier.height(8.dp))
-                Text("НЕДАВНЕЕ", color = GhostlyText, fontSize = 10.sp)
+                Text(tr("НЕДАВНЕЕ"), color = GhostlyText, fontSize = 10.sp)
                 Column(Modifier.width(300.dp)) {
                     recent.forEach { path -> RecentRow(path) { state.openAny(path) } }
                 }

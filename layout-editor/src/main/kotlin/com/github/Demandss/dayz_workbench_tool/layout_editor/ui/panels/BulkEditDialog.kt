@@ -31,6 +31,7 @@ import androidx.compose.ui.input.key.type
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.github.demandss.dayz_workbench_tool.i18n.tr
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.LayoutEditorState
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.BulkMode
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.bulkReplace
@@ -65,17 +66,17 @@ fun BulkEditDialog(state: LayoutEditorState) {
     }
 
     FlatDialog(
-        title = if (mode == BulkMode.NAME) "Заменить в именах виджетов" else "Заменить значение свойства",
+        title = if (mode == BulkMode.NAME) tr("Заменить в именах виджетов") else tr("Заменить значение свойства"),
         onDismiss = { state.bulkDialog = null },
         onConfirm = { if (count > 0) apply() },
         buttons = {
-            DarkButton("Отмена", onClick = { state.bulkDialog = null }, muted = true, modifier = Modifier.width(80.dp))
+            DarkButton(tr("Отмена"), onClick = { state.bulkDialog = null }, muted = true, modifier = Modifier.width(80.dp))
             DarkButton(
-                "Заменить ($count)",
+                tr("Заменить ({0})", count),
                 onClick = ::apply,
                 enabled = count > 0,
                 modifier = Modifier.width(110.dp),
-                tooltip = "Сколько виджетов изменится",
+                tooltip = tr("Сколько виджетов изменится"),
             )
         },
     ) {
@@ -84,25 +85,25 @@ fun BulkEditDialog(state: LayoutEditorState) {
                 androidx.compose.foundation.layout.Arrangement
                     .spacedBy(6.dp),
         ) {
-            DarkToolButton("Выбранные", { selectedOnly = true }, active = selectedOnly, tooltip = "Только выбранные виджеты")
-            DarkToolButton("Весь layout", { selectedOnly = false }, active = !selectedOnly, tooltip = "Все виджеты файла")
+            DarkToolButton(tr("Выбранные"), { selectedOnly = true }, active = selectedOnly, tooltip = tr("Только выбранные виджеты"))
+            DarkToolButton(tr("Весь layout"), { selectedOnly = false }, active = !selectedOnly, tooltip = tr("Все виджеты файла"))
         }
         if (mode ==
             BulkMode.PROPERTY
         ) {
-            Field("Свойство", key, "например style, color, priority", { key = it }, Modifier.focusRequester(focus), ::apply)
+            Field(tr("Свойство"), key, tr("например style, color, priority"), { key = it }, Modifier.focusRequester(focus), ::apply)
         }
         Field(
-            if (mode == BulkMode.NAME) "Что заменить" else "Что заменить (пусто: любое значение)",
+            if (mode == BulkMode.NAME) tr("Что заменить") else tr("Что заменить (пусто: любое значение)"),
             find,
             "",
             { find = it },
             if (mode == BulkMode.NAME) Modifier.focusRequester(focus) else Modifier,
             ::apply,
         )
-        Field("На что", replace, "", { replace = it }, Modifier, ::apply)
+        Field(tr("На что"), replace, "", { replace = it }, Modifier, ::apply)
         Text(
-            if (count == 0) "Ничего не подходит" else "Изменится виджетов: $count",
+            if (count == 0) tr("Ничего не подходит") else tr("Изменится виджетов: {0}", count),
             color = GhostlyText,
             fontSize = 11.sp,
         )

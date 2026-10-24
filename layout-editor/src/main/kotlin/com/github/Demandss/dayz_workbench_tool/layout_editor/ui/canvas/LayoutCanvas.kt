@@ -37,6 +37,7 @@ import androidx.compose.ui.text.*
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.sp
+import com.github.demandss.dayz_workbench_tool.i18n.tr
 import com.github.demandss.dayz_workbench_tool.layout.WidgetType
 import com.github.demandss.dayz_workbench_tool.layout_editor.EditorWidgetNode
 import com.github.demandss.dayz_workbench_tool.layout_editor.behavior.BehaviorEffect
@@ -640,13 +641,13 @@ fun LayoutCanvas(
     val refW = if (resolution == Resolution.FIT) state.screenSize.width else resolution.width.toFloat()
     val refH = if (resolution == Resolution.FIT) state.screenSize.height else resolution.height.toFloat()
 
-    // A layout that is opened (or switched to) is shown at 100%; a change of the resolution fits the screen into the window again
+    // A layout that is opened (or switched to) is shown at 100% or fitted to the window, as the settings say; a change of the resolution fits the screen into the window again
     var shownIndex by remember { mutableStateOf(-2) }
     LaunchedEffect(state.activeFileIndex, resolution) {
         if (state.lastCanvasSize == Size.Zero) return@LaunchedEffect
         if (state.activeFileIndex != shownIndex) {
             shownIndex = state.activeFileIndex
-            state.zoomActual()
+            state.viewOnOpen()
         } else {
             state.centerView()
         }
@@ -698,7 +699,7 @@ fun LayoutCanvas(
                     state.lastCanvasSize = newSize
                     if (first && state.activeFile != null) {
                         shownIndex = state.activeFileIndex
-                        state.zoomActual()
+                        state.viewOnOpen()
                     }
                 }.pointerInput(Unit) {
                     awaitPointerEventScope {
@@ -936,7 +937,7 @@ fun LayoutCanvas(
                                             val handle = resizeHandle!!
                                             val start = resizeStart!!
                                             if (!resizePushed && (pos - resizeStartScreen).getDistance() >= DRAG_THRESHOLD) {
-                                                resizeRoot?.let { state.pushUndo(state.activeFileIndex, it, "Изменение размера") }
+                                                resizeRoot?.let { state.pushUndo(state.activeFileIndex, it, tr("Изменение размера")) }
                                                 resizePushed = true
                                             }
                                             if (resizePushed) {
@@ -978,9 +979,9 @@ fun LayoutCanvas(
                                                         if (dragInfos.size >
                                                             1
                                                         ) {
-                                                            "Перемещение ${dragInfos.size} виджетов"
+                                                            tr("Перемещение {0} виджетов", dragInfos.size)
                                                         } else {
-                                                            "Перемещение"
+                                                            tr("Перемещение")
                                                         },
                                                     )
                                                 }

@@ -39,6 +39,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.DialogWindow
 import androidx.compose.ui.window.rememberDialogState
+import com.github.demandss.dayz_workbench_tool.i18n.tr
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.LayoutEditorState
 import com.github.demandss.dayz_workbench_tool.ui.theme.DarkenedBorder
 import com.github.demandss.dayz_workbench_tool.ui.theme.FrameBackground
@@ -59,7 +60,7 @@ fun IconPickerWindow(state: LayoutEditorState) {
     DialogWindow(
         onCloseRequest = { state.iconPicker = null },
         state = rememberDialogState(size = DpSize(780.dp, 600.dp)),
-        title = "Выбор иконки",
+        title = tr("Выбор иконки"),
     ) {
         var query by remember { mutableStateOf("") }
         val icons by produceState(emptyList<Pair<String, String>>(), nearPath) {
@@ -76,9 +77,9 @@ fun IconPickerWindow(state: LayoutEditorState) {
                 icons.filter { (set, image) -> words.all { it in "$set $image".lowercase() } }
             }
         Column(Modifier.fillMaxSize().background(FrameBackground)) {
-            SearchField(query, "Поиск по названию иконки или набора…") { query = it }
+            SearchField(query, tr("Поиск по названию иконки или набора…")) { query = it }
             Text(
-                if (icons.isEmpty()) "Загрузка…" else "Найдено: ${shown.size} из ${icons.size}",
+                if (icons.isEmpty()) tr("Загрузка…") else tr("Найдено: {0} из {1}", shown.size, icons.size),
                 color = GhostlyText,
                 fontSize = 10.sp,
                 modifier = Modifier.padding(horizontal = 10.dp, vertical = 2.dp),

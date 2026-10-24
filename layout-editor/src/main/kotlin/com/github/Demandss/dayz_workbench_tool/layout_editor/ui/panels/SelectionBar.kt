@@ -11,6 +11,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.github.demandss.dayz_workbench_tool.i18n.tr
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.LayoutEditorState
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.AlignMode
 import com.github.demandss.dayz_workbench_tool.ui.components.DarkIconButton
@@ -33,10 +34,10 @@ fun SelectionBar(
         modifier.background(ElementsBackground).border(1.dp, DarkenedBorder).padding(2.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        DarkIconButton(AppIcon.UI_COPY, "Дублировать (Ctrl+D)", onClick = { state.duplicateSelected() })
-        DarkIconButton(AppIcon.UI_TRASH, "Удалить (Delete)", onClick = { state.deleteSelected() })
-        DarkIconButton(AppIcon.UI_CMD, "Скопировать код доступа (Enforce Script)", onClick = { state.copyScriptSnippet() })
-        DarkIconButton(AppIcon.UI_LAYERS, "Сгруппировать в Frame (Ctrl+G), в WrapSpacer: Shift+A", onClick = { state.groupSelected() })
+        DarkIconButton(AppIcon.UI_COPY, tr("Дублировать (Ctrl+D)"), onClick = { state.duplicateSelected() })
+        DarkIconButton(AppIcon.UI_TRASH, tr("Удалить (Delete)"), onClick = { state.deleteSelected() })
+        DarkIconButton(AppIcon.UI_CMD, tr("Скопировать код доступа (Enforce Script)"), onClick = { state.copyScriptSnippet() })
+        DarkIconButton(AppIcon.UI_LAYERS, tr("Сгруппировать в Frame (Ctrl+G), в WrapSpacer: Shift+A"), onClick = { state.groupSelected() })
         if (ids.size >= 2) {
             Box(
                 Modifier
@@ -45,14 +46,14 @@ fun SelectionBar(
                     .height(16.dp)
                     .background(DarkenedBorder),
             )
-            DarkIconButton(AppIcon.UI_ALIGNL, "По левому краю", onClick = { state.alignSelected(AlignMode.LEFT) })
-            DarkIconButton(AppIcon.UI_ALIGNCH, "По центру по горизонтали", onClick = { state.alignSelected(AlignMode.CENTER_H) })
-            DarkIconButton(AppIcon.UI_ALIGNR, "По правому краю", onClick = { state.alignSelected(AlignMode.RIGHT) })
-            DarkIconButton(AppIcon.UI_ALIGNT, "По верхнему краю", onClick = { state.alignSelected(AlignMode.TOP) })
-            DarkIconButton(AppIcon.UI_ALIGNMV, "По центру по вертикали", onClick = { state.alignSelected(AlignMode.CENTER_V) })
-            DarkIconButton(AppIcon.UI_ALIGNB, "По нижнему краю", onClick = { state.alignSelected(AlignMode.BOTTOM) })
-            DarkToolButton("⇔", { state.distributeSelected(true) }, tooltip = "Равные интервалы по горизонтали (от трёх виджетов)")
-            DarkToolButton("⇕", { state.distributeSelected(false) }, tooltip = "Равные интервалы по вертикали (от трёх виджетов)")
+            DarkIconButton(AppIcon.UI_ALIGNL, tr("По левому краю"), onClick = { state.alignSelected(AlignMode.LEFT) })
+            DarkIconButton(AppIcon.UI_ALIGNCH, tr("По центру по горизонтали"), onClick = { state.alignSelected(AlignMode.CENTER_H) })
+            DarkIconButton(AppIcon.UI_ALIGNR, tr("По правому краю"), onClick = { state.alignSelected(AlignMode.RIGHT) })
+            DarkIconButton(AppIcon.UI_ALIGNT, tr("По верхнему краю"), onClick = { state.alignSelected(AlignMode.TOP) })
+            DarkIconButton(AppIcon.UI_ALIGNMV, tr("По центру по вертикали"), onClick = { state.alignSelected(AlignMode.CENTER_V) })
+            DarkIconButton(AppIcon.UI_ALIGNB, tr("По нижнему краю"), onClick = { state.alignSelected(AlignMode.BOTTOM) })
+            DarkToolButton("⇔", { state.distributeSelected(true) }, tooltip = tr("Равные интервалы по горизонтали (от трёх виджетов)"))
+            DarkToolButton("⇕", { state.distributeSelected(false) }, tooltip = tr("Равные интервалы по вертикали (от трёх виджетов)"))
         }
     }
 }

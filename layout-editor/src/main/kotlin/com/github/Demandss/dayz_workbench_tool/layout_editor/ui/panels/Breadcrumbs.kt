@@ -21,6 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.github.demandss.dayz_workbench_tool.i18n.tr
 import com.github.demandss.dayz_workbench_tool.layout_editor.pathTo
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.LayoutEditorState
 import com.github.demandss.dayz_workbench_tool.ui.components.Tip
@@ -54,7 +55,7 @@ fun Breadcrumbs(state: LayoutEditorState) {
             path.forEachIndexed { index, node ->
                 if (index > 0) AppIconView(AppIcon.UI_RIGHT, size = 12.dp, tint = GhostlyText)
                 val current = index == path.lastIndex
-                Tip(if (current) "Выбранный виджет" else "Выбрать ${node.node.name.ifEmpty { "(root)" }}") {
+                Tip(if (current) tr("Выбранный виджет") else tr("Выбрать {0}", node.node.name.ifEmpty { "(root)" })) {
                     Row(
                         Modifier
                             .background(if (current) SelectColor else Color.Transparent)

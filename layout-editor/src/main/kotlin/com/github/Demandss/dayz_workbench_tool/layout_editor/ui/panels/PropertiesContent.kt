@@ -39,6 +39,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.github.demandss.dayz_workbench_tool.i18n.tr
 import com.github.demandss.dayz_workbench_tool.layout.WidgetType
 import com.github.demandss.dayz_workbench_tool.layout_editor.EditorWidgetNode
 import com.github.demandss.dayz_workbench_tool.layout_editor.behavior.ScriptParam
@@ -144,12 +145,14 @@ private val PROPERTY_HINTS =
         "inheritalpha" to "Вкл: прозрачность родителя действует и на этот виджет.\nВыкл: прозрачность родителя не влияет.",
         "ignorepointer" to "Вкл: мышь проходит сквозь виджет к тому, что под ним.\nВыкл: виджет принимает мышь.",
         "ignoregloballv" to
-            "Вкл: флаг «Ignore global LV» из инспектора Workbench; что именно он делает, не проверялось.\nВыкл: флаг не задан.",
+            tr("Вкл: флаг «Ignore global LV» из инспектора Workbench; что именно он делает, не проверялось.\nВыкл: флаг не задан."),
         "keepsafezone" to
-            "Вкл: виджет учитывает безопасную зону экрана (рамка overscan на телевизорах).\nВыкл: безопасная зона не учитывается.",
+            tr("Вкл: виджет учитывает безопасную зону экрана (рамка overscan на телевизорах).\nВыкл: безопасная зона не учитывается."),
         "color" to "Цвета в файле линейные; Workbench показывает их в sRGB. Клик по образцу открывает палитру",
         "scaled" to
-            "Вкл: размеры пересчитываются под относительное разрешение (в редакторе не учитывается).\nВыкл: размеры не пересчитываются.",
+            tr(
+                "Вкл: размеры пересчитываются под относительное разрешение (в редакторе не учитывается).\nВыкл: размеры не пересчитываются.",
+            ),
         "fixaspect" to "Держит пропорции виджета с относительным размером: fixwidth берёт ширину из высоты, fixheight наоборот",
         "priority" to "Порядок отрисовки среди соседей: больше значит выше",
         "userID" to "Числовой идентификатор виджета, который скрипт читает через GetUserID()",
@@ -197,8 +200,8 @@ private fun commitName(
     val doc = state.openFiles.getOrNull(idx) ?: return
     // Script finds a widget by its name, so the name is kept to Latin letters, digits and underscores
     val clean = sanitizeWidgetName(name)
-    if (clean != name.trim()) state.notify("Имя виджета записано латиницей: $clean")
-    state.pushUndo(idx, doc.root, "Переименование в $clean")
+    if (clean != name.trim()) state.notify(tr("Имя виджета записано латиницей: {0}", clean))
+    state.pushUndo(idx, doc.root, tr("Переименование в {0}", clean))
     state.updateActiveRoot(doc.root.updateNode(id) { it.copy(node = it.node.copy(name = clean)) })
 }
 
@@ -209,7 +212,7 @@ private fun commitType(
 ) {
     val idx = state.activeFileIndex
     val doc = state.openFiles.getOrNull(idx) ?: return
-    state.pushUndo(idx, doc.root, "Тип ${type.className.removeSuffix("WidgetClass")}")
+    state.pushUndo(idx, doc.root, tr("Тип {0}", type.className.removeSuffix("WidgetClass")))
     state.updateActiveRoot(doc.root.updateNode(id) { it.copy(node = it.node.copy(type = type, originalClassName = type.className)) })
 }
 
@@ -296,7 +299,7 @@ fun PropertiesContent(
         }
         if (node == null) {
             Box(Modifier.fillMaxWidth().padding(8.dp)) {
-                Text("Ничего не выбрано", color = GhostlyText, fontSize = 11.sp)
+                Text(tr("Ничего не выбрано"), color = GhostlyText, fontSize = 11.sp)
             }
             return@Column
         }
@@ -407,7 +410,7 @@ private fun PropertiesHeader(
                 AppIconView(AppIcon.UI_WARN, size = 16.dp)
                 Spacer(Modifier.width(8.dp))
                 Text(
-                    "В файле стоит голый center. Такой виджет остаётся у начального края. Нужен center_ref.",
+                    tr("В файле стоит голый center. Такой виджет остаётся у начального края. Нужен center_ref."),
                     color = Color(0xFFF0D9A0),
                     fontSize = 11.sp,
                     lineHeight = 15.sp,
@@ -500,11 +503,11 @@ private fun WidgetSection(
     PropRow(
         "fixaspect",
         "fixaspect" in props,
-        "Держит пропорции виджета с относительным размером: fixwidth берёт ширину из высоты, fixheight наоборот",
+        tr("Держит пропорции виджета с относительным размером: fixwidth берёт ширину из высоты, fixheight наоборот"),
     ) {
         CompactDropdown(props["fixaspect"] ?: "", FIXASPECT_OPTS) { commit("fixaspect", it) }
     }
-    PropRow("priority", "priority" in props, "Порядок отрисовки среди соседей: больше значит выше") {
+    PropRow("priority", "priority" in props, tr("Порядок отрисовки среди соседей: больше значит выше")) {
         StringField(props["priority"] ?: "", Modifier.weight(1f)) { commit("priority", it) }
     }
     PropRow("userID", "userID" in props) {
@@ -526,15 +529,15 @@ private fun WidgetSection(
                 options,
                 {
                     if (it.isEmpty()) {
-                        "— (нет)"
+                        tr("— (нет)")
                     } else if (it !in names) {
-                        "$it (свой)"
+                        tr("{0} (свой)", it)
                     } else {
                         it
                     }
                 },
                 Modifier.weight(1f),
-                tooltip = "Стиль виджета",
+                tooltip = tr("Стиль виджета"),
             ) { commit("style", it) }
         }
     }
@@ -568,7 +571,7 @@ private fun ImageWidgetSection(
         PropLabel("image0", "image0" in props, null, Modifier.width(LABEL_W))
         // The quotes of the file are not shown; Enter or leaving the field confirms what was typed
         StringField(shownPath(props["image0"]), Modifier.weight(1f)) { commit("image0", storedPath(it, state)) }
-        Tip("Выбрать иконку из imageset-ов игры и модов") {
+        Tip(tr("Выбрать иконку из imageset-ов игры и модов")) {
             SmallButton("...") { state.iconPicker = { ref -> commit("image0", "\"$ref\"") } }
         }
     }
@@ -583,7 +586,7 @@ private fun ImageWidgetSection(
         StringField(shownPath(props["imageTexture"]), Modifier.weight(1f)) { commit("imageTexture", storedPath(it, state)) }
         Spacer(Modifier.width(2.dp))
         SmallButton("..") {
-            scope.launch { pickFile("Выбрать текстуру", "*", basePath)?.let { commit("imageTexture", storedPath(it, state)) } }
+            scope.launch { pickFile(tr("Выбрать текстуру"), "*", basePath)?.let { commit("imageTexture", storedPath(it, state)) } }
         }
     }
     HLine()
@@ -624,7 +627,7 @@ private fun ImageWidgetSection(
     ) {
         PropLabel("Mask", "mask" in props, null, Modifier.width(LABEL_W))
         Spacer(Modifier.weight(1f))
-        SmallButton("..") { scope.launch { pickFile("Выбрать маску", "*", basePath)?.let { commit("mask", it) } } }
+        SmallButton("..") { scope.launch { pickFile(tr("Выбрать маску"), "*", basePath)?.let { commit("mask", it) } } }
     }
     HLine()
 
@@ -703,8 +706,8 @@ private fun ImagePreview(
         Text(
             when {
                 picture != null -> "${picture.width} × ${picture.height}"
-                named -> "не найдена"
-                else -> "нет картинки"
+                named -> tr("не найдена")
+                else -> tr("нет картинки")
             },
             color = GhostlyText,
             fontSize = 10.sp,
@@ -758,11 +761,11 @@ private fun ColorRows(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(2.dp),
     ) {
-        PropLabel("color", "color" in props, "Цвета в файле линейные; Workbench показывает их в sRGB", Modifier.width(LABEL_W))
+        PropLabel("color", "color" in props, tr("Цвета в файле линейные; Workbench показывает их в sRGB"), Modifier.width(LABEL_W))
         var picking by remember { mutableStateOf(false) }
         val anchorHeight = with(LocalDensity.current) { 22.dp.roundToPx() }
         Box {
-            Tip("Выбрать цвет") {
+            Tip(tr("Выбрать цвет")) {
                 Box(
                     Modifier
                         .size(22.dp)
@@ -1110,7 +1113,7 @@ private fun UnitSwitch(
     isPx: Boolean,
     onChange: (Boolean) -> Unit,
 ) {
-    Tip(if (isPx) "Пиксели. Клик переключает на долю родителя" else "Доля родителя. Клик переключает на пиксели") {
+    Tip(if (isPx) tr("Пиксели. Клик переключает на долю родителя") else tr("Доля родителя. Клик переключает на пиксели")) {
         Box(
             Modifier
                 .height(24.dp)
@@ -1294,10 +1297,10 @@ private fun ScriptParamRows(
         given.keys
             .filter { key ->
                 known.none { it.name == key }
-            }.map { ScriptParam(it, "", "В лайауте есть, класс его не читает") }
+            }.map { ScriptParam(it, "", tr("В лайауте есть, класс его не читает")) }
     if (known.isEmpty() && extra.isEmpty()) return
     Text(
-        "Параметры скрипт-класса",
+        tr("Параметры скрипт-класса"),
         color = GhostlyText,
         fontSize = 9.sp,
         modifier = Modifier.fillMaxWidth().padding(start = 8.dp, top = 6.dp, bottom = 2.dp),
@@ -1358,7 +1361,7 @@ private fun ColumnScope.MultiProperties(
         ) {
             AppIconView(AppIcon.UI_LAYERS, size = 18.dp)
             Column(Modifier.weight(1f)) {
-                Text("${nodes.size} виджетов", color = TextForeground, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                Text(tr("{0} виджетов", nodes.size), color = TextForeground, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                 Text(
                     nodes
                         .groupingBy {
@@ -1417,7 +1420,9 @@ private fun MultiTransform(state: LayoutEditorState) {
             }
         }
         Text(
-            "Рамка вокруг выбранных. X и Y двигают их вместе, W и H масштабируют вместе. Поля свойств ниже: Mixed там, где значения разные.",
+            tr(
+                "Рамка вокруг выбранных. X и Y двигают их вместе, W и H масштабируют вместе. Поля свойств ниже: Mixed там, где значения разные.",
+            ),
             color = GhostlyText,
             fontSize = 10.sp,
             lineHeight = 13.sp,

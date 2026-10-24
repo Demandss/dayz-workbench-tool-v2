@@ -1,5 +1,6 @@
 package com.github.demandss.dayz_workbench_tool.layout_editor.behavior
 
+import com.github.demandss.dayz_workbench_tool.i18n.tr
 import com.github.demandss.dayz_workbench_tool.layout_editor.EditorWidgetNode
 import com.github.demandss.dayz_workbench_tool.layout_editor.findNode
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.LayoutEditorState
@@ -21,7 +22,7 @@ internal class BehaviorEntry(
 internal object BehaviorCatalogue {
     private val groups =
         linkedMapOf(
-            "Наведение и нажатие" to
+            tr("Наведение и нажатие") to
                 listOf(
                     "HoverScale",
                     "PressScale",
@@ -121,7 +122,13 @@ internal fun LayoutEditorState.useBehavior(name: String) {
     }
     copyToClipboard(
         behaviorExportText(entry, className, existing, mod),
-        if (widget != null) "$className поставлен на «${widget.node.name}», скрипт в буфере" else "Скрипт $className в буфере",
+        if (widget !=
+            null
+        ) {
+            tr("{0} поставлен на «{1}», скрипт в буфере", className, widget.node.name)
+        } else {
+            tr("Скрипт {0} в буфере", className)
+        },
     )
 }
 
@@ -131,7 +138,7 @@ private fun LayoutEditorState.copyToClipboard(
 ) {
     runCatching { Toolkit.getDefaultToolkit().systemClipboard.setContents(StringSelection(text), null) }
         .onFailure {
-            notify("Не удалось скопировать: ${it.message ?: it.javaClass.simpleName}", ToastKind.ERROR)
+            notify(tr("Не удалось скопировать: {0}", it.message ?: it.javaClass.simpleName), ToastKind.ERROR)
             return
         }
     notify(message, ToastKind.SUCCESS)
@@ -150,14 +157,14 @@ internal fun LayoutEditorState.exportScriptClass(node: EditorWidgetNode) {
             ?: BehaviorCatalogue.entries.firstOrNull { className.endsWith(it.name) && scriptClasses.none { c -> c.name == className } }
     if (entry != null) {
         val mod = gameLayoutPath(doc.path).takeIf { '/' in it }?.substringBefore('/') ?: "MyMod"
-        copyToClipboard(behaviorExportText(entry, className, node.node.scriptParams.orEmpty(), mod), "Скрипт $className в буфере")
+        copyToClipboard(behaviorExportText(entry, className, node.node.scriptParams.orEmpty(), mod), tr("Скрипт {0} в буфере", className))
         return
     }
     val info = scriptClasses.firstOrNull { it.name == className }
     val source = info?.let { ScriptClassIndex.sourceOf(it, gameFolderPath()) }
     if (source == null) {
-        notify("Исходник класса $className не найден среди скриптов игры и подключённых модов", ToastKind.INFO)
+        notify(tr("Исходник класса {0} не найден среди скриптов игры и подключённых модов", className), ToastKind.INFO)
         return
     }
-    copyToClipboard(source, "Исходник $className в буфере (${info.source})")
+    copyToClipboard(source, tr("Исходник {0} в буфере ({1})", className, info.source))
 }

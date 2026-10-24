@@ -39,9 +39,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.DialogWindow
 import androidx.compose.ui.window.rememberDialogState
+import com.github.demandss.dayz_workbench_tool.i18n.I18n
+import com.github.demandss.dayz_workbench_tool.i18n.Language
+import com.github.demandss.dayz_workbench_tool.i18n.tr
+import com.github.demandss.dayz_workbench_tool.i18n.trKey
 import com.github.demandss.dayz_workbench_tool.layout_editor.mcp.McpHost
 import com.github.demandss.dayz_workbench_tool.layout_editor.mcp.McpTools
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.LayoutEditorState
+import com.github.demandss.dayz_workbench_tool.layout_editor.state.Resolution
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.ToastKind
 import com.github.demandss.dayz_workbench_tool.ui.components.DarkButton
 import com.github.demandss.dayz_workbench_tool.ui.theme.DarkenedBorder
@@ -54,22 +59,27 @@ import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonPrimitive
 
 private enum class Page(
-    val title: String,
+    val key: String,
 ) {
-    MCP("Подключение (MCP)"),
-    VIEW("Отображение"),
+    GENERAL(trKey("Общие")),
+    VIEW(trKey("Отображение")),
+    MCP(trKey("Подключение (MCP)")),
+    ;
+
+    /** The name of the page in the language of the interface, looked up when it is shown so that a change of language reaches it. */
+    val title: String get() = tr(key)
 }
 
-/** The preferences window, with the pages down the left side like Blender's: the connection of the MCP server and the view. */
+/** The preferences window, with the pages down the left side like Blender's: general settings, the view and the MCP server. */
 @Composable
 fun PreferencesWindow(state: LayoutEditorState) {
     if (!state.preferencesOpen) return
     DialogWindow(
         onCloseRequest = { state.preferencesOpen = false },
         state = rememberDialogState(size = DpSize(980.dp, 760.dp)),
-        title = "Настройки",
+        title = tr("Настройки"),
     ) {
-        var page by remember { mutableStateOf(Page.MCP) }
+        var page by remember { mutableStateOf(Page.GENERAL) }
         Row(Modifier.fillMaxSize().background(FrameBackground)) {
             Column(
                 Modifier
@@ -96,8 +106,9 @@ fun PreferencesWindow(state: LayoutEditorState) {
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 when (page) {
-                    Page.MCP -> McpPage(state)
+                    Page.GENERAL -> GeneralPage(state)
                     Page.VIEW -> ViewPage(state)
+                    Page.MCP -> McpPage(state)
                 }
             }
         }
@@ -200,12 +211,12 @@ private fun CopyRow(
             ) {
                 Text(text, color = TextForeground, fontSize = 11.sp, fontFamily = FontFamily.Monospace)
             }
-            DarkButton("Копировать", {
+            DarkButton(tr("Копировать"), {
                 java.awt.Toolkit
                     .getDefaultToolkit()
                     .systemClipboard
                     .setContents(java.awt.datatransfer.StringSelection(text), null)
-                state.notify("Скопировано", ToastKind.SUCCESS)
+                state.notify(tr("Скопировано"), ToastKind.SUCCESS)
             })
         }
     }
@@ -214,7 +225,7 @@ private fun CopyRow(
 @Composable
 private fun McpPage(state: LayoutEditorState) {
     val url = McpHost.url
-    Heading("Подключение ассистента (MCP)")
+    Heading(tr("Подключение ассистента (MCP)"))
     Text(
         "Редактор отдаёт ассистенту, например Claude Code, свои инструменты: читать и править открытый лейаут, " +
             "менять вид и снимать скриншоты. Сервер слушает только этот компьютер.",
@@ -226,37 +237,37 @@ private fun McpPage(state: LayoutEditorState) {
         Box(Modifier.size(9.dp).background(if (url != null) Color(0xFF5CB85C) else Color(0xFFD06A6A)))
         Text(
             when {
-                url != null -> "Работает: $url"
-                McpHost.lastError != null -> "Не запущен: ${McpHost.lastError}"
-                else -> "Выключен"
+                url != null -> tr("Работает: {0}", url)
+                McpHost.lastError != null -> tr("Не запущен: {0}", McpHost.lastError)
+                else -> tr("Выключен")
             },
             color = TextForeground,
             fontSize = 12.sp,
         )
     }
-    Check("Включить сервер", state.mcpEnabled) {
+    Check(tr("Включить сервер"), state.mcpEnabled) {
         state.mcpEnabled = it
         McpHost.apply(state)
         state.savePreferences()
     }
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text("Порт", color = TextForeground, fontSize = 12.sp)
+        Text(tr("Порт"), color = TextForeground, fontSize = 12.sp)
         NumberField(state.mcpPort, 1024..65000) { state.mcpPort = it }
-        DarkButton("Применить", {
+        DarkButton(tr("Применить"), {
             McpHost.apply(state)
             state.savePreferences()
         })
-        Text("Если порт занят, берётся следующий свободный", color = GhostlyText, fontSize = 10.sp)
+        Text(tr("Если порт занят, берётся следующий свободный"), color = GhostlyText, fontSize = 10.sp)
     }
 
     if (url != null) {
-        Caption("Подключить")
-        CopyRow(state, "Адрес", url)
-        CopyRow(state, "Claude Code, одна команда в терминале", "claude mcp add --transport http dayz-layout-editor $url")
+        Caption(tr("Подключить"))
+        CopyRow(state, tr("Адрес"), url)
+        CopyRow(state, tr("Claude Code, одна команда в терминале"), "claude mcp add --transport http dayz-layout-editor $url")
         CopyRow(state, "Файл .mcp.json проекта", """{"mcpServers":{"dayz-layout-editor":{"type":"http","url":"$url"}}}""")
     }
 
-    Caption("Инструменты (${McpTools.definitions().size})")
+    Caption(tr("Инструменты ({0})", McpTools.definitions().size))
     Column(
         Modifier
             .fillMaxWidth()
@@ -288,7 +299,7 @@ private fun McpPage(state: LayoutEditorState) {
         }
     }
 
-    Caption("Последние вызовы")
+    Caption(tr("Последние вызовы"))
     Column(
         Modifier
             .fillMaxWidth()
@@ -300,7 +311,7 @@ private fun McpPage(state: LayoutEditorState) {
             .verticalScroll(rememberScrollState()),
     ) {
         if (McpHost.calls.isEmpty()) {
-            Text("Пока не было", color = GhostlyText, fontSize = 10.sp)
+            Text(tr("Пока не было"), color = GhostlyText, fontSize = 10.sp)
         } else {
             McpHost.calls.forEach { Text(it, color = TextForeground, fontSize = 10.sp, fontFamily = FontFamily.Monospace) }
         }
@@ -310,36 +321,105 @@ private fun McpPage(state: LayoutEditorState) {
 
 @Composable
 private fun ViewPage(state: LayoutEditorState) {
-    Heading("Отображение")
-    Caption("Цвета")
-    Check("Цвета как в Workbench 1.30 (F6)", state.workbenchColors) {
+    Heading(tr("Отображение"))
+    Caption(tr("Цвета"))
+    Check(tr("Цвета как в Workbench 1.30 (F6)"), state.workbenchColors) {
         state.workbenchColors = it
         state.savePreferences()
     }
     Text(
-        "Выключено: числа color читаются как sRGB, как в игре. Включено: как линейный свет, как в Workbench 1.30.",
+        tr("Выключено: числа color читаются как sRGB, как в игре. Включено: как линейный свет, как в Workbench 1.30."),
         color = GhostlyText,
         fontSize = 10.sp,
     )
-    Caption("Холст")
-    Check("Подписи виджетов (F7)", state.showWidgetNames) {
+    Caption(tr("Холст"))
+    Check(tr("Подписи виджетов (F7)"), state.showWidgetNames) {
         state.showWidgetNames = it
         state.savePreferences()
     }
-    Caption("Сетка")
-    Check("Показывать сетку", state.showGrid) {
+    Caption(tr("Сетка"))
+    Check(tr("Показывать сетку"), state.showGrid) {
         state.showGrid = it
         state.savePreferences()
     }
-    Check("Привязывать перемещаемые виджеты к сетке", state.snapToGrid) {
+    Check(tr("Привязывать перемещаемые виджеты к сетке"), state.snapToGrid) {
         state.snapToGrid = it
         state.savePreferences()
     }
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text("Шаг сетки, пикселей", color = TextForeground, fontSize = 12.sp)
+        Text(tr("Шаг сетки, пикселей"), color = TextForeground, fontSize = 12.sp)
         NumberField(state.gridSize, 1..512) {
             state.gridSize = it
             state.savePreferences()
         }
     }
+}
+
+@Composable
+private fun GeneralPage(state: LayoutEditorState) {
+    Heading(tr("Общие"))
+
+    Caption(tr("Язык"))
+    val system = Language.ofSystem()
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        Text(tr("Язык интерфейса"), color = TextForeground, fontSize = 12.sp)
+        DropdownField(
+            I18n.setting,
+            listOf(I18n.SYSTEM) + Language.entries.map { it.code },
+            { code -> if (code == I18n.SYSTEM) tr("Как в системе: {0}", system.nativeName) else Language.byCode(code)?.nativeName ?: code },
+        ) {
+            I18n.setting = it
+            state.savePreferences()
+        }
+    }
+    Text(
+        tr("По умолчанию берётся язык системы. Язык, которого нет в списке, заменяется английским."),
+        color = GhostlyText,
+        fontSize = 10.sp,
+    )
+
+    Caption(tr("Открытие лайаута"))
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        Text(tr("Масштаб при открытии"), color = TextForeground, fontSize = 12.sp)
+        DropdownField(
+            state.zoomOnOpen,
+            listOf("actual", "fit"),
+            { if (it == "fit") tr("Вписать в окно") else tr("100%") },
+        ) {
+            state.zoomOnOpen = it
+            state.savePreferences()
+        }
+    }
+
+    Caption(tr("Окно"))
+    Check(tr("Запоминать размер окна"), state.rememberWindow) {
+        state.rememberWindow = it
+        state.savePreferences()
+    }
+    Text(tr("Размер сохраняется при изменении и возвращается при следующем запуске."), color = GhostlyText, fontSize = 10.sp)
+
+    Caption(tr("Правка"))
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        Text(tr("Шагов в истории (отмена и возврат)"), color = TextForeground, fontSize = 12.sp)
+        NumberField(state.historyDepth, 1..200) {
+            state.historyDepth = it
+            state.savePreferences()
+        }
+    }
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        Text(tr("Разрешение при запуске"), color = TextForeground, fontSize = 12.sp)
+        DropdownField(state.defaultResolution, Resolution.entries.toList(), {
+            if (it ==
+                Resolution.FIT
+            ) {
+                tr("Вписать в окно")
+            } else {
+                it.label
+            }
+        }) {
+            state.defaultResolution = it
+            state.savePreferences()
+        }
+    }
+    Text(tr("Разрешение применяется при следующем запуске редактора."), color = GhostlyText, fontSize = 10.sp)
 }

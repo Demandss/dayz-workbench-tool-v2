@@ -54,6 +54,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.github.demandss.dayz_workbench_tool.i18n.tr
 import com.github.demandss.dayz_workbench_tool.imageset.ImageFlags
 import com.github.demandss.dayz_workbench_tool.imageset.ImageSetTexture
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.ImageEntry
@@ -109,9 +110,9 @@ private fun ImageSetToolbar(
         horizontalArrangement = Arrangement.spacedBy(2.dp),
     ) {
         Spacer(Modifier.width(4.dp))
-        DarkIconButton(AppIcon.UI_SAVE, "Сохранить (Ctrl+S)", onClick = { state.saveActiveImageSet() }, enabled = doc.isModified)
-        DarkIconButton(AppIcon.UI_UNDO, "Отменить (Ctrl+Z)", onClick = { doc.undo() }, enabled = doc.canUndo)
-        DarkIconButton(AppIcon.UI_REDO, "Повторить (Ctrl+Y)", onClick = { doc.redo() }, enabled = doc.canRedo)
+        DarkIconButton(AppIcon.UI_SAVE, tr("Сохранить (Ctrl+S)"), onClick = { state.saveActiveImageSet() }, enabled = doc.isModified)
+        DarkIconButton(AppIcon.UI_UNDO, tr("Отменить (Ctrl+Z)"), onClick = { doc.undo() }, enabled = doc.canUndo)
+        DarkIconButton(AppIcon.UI_REDO, tr("Повторить (Ctrl+Y)"), onClick = { doc.redo() }, enabled = doc.canRedo)
         Box(
             Modifier
                 .padding(horizontal = 4.dp)
@@ -119,14 +120,18 @@ private fun ImageSetToolbar(
                 .height(20.dp)
                 .background(DarkenedBorder),
         )
-        DarkIconButton(AppIcon.UI_ZOOMOUT, "Уменьшить", onClick = { view.zoomAbout(1f / 1.25f) })
-        DarkToolButton("${(view.zoom * 100).roundToInt()}%", { view.zoomAbout(1f, Offset.Zero) }, tooltip = "Текущий масштаб")
-        DarkIconButton(AppIcon.UI_ZOOMIN, "Увеличить", onClick = { view.zoomAbout(1.25f) })
-        DarkIconButton(AppIcon.UI_FIT, "Вписать атлас в окно (Shift+1)", onClick = { view.fit(doc.model.refWidth, doc.model.refHeight) })
+        DarkIconButton(AppIcon.UI_ZOOMOUT, tr("Уменьшить"), onClick = { view.zoomAbout(1f / 1.25f) })
+        DarkToolButton("${(view.zoom * 100).roundToInt()}%", { view.zoomAbout(1f, Offset.Zero) }, tooltip = tr("Текущий масштаб"))
+        DarkIconButton(AppIcon.UI_ZOOMIN, tr("Увеличить"), onClick = { view.zoomAbout(1.25f) })
+        DarkIconButton(
+            AppIcon.UI_FIT,
+            tr("Вписать атлас в окно (Shift+1)"),
+            onClick = { view.fit(doc.model.refWidth, doc.model.refHeight) },
+        )
         DarkToolButton("1:1", {
             val centre = Offset(view.canvas.width / 2f, view.canvas.height / 2f)
             view.zoomAbout(1f / view.zoom, centre)
-        }, tooltip = "Один пиксель текстуры на один пиксель экрана")
+        }, tooltip = tr("Один пиксель текстуры на один пиксель экрана"))
         Box(
             Modifier
                 .padding(horizontal = 4.dp)
@@ -135,21 +140,21 @@ private fun ImageSetToolbar(
                 .background(DarkenedBorder),
         )
         DarkToolButton(
-            "Новая область",
+            tr("Новая область"),
             { view.drawMode = !view.drawMode },
             icon = AppIcon.UI_PLUS,
             active = view.drawMode,
-            tooltip = "Рисовать новую область рамкой. Без этого режима то же делает Ctrl+перетаскивание по пустому месту",
+            tooltip = tr("Рисовать новую область рамкой. Без этого режима то же делает Ctrl+перетаскивание по пустому месту"),
         )
         DarkIconButton(
             AppIcon.UI_COPY,
-            "Дублировать выбранные (Ctrl+D)",
+            tr("Дублировать выбранные (Ctrl+D)"),
             onClick = { duplicateSelected(doc) },
             enabled = doc.selected.isNotEmpty(),
         )
         DarkIconButton(
             AppIcon.UI_TRASH,
-            "Удалить выбранные (Delete)",
+            tr("Удалить выбранные (Delete)"),
             onClick = {
                 val ids = doc.selected.toSet()
                 doc.edit { it.withRemoved(ids) }
@@ -177,10 +182,10 @@ private fun ImageSetToolbar(
                 doc.selected.clear()
                 doc.selected.addAll(created)
             },
-            tooltip = "Добавить группу из девяти областей 30 × 30, как «Add 3x3» в Workbench",
+            tooltip = tr("Добавить группу из девяти областей 30 × 30, как «Add 3x3» в Workbench"),
         )
         DarkToolButton(
-            "Разрезать",
+            tr("Разрезать"),
             {
                 val id = doc.selected.singleOrNull()
                 val d = id?.let { doc.model.entry(it)?.def }
@@ -197,16 +202,21 @@ private fun ImageSetToolbar(
                         doc.selected.clear()
                         doc.selected.addAll(ids)
                     } else {
-                        state.notify("Область слишком мала, чтобы разрезать на девять")
+                        state.notify(tr("Область слишком мала, чтобы разрезать на девять"))
                     }
                 }
             },
-            tooltip = "Разрезать выбранную область на девять частей для 9-slice. Угол — треть меньшей стороны, дальше правится руками",
+            tooltip = tr("Разрезать выбранную область на девять частей для 9-slice. Угол — треть меньшей стороны, дальше правится руками"),
         )
-        DarkIconButton(AppIcon.UI_GRID, "Сетка пикселей при большом увеличении", onClick = {
+        DarkIconButton(AppIcon.UI_GRID, tr("Сетка пикселей при большом увеличении"), onClick = {
             view.showGrid = !view.showGrid
         }, active = view.showGrid)
-        DarkToolButton("Имена", { view.showNames = !view.showNames }, active = view.showNames, tooltip = "Подписи областей на атласе")
+        DarkToolButton(
+            tr("Имена"),
+            { view.showNames = !view.showNames },
+            active = view.showNames,
+            tooltip = tr("Подписи областей на атласе"),
+        )
     }
 }
 
@@ -355,29 +365,34 @@ private fun SetSection(
     val model = doc.model
     PanelHeader("Imageset", open, { open = !open })
     if (!open) return
-    LabelRow("Name", "Имя набора: по нему layout находит картинки, set:ИМЯ image:КАРТИНКА") {
+    LabelRow("Name", tr("Имя набора: по нему layout находит картинки, set:ИМЯ image:КАРТИНКА")) {
         CommitField(model.name, Modifier.weight(1f)) { v -> doc.edit { it.copy(name = v.trim()) } }
     }
-    LabelRow("RefSize", "Размер текстуры в пикселях, в которых заданы Pos и Size картинок") {
+    LabelRow("RefSize", tr("Размер текстуры в пикселях, в которых заданы Pos и Size картинок")) {
         IntField(model.refWidth, Modifier.weight(1f)) { v -> doc.edit { it.copy(refWidth = v.coerceAtLeast(1)) } }
         Text("×", color = GhostlyText, fontSize = 11.sp, modifier = Modifier.padding(horizontal = 4.dp))
         IntField(model.refHeight, Modifier.weight(1f)) { v -> doc.edit { it.copy(refHeight = v.coerceAtLeast(1)) } }
     }
     if (textureWidth != null && textureHeight != null && (textureWidth != model.refWidth || textureHeight != model.refHeight)) {
         Row(Modifier.padding(horizontal = 8.dp, vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text("Текстура $textureWidth × $textureHeight", color = GhostlyText, fontSize = 10.sp, modifier = Modifier.weight(1f))
+            Text(
+                tr("Текстура {0} × {1}", textureWidth, textureHeight),
+                color = GhostlyText,
+                fontSize = 10.sp,
+                modifier = Modifier.weight(1f),
+            )
             DarkButton(
-                "Взять",
+                tr("Взять"),
                 onClick = { doc.edit { it.copy(refWidth = textureWidth, refHeight = textureHeight) } },
                 modifier = Modifier.width(60.dp),
-                tooltip = "Записать размер текстуры в RefSize",
+                tooltip = tr("Записать размер текстуры в RefSize"),
             )
         }
     }
-    Text("Текстуры", color = GhostlyText, fontSize = 10.sp, modifier = Modifier.padding(start = 8.dp, top = 4.dp))
+    Text(tr("Текстуры"), color = GhostlyText, fontSize = 10.sp, modifier = Modifier.padding(start = 8.dp, top = 4.dp))
     model.textures.forEachIndexed { index, texture ->
         Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
-            Tip("mpix: уровень детализации. 0 основная текстура, 1 и выше крупнее (@2x)") {
+            Tip(tr("mpix: уровень детализации. 0 основная текстура, 1 и выше крупнее (@2x)")) {
                 IntField(texture.mpix, Modifier.width(34.dp)) { v ->
                     doc.edit { m ->
                         m.copy(
@@ -414,10 +429,10 @@ private fun SetSection(
             }
             DarkIconButton(
                 AppIcon.UI_SEARCH,
-                "Выбрать файл текстуры",
+                tr("Выбрать файл текстуры"),
                 onClick = {
                     scope.launch {
-                        pickFile("Текстура imageset", "*", state.workDrivePath.ifBlank { null })?.let { chosen ->
+                        pickFile(tr("Текстура imageset"), "*", state.workDrivePath.ifBlank { null })?.let { chosen ->
                             val ref = state.resourceReference(File(chosen))
                             doc.edit { m -> m.copy(textures = m.textures.mapIndexed { i, t -> if (i == index) t.copy(path = ref) else t }) }
                             state.reloadImageSetTextures()
@@ -425,7 +440,7 @@ private fun SetSection(
                     }
                 },
             )
-            DarkIconButton(AppIcon.UI_TRASH, "Убрать текстуру", onClick = {
+            DarkIconButton(AppIcon.UI_TRASH, tr("Убрать текстуру"), onClick = {
                 doc.edit { m ->
                     m.copy(
                         textures =
@@ -440,7 +455,7 @@ private fun SetSection(
     }
     Row(Modifier.padding(horizontal = 8.dp, vertical = 2.dp)) {
         DarkButton(
-            "Добавить текстуру",
+            tr("Добавить текстуру"),
             onClick = {
                 doc.edit { m ->
                     m.copy(
@@ -450,12 +465,12 @@ private fun SetSection(
                 }
             },
             modifier = Modifier.width(140.dp),
-            tooltip = "Ещё один файл текстуры для другого mpix",
+            tooltip = tr("Ещё один файл текстуры для другого mpix"),
         )
     }
     if (textureFile == null && model.textures.isNotEmpty()) {
         Text(
-            "Файл текстуры не найден: картинки показаны без неё",
+            tr("Файл текстуры не найден: картинки показаны без неё"),
             color = Color(0xFFF0D9A0),
             fontSize = 10.sp,
             modifier = Modifier.padding(8.dp),
@@ -469,14 +484,14 @@ private fun SelectionSection(
     view: ImageSetView,
 ) {
     var open by remember { mutableStateOf(true) }
-    PanelHeader("Выбранное", open, { open = !open })
+    PanelHeader(tr("Выбранное"), open, { open = !open })
     if (!open) return
     val model = doc.model
     val selected = doc.selected.mapNotNull { model.entry(it) }
     when {
         selected.isEmpty() -> {
             Text(
-                "Выберите область на атласе или в списке. Новую можно нарисовать рамкой.",
+                tr("Выберите область на атласе или в списке. Новую можно нарисовать рамкой."),
                 color = GhostlyText,
                 fontSize = 11.sp,
                 modifier = Modifier.padding(8.dp),
@@ -484,7 +499,7 @@ private fun SelectionSection(
         }
 
         selected.size > 1 -> {
-            Text("Выбрано: ${selected.size}", color = TextForeground, fontSize = 11.sp, modifier = Modifier.padding(8.dp))
+            Text(tr("Выбрано: {0}", selected.size), color = TextForeground, fontSize = 11.sp, modifier = Modifier.padding(8.dp))
             GroupRow(doc, selected)
         }
 
@@ -497,7 +512,7 @@ private fun SelectionSection(
             ) = doc.edit {
                 it.withUpdated(entry.id, f)
             }
-            LabelRow("Name", "Имя картинки в set:ИМЯ image:КАРТИНКА (F2 на атласе)") {
+            LabelRow("Name", tr("Имя картинки в set:ИМЯ image:КАРТИНКА (F2 на атласе)")) {
                 CommitField(def.name, Modifier.weight(1f), focusTick = doc.focusNameTick) { v ->
                     val clean = v.trim()
                     if (clean.isNotEmpty() &&
@@ -521,32 +536,32 @@ private fun SelectionSection(
                     }
                 }
             }
-            LabelRow("Pos", "Левый верхний угол области в пикселях RefSize") {
+            LabelRow("Pos", tr("Левый верхний угол области в пикселях RefSize")) {
                 IntField(def.x, Modifier.weight(1f)) { v -> change { it.copy(x = v) } }
                 Spacer(Modifier.width(4.dp))
                 IntField(def.y, Modifier.weight(1f)) { v -> change { it.copy(y = v) } }
             }
-            LabelRow("Size", "Ширина и высота области в пикселях RefSize") {
+            LabelRow("Size", tr("Ширина и высота области в пикселях RefSize")) {
                 IntField(def.width, Modifier.weight(1f)) { v -> change { it.copy(width = v.coerceAtLeast(0)) } }
                 Spacer(Modifier.width(4.dp))
                 IntField(def.height, Modifier.weight(1f)) { v -> change { it.copy(height = v.coerceAtLeast(0)) } }
             }
-            LabelRow("Flags", "Повторение картинки при растягивании в виджете") {
-                FlagBox("H", "ISHorizontalTile: повторять по горизонтали", def.flags and ImageFlags.H_TILE != 0) { on ->
+            LabelRow("Flags", tr("Повторение картинки при растягивании в виджете")) {
+                FlagBox("H", tr("ISHorizontalTile: повторять по горизонтали"), def.flags and ImageFlags.H_TILE != 0) { on ->
                     change { it.withFlags(if (on) it.flags or ImageFlags.H_TILE else it.flags and ImageFlags.H_TILE.inv()) }
                 }
                 Spacer(Modifier.width(8.dp))
-                FlagBox("V", "ISVerticalTile: повторять по вертикали", def.flags and ImageFlags.V_TILE != 0) { on ->
+                FlagBox("V", tr("ISVerticalTile: повторять по вертикали"), def.flags and ImageFlags.V_TILE != 0) { on ->
                     change { it.withFlags(if (on) it.flags or ImageFlags.V_TILE else it.flags and ImageFlags.V_TILE.inv()) }
                 }
             }
             GroupRow(doc, selected)
             Row(Modifier.padding(horizontal = 8.dp, vertical = 2.dp)) {
                 DarkButton(
-                    "Показать",
+                    tr("Показать"),
                     onClick = { view.zoomTo(def.rect()) },
                     modifier = Modifier.width(80.dp),
-                    tooltip = "Приблизить эту область (Shift+2)",
+                    tooltip = tr("Приблизить эту область (Shift+2)"),
                 )
             }
         }
@@ -585,7 +600,10 @@ private fun GroupRow(
     selected: List<ImageEntry>,
 ) {
     val current = selected.map { it.group }.distinct().singleOrNull()
-    LabelRow("Группа", "Группа нужна только для порядка в Image Set Editor Workbench, на ссылки из layout не влияет. Пусто: вне групп") {
+    LabelRow(
+        tr("Группа"),
+        tr("Группа нужна только для порядка в Image Set Editor Workbench, на ссылки из layout не влияет. Пусто: вне групп"),
+    ) {
         CommitField(current.orEmpty(), Modifier.weight(1f)) { v ->
             val ids = selected.map { it.id }.toSet()
             val name = v.trim().ifEmpty { null }
@@ -617,7 +635,7 @@ private fun ImageList(
     }
     var query by remember { mutableStateOf("") }
     val model = doc.model
-    PanelHeader("Картинки (${model.entries.size})", open, { open = !open })
+    PanelHeader(tr("Картинки ({0})", model.entries.size), open, { open = !open })
     if (!open) return
     Box(Modifier.fillMaxWidth().padding(8.dp)) {
         BasicTextField(
@@ -638,7 +656,7 @@ private fun ImageList(
                         .padding(horizontal = 6.dp),
                     contentAlignment = Alignment.CenterStart,
                 ) {
-                    if (query.isEmpty()) Text("Поиск по имени…", color = GhostlyText, fontSize = 11.sp)
+                    if (query.isEmpty()) Text(tr("Поиск по имени…"), color = GhostlyText, fontSize = 11.sp)
                     inner()
                 }
             },
@@ -666,7 +684,7 @@ private fun ImageList(
         }
         if (shown.size > limit) {
             Text(
-                "Показано $limit из ${shown.size}. Показать ещё",
+                tr("Показано {0} из {1}. Показать ещё", limit, shown.size),
                 color = GhostlyText,
                 fontSize = 11.sp,
                 modifier = Modifier.fillMaxWidth().clickable { limit += IMAGE_ROWS_STEP }.padding(8.dp),
@@ -741,14 +759,14 @@ private fun ProblemsSection(
 ) {
     var open by remember { mutableStateOf(true) }
     PanelHeader(
-        if (problems.isEmpty()) "Проверка" else "Проверка (${problems.size})",
+        if (problems.isEmpty()) tr("Проверка") else tr("Проверка ({0})", problems.size),
         open,
         { open = !open },
-        tooltip = "Пересечения, выход за RefSize, повторяющиеся имена, пустые области и пропорции текстуры",
+        tooltip = tr("Пересечения, выход за RefSize, повторяющиеся имена, пустые области и пропорции текстуры"),
     )
     if (!open) return
     if (problems.isEmpty()) {
-        Text("Замечаний нет", color = GhostlyText, fontSize = 11.sp, modifier = Modifier.padding(8.dp))
+        Text(tr("Замечаний нет"), color = GhostlyText, fontSize = 11.sp, modifier = Modifier.padding(8.dp))
         return
     }
     for (p in problems.take(50)) {
@@ -768,7 +786,11 @@ private fun ProblemsSection(
             Text(p.message, color = TextForeground, fontSize = 11.sp)
         }
     }
-    if (problems.size > 50) Text("И ещё ${problems.size - 50}", color = GhostlyText, fontSize = 11.sp, modifier = Modifier.padding(8.dp))
+    if (problems.size >
+        50
+    ) {
+        Text(tr("И ещё {0}", problems.size - 50), color = GhostlyText, fontSize = 11.sp, modifier = Modifier.padding(8.dp))
+    }
 }
 
 private val awtOfAtlas = java.util.WeakHashMap<androidx.compose.ui.graphics.ImageBitmap, java.awt.image.BufferedImage>()

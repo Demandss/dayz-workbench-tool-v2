@@ -32,6 +32,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.github.demandss.dayz_workbench_tool.i18n.tr
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.LayoutEditorState
 import com.github.demandss.dayz_workbench_tool.ui.components.DarkButton
 import com.github.demandss.dayz_workbench_tool.ui.components.DarkIconButton
@@ -87,46 +88,46 @@ fun ReferencePanel(
         ) {
             AppIconView(AppIcon.UI_COMPARE, size = 14.dp)
             Spacer(Modifier.width(6.dp))
-            Text("Эталон Workbench", color = TextForeground, fontSize = 11.sp, modifier = Modifier.weight(1f))
-            DarkIconButton(AppIcon.UI_CLOSE, "Скрыть эталон", onClick = { state.showReference = false })
+            Text(tr("Эталон Workbench"), color = TextForeground, fontSize = 11.sp, modifier = Modifier.weight(1f))
+            DarkIconButton(AppIcon.UI_CLOSE, tr("Скрыть эталон"), onClick = { state.showReference = false })
         }
 
         Column(Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(
-                if (image == null) "Скриншот не загружен" else File(state.referencePath).name,
+                if (image == null) tr("Скриншот не загружен") else File(state.referencePath).name,
                 color = if (image == null) GhostlyText else TextForeground,
                 fontSize = 11.sp,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                DarkButton("Загрузить…", tooltip = "Выбрать скриншот из Workbench", onClick = {
+                DarkButton(tr("Загрузить…"), tooltip = tr("Выбрать скриншот из Workbench"), onClick = {
                     scope.launch {
                         val start = File(state.referencePath).parent ?: state.workDrivePath.ifBlank { null }
-                        pickFile("Скриншот Workbench", "*", start)?.let { state.loadReference(it) }
+                        pickFile(tr("Скриншот Workbench"), "*", start)?.let { state.loadReference(it) }
                     }
                 })
                 if (image !=
                     null
                 ) {
-                    DarkButton("Убрать", onClick = { state.clearReference() }, muted = true, tooltip = "Убрать скриншот с холста")
+                    DarkButton(tr("Убрать"), onClick = { state.clearReference() }, muted = true, tooltip = tr("Убрать скриншот с холста"))
                 }
             }
             if (image != null) {
-                Text("Прозрачность ${(state.referenceOpacity * 100).roundToInt()}%", color = GhostlyText, fontSize = 11.sp)
+                Text(tr("Прозрачность {0}%", (state.referenceOpacity * 100).roundToInt()), color = GhostlyText, fontSize = 11.sp)
                 Slider(
                     value = state.referenceOpacity,
                     onValueChange = { state.referenceOpacity = it },
                     onValueChangeFinished = { state.saveReferenceSettings() },
                 )
                 Text(
-                    "Снимок ${image.width}×${image.height} растянут на выбранное разрешение",
+                    tr("Снимок {0}×{1} растянут на выбранное разрешение", image.width, image.height),
                     color = GhostlyText,
                     fontSize = 10.sp,
                 )
             } else {
                 Text(
-                    "Сделайте снимок лайаута в Workbench при тех же разрешении и масштабе 100%, обрежьте до экрана и загрузите сюда.",
+                    tr("Сделайте снимок лайаута в Workbench при тех же разрешении и масштабе 100%, обрежьте до экрана и загрузите сюда."),
                     color = GhostlyText,
                     fontSize = 10.sp,
                 )

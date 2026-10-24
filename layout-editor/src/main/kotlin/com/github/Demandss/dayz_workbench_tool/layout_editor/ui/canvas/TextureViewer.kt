@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.github.demandss.dayz_workbench_tool.i18n.tr
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.LayoutEditorState
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.TextureDocument
 import com.github.demandss.dayz_workbench_tool.ui.components.DarkToolButton
@@ -99,25 +100,30 @@ fun TextureViewer(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(2.dp),
         ) {
-            DarkToolButton("Fit", { fit(limitTo100 = false) }, icon = AppIcon.UI_FIT, tooltip = "Вписать текстуру в окно")
-            DarkToolButton("100%", tooltip = "Один пиксель текстуры на один пиксель экрана", onClick = {
+            DarkToolButton("Fit", { fit(limitTo100 = false) }, icon = AppIcon.UI_FIT, tooltip = tr("Вписать текстуру в окно"))
+            DarkToolButton("100%", tooltip = tr("Один пиксель текстуры на один пиксель экрана"), onClick = {
                 val s = source
                 if (s != null && viewSize != Size.Zero) {
                     zoom = 1f
                     pan = Offset((viewSize.width - s.width) / 2f, (viewSize.height - s.height) / 2f)
                 }
             })
-            DarkToolButton(null, { zoomAboutCentre(1f / 1.25f) }, icon = AppIcon.UI_ZOOMOUT, tooltip = "Уменьшить")
-            DarkToolButton(null, { zoomAboutCentre(1.25f) }, icon = AppIcon.UI_ZOOMIN, tooltip = "Увеличить")
+            DarkToolButton(null, { zoomAboutCentre(1f / 1.25f) }, icon = AppIcon.UI_ZOOMOUT, tooltip = tr("Уменьшить"))
+            DarkToolButton(null, { zoomAboutCentre(1.25f) }, icon = AppIcon.UI_ZOOMIN, tooltip = tr("Увеличить"))
             ToolSeparator()
             ChannelMode.entries.forEach { mode ->
-                DarkToolButton(mode.label, { channel = mode }, active = channel == mode, tooltip = "Показать канал ${mode.label}")
+                DarkToolButton(mode.label, { channel = mode }, active = channel == mode, tooltip = tr("Показать канал {0}", mode.label))
             }
             ToolSeparator()
-            DarkToolButton("Шахматка", {
+            DarkToolButton(tr("Шахматка"), {
                 checker = !checker
-            }, icon = AppIcon.UI_GRID, active = checker, tooltip = "Шахматный фон, чтобы видеть прозрачность")
-            DarkToolButton("Reload", { state.reloadTexture(doc.path) }, icon = AppIcon.UI_RELOAD, tooltip = "Прочитать файл с диска заново")
+            }, icon = AppIcon.UI_GRID, active = checker, tooltip = tr("Шахматный фон, чтобы видеть прозрачность"))
+            DarkToolButton(
+                "Reload",
+                { state.reloadTexture(doc.path) },
+                icon = AppIcon.UI_RELOAD,
+                tooltip = tr("Прочитать файл с диска заново"),
+            )
             Spacer(Modifier.weight(1f))
             Text("${(zoom * 100).roundToInt()}%", color = GhostlyText, fontSize = 11.sp)
         }
@@ -203,8 +209,8 @@ fun TextureViewer(
                 }
 
                 when {
-                    doc.loading -> StatusText("Загрузка…")
-                    doc.error != null -> StatusText("Не удалось открыть: ${doc.error}")
+                    doc.loading -> StatusText(tr("Загрузка…"))
+                    doc.error != null -> StatusText(tr("Не удалось открыть: {0}", doc.error))
                 }
             }
 
@@ -245,22 +251,22 @@ private fun InfoPanel(
             .padding(8.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        Line("Файл", doc.fileName)
+        Line(tr("Файл"), doc.fileName)
         if (s != null) {
-            Line("Размер", "${s.width} × ${s.height}")
-            Line("Формат", doc.format)
-            if (doc.mipCount > 0) Line("Мипы", doc.mipCount.toString())
+            Line(tr("Размер"), "${s.width} × ${s.height}")
+            Line(tr("Формат"), doc.format)
+            if (doc.mipCount > 0) Line(tr("Мипы"), doc.mipCount.toString())
         }
-        Line("На диске", formatBytes(doc.fileSize))
+        Line(tr("На диске"), formatBytes(doc.fileSize))
         if (s != null) {
             Spacer(Modifier.height(6.dp))
             if (hover != null) {
                 val p = s.getRGB(hover.x, hover.y)
-                Line("Пиксель", "${hover.x}, ${hover.y}")
+                Line(tr("Пиксель"), "${hover.x}, ${hover.y}")
                 Line("R G B A", "${(p shr 16) and 0xFF}  ${(p shr 8) and 0xFF}  ${p and 0xFF}  ${p ushr 24}")
                 Line("Hex", "#%08X".format(p))
             } else {
-                Line("Пиксель", "—")
+                Line(tr("Пиксель"), "—")
             }
         }
     }
@@ -279,9 +285,9 @@ private fun Line(
 
 private fun formatBytes(n: Long): String =
     when {
-        n >= 1_048_576 -> "%.1f МБ".format(n / 1_048_576.0)
-        n >= 1024 -> "%.1f КБ".format(n / 1024.0)
-        else -> "$n Б"
+        n >= 1_048_576 -> tr("%.1f МБ").format(n / 1_048_576.0)
+        n >= 1024 -> tr("%.1f КБ").format(n / 1024.0)
+        else -> tr("{0} Б", n)
     }
 
 /** What the viewport shows. A single channel is drawn as an opaque grey image. */

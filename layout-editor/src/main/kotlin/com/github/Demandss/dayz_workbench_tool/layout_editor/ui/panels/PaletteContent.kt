@@ -22,6 +22,7 @@ import androidx.compose.ui.input.pointer.*
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.github.demandss.dayz_workbench_tool.i18n.tr
 import com.github.demandss.dayz_workbench_tool.layout.WidgetType
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.DragSession
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.DragSource
@@ -61,7 +62,7 @@ fun PaletteContent(
                             .padding(horizontal = 6.dp),
                         contentAlignment = Alignment.CenterStart,
                     ) {
-                        if (query.isEmpty()) Text("Поиск виджета…", color = GhostlyText, fontSize = 11.sp)
+                        if (query.isEmpty()) Text(tr("Поиск виджета…"), color = GhostlyText, fontSize = 11.sp)
                         inner()
                     }
                 },
@@ -74,7 +75,7 @@ fun PaletteContent(
             items(shown) { type -> PaletteRow(type, enabled, state) }
             item(span = { GridItemSpan(maxLineSpan) }) {
                 Text(
-                    "Перетащите виджет на холст или на строку в иерархии. Клик добавляет в выбранный виджет.",
+                    tr("Перетащите виджет на холст или на строку в иерархии. Клик добавляет в выбранный виджет."),
                     color = GhostlyText,
                     fontSize = 11.sp,
                     lineHeight = 16.sp,

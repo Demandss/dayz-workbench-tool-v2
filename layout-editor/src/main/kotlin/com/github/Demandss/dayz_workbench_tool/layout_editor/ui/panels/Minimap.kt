@@ -17,6 +17,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
+import com.github.demandss.dayz_workbench_tool.i18n.tr
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.LayoutEditorState
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.layoutTree
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.screenRect
@@ -42,7 +43,7 @@ fun Minimap(
     // The rectangles of the widgets change with the tree and the selection only, so they are a layer of their own and are not
     // drawn again while the view is dragged; the layer above holds the rectangle of the view
     val layout = remember(doc.root, screen) { layoutTree(doc.root, screen) }
-    Tip("Миникарта: клик или перетаскивание переносит вид") {
+    Tip(tr("Миникарта: клик или перетаскивание переносит вид")) {
         Box(
             modifier
                 .size(width, height)

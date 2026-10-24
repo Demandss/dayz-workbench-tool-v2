@@ -11,6 +11,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.github.demandss.dayz_workbench_tool.i18n.tr
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.LayoutEditorState
 import com.github.demandss.dayz_workbench_tool.ui.components.Tip
 import com.github.demandss.dayz_workbench_tool.ui.theme.DarkenedBorder
@@ -26,9 +27,9 @@ fun ViewportChips(
     modifier: Modifier = Modifier,
 ) {
     Row(modifier, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-        Tip("Масштаб холста") { Chip("${(state.zoom * 100).roundToInt()}%") }
-        Tip("Разрешение, на котором рисуется layout") { Chip(state.selectedResolution.label) }
-        if (state.livePreview) Tip("Чистый вид включён. Выключается кнопкой Live Preview") { Chip("Live Preview", accent = true) }
+        Tip(tr("Масштаб холста")) { Chip("${(state.zoom * 100).roundToInt()}%") }
+        Tip(tr("Разрешение, на котором рисуется layout")) { Chip(state.selectedResolution.label) }
+        if (state.livePreview) Tip(tr("Чистый вид включён. Выключается кнопкой Live Preview")) { Chip("Live Preview", accent = true) }
     }
 }
 

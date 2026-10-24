@@ -49,6 +49,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
+import com.github.demandss.dayz_workbench_tool.i18n.tr
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.hsvToColor
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.parseColorText
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.toHex
@@ -156,7 +157,7 @@ fun ColorPickerPopup(
                     Brush.horizontalGradient(
                         listOf(0f, 60f, 120f, 180f, 240f, 300f, 360f).map { hsvToColor(it.coerceAtMost(359.9f), 1f, 1f) },
                     ),
-                tooltip = "Оттенок",
+                tooltip = tr("Оттенок"),
                 fraction = hue / 360f,
                 onPick = { f ->
                     hue = f * 360f
@@ -167,7 +168,7 @@ fun ColorPickerPopup(
             // Alpha
             Slider(
                 brush = Brush.horizontalGradient(listOf(Color.Transparent, hsvToColor(hue, sat, value))),
-                tooltip = "Прозрачность",
+                tooltip = tr("Прозрачность"),
                 fraction = alpha,
                 backdrop = true,
                 onPick = { alpha = it },
@@ -235,10 +236,10 @@ fun ColorPickerPopup(
                 )
                 Text("${(alpha * 100).toInt()}%", color = GhostlyText, fontSize = 11.sp)
             }
-            Text("Вставьте цвет из браузера: rgb(...), #hex или hsl(...)", color = GhostlyText, fontSize = 10.sp)
+            Text(tr("Вставьте цвет из браузера: rgb(...), #hex или hsl(...)"), color = GhostlyText, fontSize = 10.sp)
 
             if (documentColors.isNotEmpty()) {
-                Text("Цвета этого layout", color = GhostlyText, fontSize = 10.sp)
+                Text(tr("Цвета этого layout"), color = GhostlyText, fontSize = 10.sp)
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     documentColors.chunked(6).forEach { row ->
                         Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {

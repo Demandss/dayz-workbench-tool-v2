@@ -17,6 +17,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.github.demandss.dayz_workbench_tool.i18n.tr
 import com.github.demandss.dayz_workbench_tool.layout_editor.behavior.BehaviorCatalogue
 import com.github.demandss.dayz_workbench_tool.layout_editor.behavior.useBehavior
 import com.github.demandss.dayz_workbench_tool.layout_editor.mcp.McpHost
@@ -53,20 +54,20 @@ fun Toolbar(
         Spacer(Modifier.width(4.dp))
 
         // File
-        DarkIconButton(AppIcon.FOLDER_OPEN, "Открыть layout…", onClick = onOpenFile)
+        DarkIconButton(AppIcon.FOLDER_OPEN, tr("Открыть layout…"), onClick = onOpenFile)
 
         Divider()
 
         // Zoom controls
-        DarkIconButton(AppIcon.UI_ZOOMOUT, "Уменьшить", onClick = {
+        DarkIconButton(AppIcon.UI_ZOOMOUT, tr("Уменьшить"), onClick = {
             state.zoom = (state.zoom * 0.9f).coerceIn(0.1f, 8f)
         })
-        Tip("Текущий масштаб холста") { ZoomLabel(state.zoom) }
-        DarkIconButton(AppIcon.UI_ZOOMIN, "Увеличить", onClick = {
+        Tip(tr("Текущий масштаб холста")) { ZoomLabel(state.zoom) }
+        DarkIconButton(AppIcon.UI_ZOOMIN, tr("Увеличить"), onClick = {
             state.zoom = (state.zoom * 1.1f).coerceIn(0.1f, 8f)
         })
-        DarkIconButton(AppIcon.UI_FIT, "Вписать в окно", onClick = { state.centerView() })
-        DarkButton("100%", onClick = { state.zoomActual() }, tooltip = "Масштаб 100%")
+        DarkIconButton(AppIcon.UI_FIT, tr("Вписать в окно"), onClick = { state.centerView() })
+        DarkButton("100%", onClick = { state.zoomActual() }, tooltip = tr("Масштаб 100%"))
 
         Divider()
 
@@ -81,13 +82,13 @@ fun Toolbar(
         // View toggles
         DarkIconButton(
             AppIcon.WIDGET_FRAME,
-            "Рамки виджетов",
+            tr("Рамки виджетов"),
             onClick = { state.showBorders = !state.showBorders },
             active = state.showBorders,
         )
         DarkIconButton(
             AppIcon.UI_INFO,
-            "Подписи виджетов на холсте (F7)",
+            tr("Подписи виджетов на холсте (F7)"),
             onClick = {
                 state.showWidgetNames = !state.showWidgetNames
                 state.savePreferences()
@@ -96,63 +97,63 @@ fun Toolbar(
         )
         DarkIconButton(
             AppIcon.UI_GRID,
-            "Показать сетку",
+            tr("Показать сетку"),
             onClick = { state.showGrid = !state.showGrid },
             active = state.showGrid,
         )
         if (state.showGrid || state.snapToGrid) GridSizeField(state)
         DarkIconButton(
             AppIcon.UI_MAGNET,
-            "Привязка к сетке при перемещении (Ctrl отключает)",
+            tr("Привязка к сетке при перемещении (Ctrl отключает)"),
             onClick = { state.snapToGrid = !state.snapToGrid },
             active = state.snapToGrid,
         )
         DarkIconButton(
             AppIcon.UI_SAFE,
-            "Безопасная зона",
+            tr("Безопасная зона"),
             onClick = { state.showSafeFrame = !state.showSafeFrame },
             active = state.showSafeFrame,
         )
         DarkIconButton(
             AppIcon.UI_MEASURE,
-            "Расстояния до краёв",
+            tr("Расстояния до краёв"),
             onClick = { state.showMeasure = !state.showMeasure },
             active = state.showMeasure,
         )
         DarkIconButton(
             AppIcon.UI_COMPARE,
-            "Эталон Workbench",
+            tr("Эталон Workbench"),
             onClick = { state.showReference = !state.showReference },
             active = state.showReference,
         )
 
-        DarkIconButton(AppIcon.UI_RULER, "Линейки", onClick = { state.showRulers = !state.showRulers }, active = state.showRulers)
-        DarkIconButton(AppIcon.UI_FIT, "Миникарта", onClick = { state.showMinimap = !state.showMinimap }, active = state.showMinimap)
-        DarkIconButton(AppIcon.UI_PIXEL, "Сравнить 4:3, 5:4 и 16:9", onClick = {
+        DarkIconButton(AppIcon.UI_RULER, tr("Линейки"), onClick = { state.showRulers = !state.showRulers }, active = state.showRulers)
+        DarkIconButton(AppIcon.UI_FIT, tr("Миникарта"), onClick = { state.showMinimap = !state.showMinimap }, active = state.showMinimap)
+        DarkIconButton(AppIcon.UI_PIXEL, tr("Сравнить 4:3, 5:4 и 16:9"), onClick = {
             state.compareResolutions = !state.compareResolutions
         }, active = state.compareResolutions)
 
         Spacer(Modifier.weight(1f))
         DarkIconButton(
             AppIcon.UI_UNDO,
-            "Отменить (Ctrl+Z)",
+            tr("Отменить (Ctrl+Z)"),
             onClick = { state.undo(state.activeFileIndex) },
             enabled = state.activeFile?.undoStack?.isNotEmpty() == true,
         )
         DarkIconButton(
             AppIcon.UI_REDO,
-            "Повторить (Ctrl+Y)",
+            tr("Повторить (Ctrl+Y)"),
             onClick = { state.redo(state.activeFileIndex) },
             enabled = state.activeFile?.redoStack?.isNotEmpty() == true,
         )
-        DarkIconButton(AppIcon.UI_SAVE, "Сохранить (Ctrl+S)", onClick = { state.saveActiveFile() }, enabled = state.activeFile != null)
+        DarkIconButton(AppIcon.UI_SAVE, tr("Сохранить (Ctrl+S)"), onClick = { state.saveActiveFile() }, enabled = state.activeFile != null)
         ScriptTemplateButton(state)
         Spacer(Modifier.width(4.dp))
         BehaviorButton(state)
         Spacer(Modifier.width(4.dp))
         DarkToolButton(
             "Live Preview",
-            tooltip = "Чистый вид без рамок, подписей и выделения (F5)",
+            tooltip = tr("Чистый вид без рамок, подписей и выделения (F5)"),
             onClick = { state.livePreview = !state.livePreview },
             icon = AppIcon.UI_PLAY,
             active = state.livePreview,
@@ -162,7 +163,7 @@ fun Toolbar(
         // The colour of the icon tells the state of the MCP connection: green works, red is on but not running
         DarkIconButton(
             AppIcon.UI_CMD,
-            "Настройки: MCP и отображение (Ctrl+,)" + if (McpHost.url != null) "  ·  MCP работает" else "",
+            tr("Настройки: MCP и отображение (Ctrl+,)") + if (McpHost.url != null) tr("  ·  MCP работает") else "",
             onClick = { state.preferencesOpen = true },
             tint =
                 when {
@@ -174,7 +175,7 @@ fun Toolbar(
         Spacer(Modifier.width(4.dp))
         DarkToolButton(
             "WB 1.30",
-            tooltip = "Как Workbench 1.30: color читается как линейный свет и смешивается в нём. Выключено: как в игре (F6)",
+            tooltip = tr("Как Workbench 1.30: color читается как линейный свет и смешивается в нём. Выключено: как в игре (F6)"),
             onClick = { state.workbenchColors = !state.workbenchColors },
             icon = AppIcon.UI_LAYERS,
             active = state.workbenchColors,
@@ -190,13 +191,13 @@ private fun ScriptTemplateButton(state: LayoutEditorState) {
     Box {
         DarkIconButton(
             AppIcon.UI_COPY,
-            "Скопировать шаблон скрипта для лайаута",
+            tr("Скопировать шаблон скрипта для лайаута"),
             onClick = { open = true },
             enabled = state.activeFile != null,
         )
         if (open) {
             ContextMenu(IntOffset(0, with(LocalDensity.current) { 28.dp.roundToPx() }), onDismiss = { open = false }) {
-                ContextMenuCaption("Шаблон скрипта в буфер")
+                ContextMenuCaption(tr("Шаблон скрипта в буфер"))
                 TemplateKind.entries.forEach { kind ->
                     ContextMenuItem(kind.title, icon = AppIcon.UI_COPY) {
                         open = false
@@ -212,7 +213,7 @@ private fun ScriptTemplateButton(state: LayoutEditorState) {
 @Composable
 private fun GridSizeField(state: LayoutEditorState) {
     var text by remember(state.gridSize) { mutableStateOf(state.gridSize.toString()) }
-    Tip("Шаг сетки в пикселях") {
+    Tip(tr("Шаг сетки в пикселях")) {
         Row(
             Modifier
                 .height(22.dp)
@@ -267,7 +268,7 @@ private fun ResolutionPicker(
 ) {
     var expanded by remember { mutableStateOf(false) }
     Box {
-        DarkButton(selected.label, onClick = { expanded = true }, tooltip = "Разрешение, на котором рисуется layout")
+        DarkButton(selected.label, onClick = { expanded = true }, tooltip = tr("Разрешение, на котором рисуется layout"))
         if (expanded) {
             DropdownPopup(
                 selected,
@@ -288,13 +289,13 @@ private fun BehaviorButton(state: LayoutEditorState) {
     Box {
         DarkIconButton(
             AppIcon.UI_ANCHOR,
-            "Поведения: поставить скрипт-класс на выбранный виджет и скопировать скрипт",
+            tr("Поведения: поставить скрипт-класс на выбранный виджет и скопировать скрипт"),
             onClick = { open = true },
             enabled = state.activeFile != null,
         )
         if (open) {
             ContextMenu(IntOffset(0, with(LocalDensity.current) { 28.dp.roundToPx() }), onDismiss = { open = false }) {
-                ContextMenuCaption("Скрипт-класс на выбранный виджет и в буфер")
+                ContextMenuCaption(tr("Скрипт-класс на выбранный виджет и в буфер"))
                 BehaviorCatalogue.entries.groupBy { it.group }.forEach { (group, entries) ->
                     ContextMenuCaption(group)
                     entries.forEach { entry ->

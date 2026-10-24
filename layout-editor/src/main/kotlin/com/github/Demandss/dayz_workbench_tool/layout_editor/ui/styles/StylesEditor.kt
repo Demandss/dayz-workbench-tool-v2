@@ -44,6 +44,7 @@ import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.github.demandss.dayz_workbench_tool.i18n.tr
 import com.github.demandss.dayz_workbench_tool.layout.WidgetType
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.LayoutEditorState
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.StylesDocument
@@ -100,7 +101,7 @@ fun StylesEditor(
             val style = doc.selectedStyle
             if (style == null) {
                 Box(Modifier.weight(1f).fillMaxHeight(), contentAlignment = Alignment.Center) {
-                    Text("Выберите стиль слева", color = GhostlyText, fontSize = 12.sp)
+                    Text(tr("Выберите стиль слева"), color = GhostlyText, fontSize = 12.sp)
                 }
             } else {
                 StyleDetail(state, doc, style, Modifier.weight(1f).fillMaxHeight()) { request -> picking = request }
@@ -135,9 +136,9 @@ private fun StylesToolbar(
         horizontalArrangement = Arrangement.spacedBy(2.dp),
     ) {
         Spacer(Modifier.width(4.dp))
-        DarkIconButton(AppIcon.UI_SAVE, "Сохранить (Ctrl+S)", onClick = { state.saveActiveStyles() }, enabled = doc.isModified)
-        DarkIconButton(AppIcon.UI_UNDO, "Отменить (Ctrl+Z)", onClick = { doc.undo() }, enabled = doc.canUndo)
-        DarkIconButton(AppIcon.UI_REDO, "Повторить (Ctrl+Y)", onClick = { doc.redo() }, enabled = doc.canRedo)
+        DarkIconButton(AppIcon.UI_SAVE, tr("Сохранить (Ctrl+S)"), onClick = { state.saveActiveStyles() }, enabled = doc.isModified)
+        DarkIconButton(AppIcon.UI_UNDO, tr("Отменить (Ctrl+Z)"), onClick = { doc.undo() }, enabled = doc.canUndo)
+        DarkIconButton(AppIcon.UI_REDO, tr("Повторить (Ctrl+Y)"), onClick = { doc.redo() }, enabled = doc.canRedo)
         Box(
             Modifier
                 .padding(horizontal = 4.dp)
@@ -150,13 +151,13 @@ private fun StylesToolbar(
                 .map { it.className.removeSuffix("Class") }
                 .filter { name -> doc.sheet.widgets.none { it.widget == name } }
         if (unused.isNotEmpty()) {
-            DropdownField("+ Тип", unused, { it }, tooltip = "Добавить тип виджета, для которого будут стили") { name ->
+            DropdownField(tr("+ Тип"), unused, { it }, tooltip = tr("Добавить тип виджета, для которого будут стили")) { name ->
                 doc.edit { it.copy(widgets = it.widgets + WidgetStyles(name, emptyList())) }
                 doc.select(doc.sheet.widgets.lastIndex, -1)
             }
         }
         DarkToolButton(
-            "+ Стиль",
+            tr("+ Стиль"),
             {
                 val w = doc.widget.takeIf { it >= 0 } ?: return@DarkToolButton
                 val setName = doc.selectedStyle?.imageSet.orEmpty()
@@ -169,11 +170,11 @@ private fun StylesToolbar(
                 }
                 if (added >= 0) doc.select(w, added)
             },
-            tooltip = "Добавить стиль к выбранному типу виджета",
+            tooltip = tr("Добавить стиль к выбранному типу виджета"),
         )
         DarkIconButton(
             AppIcon.UI_COPY,
-            "Дублировать стиль",
+            tr("Дублировать стиль"),
             onClick = {
                 var added = -1
                 val w = doc.widget
@@ -189,7 +190,7 @@ private fun StylesToolbar(
         )
         DarkIconButton(
             AppIcon.UI_TRASH,
-            "Удалить стиль",
+            tr("Удалить стиль"),
             onClick = {
                 val w = doc.widget
                 val s = doc.style
@@ -245,7 +246,7 @@ private fun StyleTree(doc: StylesDocument) {
                         .padding(horizontal = 6.dp),
                     contentAlignment = Alignment.CenterStart,
                 ) {
-                    if (query.isEmpty()) Text("Поиск стиля…", color = GhostlyText, fontSize = 11.sp)
+                    if (query.isEmpty()) Text(tr("Поиск стиля…"), color = GhostlyText, fontSize = 11.sp)
                     inner()
                 }
             },
@@ -328,8 +329,8 @@ private fun StyleDetail(
         )
         StylePreview(state, doc, style, stateIndex)
 
-        PanelHeader("Стиль", true, {})
-        LabelRow("Name", "Имя стиля: его пишут в style у виджета") {
+        PanelHeader(tr("Стиль"), true, {})
+        LabelRow("Name", tr("Имя стиля: его пишут в style у виджета")) {
             CommitField(style.name, Modifier.weight(1f)) { v ->
                 val clean = v.trim()
                 val taken =
@@ -339,12 +340,12 @@ private fun StyleDetail(
                         .any { it.index != s && it.value.name == clean }
                 if (clean.isEmpty()) {
                     state.notify(
-                        "Имя стиля не может быть пустым",
+                        tr("Имя стиля не может быть пустым"),
                         com.github.demandss.dayz_workbench_tool.layout_editor.state.ToastKind.INFO,
                     )
                 } else if (taken) {
                     state.notify(
-                        "Стиль «$clean» уже есть у этого виджета",
+                        tr("Стиль «{0}» уже есть у этого виджета", clean),
                         com.github.demandss.dayz_workbench_tool.layout_editor.state.ToastKind.INFO,
                     )
                 } else {
@@ -352,10 +353,10 @@ private fun StyleDetail(
                 }
             }
         }
-        LabelRow("Font", "Путь к шрифту без расширения, например gui/fonts/MetronBook; пусто — шрифт по умолчанию") {
+        LabelRow("Font", tr("Путь к шрифту без расширения, например gui/fonts/MetronBook; пусто — шрифт по умолчанию")) {
             CommitField(style.font, Modifier.weight(1f), mono = true) { v -> change { it.copy(font = v.trim()) } }
         }
-        LabelRow("ImageSet", "Набор картинок, из которого берутся все картинки стиля") {
+        LabelRow("ImageSet", tr("Набор картинок, из которого берутся все картинки стиля")) {
             val options = (setNames + style.imageSet).filter { it.isNotEmpty() }.distinct()
             if (options.isEmpty()) {
                 CommitField(style.imageSet, Modifier.weight(1f)) { v -> change { it.copy(imageSet = v.trim()) } }
@@ -368,14 +369,14 @@ private fun StyleDetail(
                 ) { v -> change { it.copy(imageSet = v) } }
             }
         }
-        LabelRow("Color", "Цвет стиля AARRGGBB. FFFFFFFF — без изменений, 00000000 — прозрачный, цвет виджета его заменяет") {
+        LabelRow("Color", tr("Цвет стиля AARRGGBB. FFFFFFFF — без изменений, 00000000 — прозрачный, цвет виджета его заменяет")) {
             Box(Modifier.size(18.dp).background(styleColorOf(style.color)).border(1.dp, DarkenedBorder))
             Spacer(Modifier.width(6.dp))
             CommitField(styleColorHex(style.color), Modifier.weight(1f), mono = true) { v ->
                 val decimal = styleColorFromHex(v)
                 if (decimal == null) {
                     state.notify(
-                        "Цвет пишется как AARRGGBB, например FFFFFFFF",
+                        tr("Цвет пишется как AARRGGBB, например FFFFFFFF"),
                         com.github.demandss.dayz_workbench_tool.layout_editor.state.ToastKind.INFO,
                     )
                 } else {
@@ -384,7 +385,7 @@ private fun StyleDetail(
             }
         }
 
-        PanelHeader("Состояния", true, {})
+        PanelHeader(tr("Состояния"), true, {})
         Row(
             Modifier.fillMaxWidth().padding(8.dp),
             horizontalArrangement = Arrangement.spacedBy(4.dp),
@@ -396,18 +397,18 @@ private fun StyleDetail(
                     { doc.stateIndex = i },
                     active = i == stateIndex,
                     primary = true,
-                    tooltip = "Показать состояние ${st.name}",
+                    tooltip = tr("Показать состояние {0}", st.name),
                 )
             }
             val missing = STYLE_STATES.filter { name -> style.states.none { it.name == name } }
             if (missing.isNotEmpty()) {
-                DropdownField("+ состояние", missing, { it }, tooltip = "Добавить состояние") { name ->
+                DropdownField(tr("+ состояние"), missing, { it }, tooltip = tr("Добавить состояние")) { name ->
                     change { it.withAddedState(name) }
                     doc.stateIndex = doc.selectedStyle?.states?.lastIndex ?: 0
                 }
             }
             if (style.states.size > 1) {
-                DarkIconButton(AppIcon.UI_TRASH, "Удалить это состояние", onClick = {
+                DarkIconButton(AppIcon.UI_TRASH, tr("Удалить это состояние"), onClick = {
                     change { it.withoutState(stateIndex) }
                     doc.stateIndex = 0
                 })
@@ -417,13 +418,13 @@ private fun StyleDetail(
         val slotSets = remember(style.imageSet, state.workDrivePath) { slotSetsOf(state, style.imageSet, doc.path) }
         if (current != null && slotSets.isNotEmpty()) {
             Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text("Из набора", color = GhostlyText, fontSize = 10.sp, modifier = Modifier.width(86.dp))
+                Text(tr("Из набора"), color = GhostlyText, fontSize = 10.sp, modifier = Modifier.width(86.dp))
                 DropdownField(
-                    SlotSet("Заполнить слоты по именам…", emptyMap()),
+                    SlotSet(tr("Заполнить слоты по именам…"), emptyMap()),
                     slotSets,
                     { if (it.images.isEmpty()) it.label else "${it.label}  (${it.images.size})" },
                     Modifier.weight(1f),
-                    tooltip = "Картинки с именами вида Frame + LeftTop, Top, Center… раскладываются по слотам этого состояния",
+                    tooltip = tr("Картинки с именами вида Frame + LeftTop, Top, Center… раскладываются по слотам этого состояния"),
                 ) { set ->
                     change { st -> set.images.entries.fold(st) { acc, (slot, image) -> acc.withItem(stateIndex, slot, image) } }
                 }
@@ -457,7 +458,7 @@ private fun StyleDetail(
             val free = STYLE_SLOTS.filter { slot -> current.items.none { it.name == slot } }
             if (free.isNotEmpty()) {
                 Row(Modifier.padding(8.dp)) {
-                    DropdownField("+ слот", free, { it }, tooltip = "Добавить слот: LeftTop, Top, Center…") { slot ->
+                    DropdownField(tr("+ слот"), free, { it }, tooltip = tr("Добавить слот: LeftTop, Top, Center…")) { slot ->
                         change { it.withItem(stateIndex, slot, "") }
                     }
                 }
@@ -480,7 +481,7 @@ private fun ItemRow(
         Text(slot, color = GhostlyText, fontSize = 10.sp, modifier = Modifier.width(86.dp), maxLines = 1)
         // The image is chosen on the atlas, not typed: the field opens the picker
         Box(Modifier.weight(1f)) {
-            Tip("Выбрать картинку на атласе, из списка или набором для всех слотов") {
+            Tip(tr("Выбрать картинку на атласе, из списка или набором для всех слотов")) {
                 Box(
                     Modifier
                         .fillMaxWidth()
@@ -492,7 +493,7 @@ private fun ItemRow(
                     contentAlignment = Alignment.CenterStart,
                 ) {
                     Text(
-                        image.ifEmpty { "— нет картинки —" },
+                        image.ifEmpty { tr("— нет картинки —") },
                         color = if (image.isEmpty()) GhostlyText else TextForeground,
                         fontSize = 11.sp,
                         maxLines = 1,
@@ -501,8 +502,8 @@ private fun ItemRow(
                 }
             }
         }
-        DarkIconButton(AppIcon.UI_SEARCH, "Выбрать картинку на атласе", onClick = onPick, enabled = setName.isNotEmpty())
-        DarkIconButton(AppIcon.UI_TRASH, "Убрать слот", onClick = onRemove)
+        DarkIconButton(AppIcon.UI_SEARCH, tr("Выбрать картинку на атласе"), onClick = onPick, enabled = setName.isNotEmpty())
+        DarkIconButton(AppIcon.UI_TRASH, tr("Убрать слот"), onClick = onRemove)
         if (!known) AppIconView(AppIcon.UI_WARN, size = 14.dp)
     }
 }
@@ -637,15 +638,15 @@ private fun StylePreview(
                 }
 
                 skin == null -> {
-                    "Нет картинок для превью: слоты пусты или набор не найден"
+                    tr("Нет картинок для превью: слоты пусты или набор не найден")
                 }
 
                 hidden.isNotEmpty() -> {
-                    "Не показано превью: ${hidden.joinToString(", ")}"
+                    tr("Не показано превью: {0}", hidden.joinToString(", "))
                 }
 
                 interactive -> {
-                    "Наведите курсор на превью: Highlight, зажмите кнопку мыши: Pushed"
+                    tr("Наведите курсор на превью: Highlight, зажмите кнопку мыши: Pushed")
                 }
 
                 else -> {

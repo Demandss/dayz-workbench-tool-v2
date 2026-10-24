@@ -40,6 +40,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.WindowPlacement
 import androidx.compose.ui.window.rememberWindowState
+import com.github.demandss.dayz_workbench_tool.i18n.tr
 import com.github.demandss.dayz_workbench_tool.layout_editor.mcp.McpHost
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.DragSession
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.DragSource
@@ -363,7 +364,7 @@ fun LayoutEditorWindow(
                             ) {
                                 EmptyState(state, Modifier.weight(1f).fillMaxWidth()) {
                                     scope.launch {
-                                        pickFile("Открыть файл", "*", state.workDrivePath.ifBlank { null })?.let { state.openAny(it) }
+                                        pickFile(tr("Открыть файл"), "*", state.workDrivePath.ifBlank { null })?.let { state.openAny(it) }
                                     }
                                 }
                             } else if (styles != null) {
@@ -377,7 +378,7 @@ fun LayoutEditorWindow(
                                     scope.launch {
                                         val path =
                                             pickFile(
-                                                "Открыть layout-файл",
+                                                tr("Открыть layout-файл"),
                                                 "layout",
                                                 state.workDrivePath.ifBlank { null },
                                             )
@@ -481,7 +482,7 @@ fun LayoutEditorWindow(
                 ToastHost(state, Modifier.align(Alignment.BottomEnd).padding(bottom = 22.dp))
                 CommandPalette(state) {
                     scope.launch {
-                        pickFile("Открыть файл", "*", state.workDrivePath.ifBlank { null })?.let { state.openAny(it) }
+                        pickFile(tr("Открыть файл"), "*", state.workDrivePath.ifBlank { null })?.let { state.openAny(it) }
                     }
                 }
             }
@@ -649,7 +650,7 @@ private fun FileTab(
                 Box(Modifier.size(6.dp).background(Color(0xFF4A9EFF), CircleShape))
             }
             Spacer(Modifier.width(6.dp))
-            Tip("Закрыть вкладку (Ctrl+W)") {
+            Tip(tr("Закрыть вкладку (Ctrl+W)")) {
                 Box(
                     Modifier
                         .size(14.dp)
@@ -688,13 +689,13 @@ private fun ChangedOnDiskBanner(
         horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         Text(
-            "Файл изменён на диске.",
+            tr("Файл изменён на диске."),
             color = Color(0xFFFFD04A),
             fontSize = 12.sp,
             modifier = Modifier.weight(1f),
         )
-        DarkButton("Перезагрузить", onClick = onReload, tooltip = "Прочитать файл с диска заново, правки в редакторе пропадут")
-        DarkButton("Игнорировать", onClick = onIgnore, tooltip = "Оставить то, что открыто в редакторе")
+        DarkButton(tr("Перезагрузить"), onClick = onReload, tooltip = tr("Прочитать файл с диска заново, правки в редакторе пропадут"))
+        DarkButton(tr("Игнорировать"), onClick = onIgnore, tooltip = tr("Оставить то, что открыто в редакторе"))
     }
 }
 
@@ -725,10 +726,10 @@ private fun RightPanel(state: LayoutEditorState) {
                 Box(Modifier.weight(1f).fillMaxHeight()) {
                     Tip(
                         listOf(
-                            "Свойства выбранного виджета",
-                            "Виджеты, которые можно добавить",
-                            "Что в layout выглядит неверно",
-                            "Действия в этом layout, можно вернуться к любому",
+                            tr("Свойства выбранного виджета"),
+                            tr("Виджеты, которые можно добавить"),
+                            tr("Что в layout выглядит неверно"),
+                            tr("Действия в этом layout, можно вернуться к любому"),
                         )[i],
                     ) {
                         Box(

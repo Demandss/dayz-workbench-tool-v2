@@ -40,6 +40,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
+import com.github.demandss.dayz_workbench_tool.i18n.tr
 import com.github.demandss.dayz_workbench_tool.layout_editor.EditorWidgetNode
 import com.github.demandss.dayz_workbench_tool.layout_editor.behavior.EDITOR
 import com.github.demandss.dayz_workbench_tool.layout_editor.behavior.ScriptClassIndex
@@ -88,8 +89,8 @@ internal fun RowScope.ScriptClassPicker(
         state.scriptClasses.firstOrNull { it.name == current }
             ?: state.scriptClasses.firstOrNull { it.source == EDITOR && current.isNotEmpty() && current.endsWith(it.name) }
     val fieldTip =
-        known?.let { ScriptClassIndex.tooltip(it) + System.lineSeparator() + "Клик: выбрать другой класс" }
-            ?: "Скрипт-класс виджета: выбрать из классов игры, модов и редактора"
+        known?.let { ScriptClassIndex.tooltip(it) + System.lineSeparator() + tr("Клик: выбрать другой класс") }
+            ?: tr("Скрипт-класс виджета: выбрать из классов игры, модов и редактора")
     Box(Modifier.weight(1f)) {
         Tip(fieldTip) {
             Box(
@@ -104,7 +105,7 @@ internal fun RowScope.ScriptClassPicker(
             ) {
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        current.ifEmpty { "— (нет)" },
+                        current.ifEmpty { tr("— (нет)") },
                         color = if (current.isEmpty()) GhostlyText else TextForeground,
                         fontSize = 11.sp,
                         fontFamily = FontFamily.Monospace,
@@ -125,7 +126,11 @@ internal fun RowScope.ScriptClassPicker(
             }
         }
     }
-    Tip("Скопировать выбранный скрипт-класс: для классов редактора скрипт, фрагмент layout и строки для лайаута, для остальных исходник") {
+    Tip(
+        tr(
+            "Скопировать выбранный скрипт-класс: для классов редактора скрипт, фрагмент layout и строки для лайаута, для остальных исходник",
+        ),
+    ) {
         Box(
             Modifier
                 .height(24.dp)
@@ -135,7 +140,7 @@ internal fun RowScope.ScriptClassPicker(
                 .padding(horizontal = 6.dp),
             contentAlignment = Alignment.Center,
         ) {
-            Text("Экспорт", color = if (current.isEmpty()) GhostlyText else TextForeground, fontSize = 10.sp)
+            Text(tr("Экспорт"), color = if (current.isEmpty()) GhostlyText else TextForeground, fontSize = 10.sp)
         }
     }
 }
@@ -198,7 +203,7 @@ private fun ScriptClassPopup(
                             .border(1.dp, DarkenedBorder)
                             .padding(horizontal = 6.dp, vertical = 3.dp),
                     ) {
-                        if (query.isEmpty()) Text("Поиск по названию или источнику", color = GhostlyText, fontSize = 11.sp)
+                        if (query.isEmpty()) Text(tr("Поиск по названию или источнику"), color = GhostlyText, fontSize = 11.sp)
                         inner()
                     }
                 },
@@ -239,7 +244,7 @@ private fun ScriptClassPopup(
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.SpaceBetween,
                                 ) {
-                                    Text(info?.name ?: "— (нет)", color = TextForeground, fontSize = 11.sp, maxLines = 1)
+                                    Text(info?.name ?: tr("— (нет)"), color = TextForeground, fontSize = 11.sp, maxLines = 1)
                                     Row(
                                         verticalAlignment = Alignment.CenterVertically,
                                         horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -291,9 +296,9 @@ private fun KindLegend() {
                 AppIconView(kind.icon, size = 12.dp, tint = kindColor(kind))
                 Text(
                     when (kind) {
-                        ScriptKind.CUSTOM -> "редактора"
-                        ScriptKind.VANILLA -> "игры"
-                        ScriptKind.MOD -> "мода"
+                        ScriptKind.CUSTOM -> tr("редактора")
+                        ScriptKind.VANILLA -> tr("игры")
+                        ScriptKind.MOD -> tr("мода")
                     },
                     color = GhostlyText,
                     fontSize = 9.sp,

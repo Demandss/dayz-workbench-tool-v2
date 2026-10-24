@@ -18,6 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.github.demandss.dayz_workbench_tool.i18n.tr
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.LayoutEditorState
 import com.github.demandss.dayz_workbench_tool.ui.components.Tip
 import com.github.demandss.dayz_workbench_tool.ui.theme.FrameBackground
@@ -34,7 +35,7 @@ fun HistoryPanel(
     val doc = state.activeFile
     if (doc == null || (doc.undoLabels.isEmpty() && doc.redoLabels.isEmpty())) {
         Box(modifier.background(FrameBackground).fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text("Действий пока нет", color = GhostlyText, fontSize = 11.sp)
+            Text(tr("Действий пока нет"), color = GhostlyText, fontSize = 11.sp)
         }
         return
     }
@@ -59,7 +60,7 @@ private fun HistoryRow(
     undone: Boolean,
     onClick: () -> Unit,
 ) {
-    Tip(if (current) "Текущее состояние" else "Перейти к состоянию после этого действия") {
+    Tip(if (current) tr("Текущее состояние") else tr("Перейти к состоянию после этого действия")) {
         Row(
             Modifier
                 .fillMaxWidth()
