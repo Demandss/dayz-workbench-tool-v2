@@ -10,6 +10,10 @@ import androidx.compose.ui.graphics.toAwtImage
 import androidx.compose.ui.graphics.toComposeImageBitmap
 import com.github.demandss.dayz_workbench_tool.config.ConfigManager
 import com.github.demandss.dayz_workbench_tool.config.EditorSession
+import com.github.demandss.dayz_workbench_tool.font.FontCatalog
+import com.github.demandss.dayz_workbench_tool.font.FontInfo
+import com.github.demandss.dayz_workbench_tool.font.GameFontFile
+import com.github.demandss.dayz_workbench_tool.font.GlyphRanges
 import com.github.demandss.dayz_workbench_tool.i18n.I18n
 import com.github.demandss.dayz_workbench_tool.i18n.tr
 import com.github.demandss.dayz_workbench_tool.imageset.ImageSetFormat
@@ -1332,7 +1336,20 @@ class LayoutEditorState(
         // Asked for every text on every frame, so the files are looked for once
         val sizes =
             bitmapSizesCache.getOrPut("$directory|$family|$fixed|$workDrivePath|${gamePbo?.file}|${nearPath?.let { File(it).parent }}") {
-                (BITMAP_FONT_SIZES.toList() + listOfNotNull(fixed)).distinct().sorted().filter { size ->
+                val inFolder =
+                    Regex("^" + Regex.escape(family) + "(\\d+)\\.fnt$", RegexOption.IGNORE_CASE).let { pattern ->
+                        roots
+                            .flatMap { root ->
+                                runCatching { inRoot(root, directory).listFiles().orEmpty().toList() }.getOrDefault(emptyList())
+                            }.mapNotNull { f ->
+                                pattern
+                                    .find(f.name)
+                                    ?.groupValues
+                                    ?.get(1)
+                                    ?.toIntOrNull()
+                            }
+                    }
+                (BITMAP_FONT_SIZES.toList() + listOfNotNull(fixed) + inFolder).distinct().sorted().filter { size ->
                     roots.any { inRoot(it, "$directory/$family$size.fnt").isFile }
                 }
             }
@@ -1361,7 +1378,8 @@ class LayoutEditorState(
         val fnt = find("fnt") ?: return null
         val edds = find("edds") ?: return null
         val (size, glyphs) = BitmapFont.readGlyphs(fnt) ?: return null
-        return BitmapFont(path, size, glyphs, EddsCodec.decode(readBytesOf(edds)).toBufferedImage())
+        val ranges = runCatching { GameFontFile.header(readBytesOf(fnt))?.ranges }.getOrNull() ?: GlyphRanges.ASCII
+        return BitmapFont(path, size, glyphs, EddsCodec.decode(readBytesOf(edds)).toBufferedImage(), ranges)
     }
 
     /** The name of the font of a text widget: `font`, else the font of its style, else the MetronBook of the style `Normal`. */
@@ -1459,7 +1477,9 @@ class LayoutEditorState(
                 exact?.get(i) ?: fine?.let { (fineSize, records) -> records[i].advance * 1000 / fineSize }
                     ?: (glyphs[i].advance * 1000 / size)
             }
-        return SdfFont(path, size, glyphs, atlas, advances, cell, SdfFont.estimateSlope(atlas, glyphs['I'.code - SdfFont.FIRST], cell))
+        val ranges = runCatching { GameFontFile.header(readBytesOf(fnt))?.ranges }.getOrNull() ?: GlyphRanges.ASCII
+        val slope = SdfFont.estimateSlope(atlas, glyphs[ranges.indexOf('I'.code).takeIf { it >= 0 } ?: ('I'.code - SdfFont.FIRST)], cell)
+        return SdfFont(path, size, glyphs, atlas, advances, cell, slope, ranges)
     }
 
     /** The `Advances` of the ASCII characters from the text description of an SDF font. */
@@ -1933,33 +1953,73 @@ class LayoutEditorState(
         return vanillaSheet?.stylesFor(widgetClass).orEmpty()
     }
 
+    private val fontCatalogCache = java.util.concurrent.ConcurrentHashMap<String, List<FontInfo>>()
+
+    /** Counts the times the fonts were forgotten, so that a select that shows them reads the list again. */
+    var fontsVersion by mutableStateOf(0)
+        private set
+
     /**
-     * The fonts that lie in the `gui/fonts` folders of the work drive and the connected mods, as `gui/fonts/<name>`, each with
-     * what the preview does with it: `bitmap` and `sdf` fonts are drawn as they are, anything else is drawn as Metron.
+     * Every font of the game and of the connected mods (and of the mod the open file is in): the `gui/fonts` folders of the game
+     * data, then every `.fnt` with its atlas anywhere in a mod folder. The path of each is what a layout writes into `font`.
      */
-    fun fontNames(nearPath: String?): List<Pair<String, String>> {
-        val found = linkedMapOf<String, String>()
-        for (root in resourceRoots(nearPath)) {
-            val dir = runCatching { inRoot(root, "gui/fonts") }.getOrNull() ?: continue
-            val files = runCatching { dir.listFiles() }.getOrNull() ?: continue
-            val names = files.map { it.name }.toSet()
-            for (file in files.sortedBy { it.name.lowercase() }) {
-                val stem = file.nameWithoutExtension
-                val kind =
-                    when {
-                        file.extension.equals("fnt", true) && "$stem.edds" in names -> "bitmap"
+    fun fontInfos(nearPath: String?): List<FontInfo> {
+        val mods = connectedMods().map { File(it) }.distinctBy { it.absolutePath }
+        val roots = resourceRoots(nearPath).filter { it !is PboFile }.distinctBy { it.absolutePath }
+        val key = (mods.map { it.absolutePath } + roots.map { it.absolutePath }).joinToString("|")
+        return fontCatalogCache.getOrPut(key) {
+            val found = linkedMapOf<String, FontInfo>()
+            for (root in roots) {
+                val dir = runCatching { inRoot(root, "gui/fonts") }.getOrNull() ?: continue
+                FontCatalog.scan(dir, root, "game", maxDepth = 0).forEach { found.putIfAbsent(it.path.lowercase(), it) }
+            }
+            for (mod in mods) {
+                if (!mod.isDirectory) continue
+                FontCatalog.scan(mod, mod.parentFile ?: mod, mod.name).forEach { found.putIfAbsent(it.path.lowercase(), it) }
+            }
+            found.values.toList()
+        }
+    }
 
-                        stem.startsWith(
-                            "sdf_",
-                            true,
-                        ) && (file.extension.equals("fnt", true) || file.extension.equals("fsdf", true)) -> "sdf"
+    /**
+     * What the font select offers, as (value, label): a family that has its descriptor is one entry with its sizes (the game picks
+     * the nearest size), every other font file is an entry of its own. The font a widget has now is kept in the list.
+     */
+    fun fontChoices(
+        nearPath: String?,
+        current: String = "",
+    ): List<Pair<String, String>> {
+        val infos = fontInfos(nearPath)
+        val out = mutableListOf<Pair<String, String>>()
+        val seen = mutableSetOf<String>()
 
-                        else -> continue
-                    }
-                found.putIfAbsent("gui/fonts/$stem", kind)
+        fun tag(f: FontInfo) = (if (f.origin == "game") "" else " · ${f.origin}") + if (f.cyrillic) "" else " · no Cyrillic"
+        for ((family, group) in infos.groupBy { it.family.lowercase() }) {
+            val first = group.first()
+            if (first.familyXml && group.size > 1) {
+                val sizes = group.map { it.size }.sorted()
+                out += first.family to "${first.family.substringAfterLast('/')} · ${sizes.first()}-${sizes.last()} px${tag(first)}"
+                seen += family
             }
         }
-        return found.entries.map { it.key to it.value }
+        for (f in infos.sortedBy { it.path.lowercase() }) {
+            if (f.family.lowercase() in seen) continue
+            out += f.path to "${f.name} · ${f.size} px${tag(f)}"
+        }
+        val bare = current.trim().trim('"')
+        val sorted = out.sortedBy { it.second.lowercase() }
+        return if (bare.isEmpty() || sorted.any { it.first.equals(bare, true) }) sorted else listOf(bare to bare) + sorted
+    }
+
+    /** Forget the fonts found so far, after a font was made or a mod was connected. */
+    fun forgetFonts() {
+        fontsVersion++
+        fontCatalogCache.clear()
+        bitmapSizesCache.clear()
+        bitmapFonts.clear()
+        bitmapFontsLoading.clear()
+        sdfFonts.clear()
+        sdfFontsLoading.clear()
     }
 
     private fun findVanillaStyles(nearPath: String?): File? {

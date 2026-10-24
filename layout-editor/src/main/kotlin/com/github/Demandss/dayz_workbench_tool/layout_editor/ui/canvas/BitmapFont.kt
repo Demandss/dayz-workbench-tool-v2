@@ -1,6 +1,7 @@
 package com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas
 
 import androidx.compose.ui.graphics.toComposeImageBitmap
+import com.github.demandss.dayz_workbench_tool.font.GlyphRanges
 import com.github.demandss.dayz_workbench_tool.pbo.readBytesOf
 import java.awt.image.BufferedImage
 import java.io.File
@@ -28,17 +29,19 @@ internal class BitmapFont(
     val size: Int,
     private val glyphs: List<BitmapGlyph>,
     private val atlas: BufferedImage,
+    /** The characters the font has, in the order of the glyph records. */
+    private val ranges: GlyphRanges = GlyphRanges.ASCII,
 ) : GameFont() {
     private val cache = HashMap<Pair<Int, Int>, GlyphBitmap?>()
 
-    override fun covers(text: String) = text.all { it.code in FIRST..LAST || it == '\n' }
+    override fun covers(text: String) = ranges.covers(text)
 
     override fun advance(
         c: Char,
         pixels: Float,
         widthScale: Float,
     ): Float {
-        val g = glyphs[(c.code - FIRST).coerceIn(0, LAST - FIRST)]
+        val g = glyphs[ranges.indexOf(c.code).takeIf { it in glyphs.indices } ?: 0]
         return (g.leftBearing + g.width + g.rightBearing) * pixels / size * widthScale
     }
 
@@ -48,8 +51,8 @@ internal class BitmapFont(
         look: GlyphLook,
         widthScale: Float,
     ): GlyphBitmap? {
-        if (c.code !in FIRST..LAST) return null
-        val index = c.code - FIRST
+        val index = ranges.indexOf(c.code)
+        if (index !in glyphs.indices) return null
         return cache.getOrPut(index to (pixels * 4f).toInt()) {
             val g = glyphs[index]
             if (g.width <= 0 || g.height <= 0 || g.x + g.width > atlas.width || g.y + g.height > atlas.height) {

@@ -206,6 +206,18 @@ private val PROPERTY_HINTS =
 private val UNKNOWN_PROPERTY_HINT = trKey("Свойство из файла, которого нет в списке известных редактору")
 
 // ---------------------------------------------------------------------------
+// Fonts
+// ---------------------------------------------------------------------------
+
+/** The fonts for the select of a widget: the game's and the mods', and the one the widget has now. */
+@Composable
+private fun fontOptions(
+    state: LayoutEditorState,
+    nearPath: String?,
+    current: String?,
+): List<Pair<String, String>> = remember(nearPath, current, state.fontsVersion) { state.fontChoices(nearPath, current.orEmpty()) }
+
+// ---------------------------------------------------------------------------
 // Commit helpers
 // ---------------------------------------------------------------------------
 
@@ -353,7 +365,7 @@ fun PropertiesContent(
                 ScriptClassPicker(state, node, props["scriptclass"]?.trim()?.trim('"').orEmpty()) { commit("scriptclass", it) }
             }
             if (node.node.type in IMAGE_TYPES) ImageWidgetSection(props, commit, state.workDrivePath, state, node, doc?.path)
-            SchemaSections(node.node.type, node.node.originalClassName, props, commit)
+            SchemaSections(node.node.type, node.node.originalClassName, props, commit, fontOptions(state, doc?.path, props["font"]))
             val schema = schemaKeys(node.node.type, node.node.originalClassName)
             val extra = props.filter { it.key !in WIDGET_KEYS && it.key !in IMAGE_KEYS && it.key !in schema }
             if (extra.isNotEmpty()) RawSection(extra, commit)
@@ -760,12 +772,13 @@ private fun SchemaSections(
     originalClassName: String,
     props: Map<String, String>,
     commit: (String, String) -> Unit,
+    fonts: List<Pair<String, String>> = emptyList(),
 ) {
     for ((index, section) in schemaFor(type, originalClassName).withIndex()) {
         // The group of the focus keys is rare to touch, so it starts closed unless the file sets one of them
         var expanded by remember(section.title) { mutableStateOf(section.title != "Focus" || section.specs.any { it.key in props }) }
         SectionHeader(section.title, expanded) { expanded = !expanded }
-        if (expanded) for (spec in section.specs) SchemaRow(spec, props, commit)
+        if (expanded) for (spec in section.specs) SchemaRow(spec, props, commit, fonts)
     }
 }
 
@@ -775,6 +788,7 @@ private fun SchemaRow(
     spec: PropSpec,
     props: Map<String, String>,
     commit: (String, String) -> Unit,
+    fonts: List<Pair<String, String>> = emptyList(),
 ) {
     val raw = props[spec.key]
     val hint = tr(spec.hint) + if (spec.default.isNotEmpty()) "\n" + tr("По умолчанию: {0}", spec.default) else ""
@@ -798,8 +812,21 @@ private fun SchemaRow(
             }
 
             PropKind.TEXT -> {
-                StringField(raw?.trim()?.removeSurrounding("\"").orEmpty(), Modifier.weight(1f)) {
-                    commit(spec.key, if (it.isEmpty()) "" else "\"$it\"")
+                val current = raw?.trim()?.removeSurrounding("\"").orEmpty()
+                if (spec.key == "font" && fonts.isNotEmpty()) {
+                    // The fonts the game and the connected mods have, like the styles: a select, with an empty choice for the default font
+                    val labels = fonts.toMap()
+                    DropdownField(
+                        current,
+                        listOf("") + fonts.map { it.first },
+                        { if (it.isEmpty()) tr("— (нет)") else labels[it] ?: it },
+                        Modifier.weight(1f),
+                        tooltip = tr("Шрифт текста"),
+                    ) { commit(spec.key, if (it.isEmpty()) "" else "\"$it\"") }
+                } else {
+                    StringField(current, Modifier.weight(1f)) {
+                        commit(spec.key, if (it.isEmpty()) "" else "\"$it\"")
+                    }
                 }
             }
 
@@ -1490,7 +1517,7 @@ private fun ColumnScope.MultiProperties(
         }
         if (types.all { it in IMAGE_TYPES }) ImageWidgetSection(props, commit, state.workDrivePath, state, nodes.first(), layoutPath)
         val sameType = nodes.map { it.node.type to it.node.originalClassName }.distinct().singleOrNull()
-        if (sameType != null) SchemaSections(sameType.first, sameType.second, props, commit)
+        if (sameType != null) SchemaSections(sameType.first, sameType.second, props, commit, fontOptions(state, layoutPath, props["font"]))
         val schema = sameType?.let { schemaKeys(it.first, it.second) }.orEmpty()
         val extra = props.filter { it.key !in WIDGET_KEYS && it.key !in IMAGE_KEYS && it.key !in schema }
         if (extra.isNotEmpty()) RawSection(extra, commit)

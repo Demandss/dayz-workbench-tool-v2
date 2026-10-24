@@ -2,6 +2,7 @@ package com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas
 
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.toComposeImageBitmap
+import com.github.demandss.dayz_workbench_tool.font.GlyphRanges
 import com.github.demandss.dayz_workbench_tool.pbo.readBytesOf
 import java.awt.image.BufferedImage
 import java.io.File
@@ -79,18 +80,25 @@ internal class SdfFont(
     private val advances: IntArray,
     private val cell: Int,
     private val slope: Float,
+    /** The characters the font has, in the order of the glyph records. */
+    private val ranges: GlyphRanges = GlyphRanges.ASCII,
 ) : GameFont() {
     private val cache = HashMap<List<Any>, GlyphBitmap?>()
 
-    /** Whether every character of [text] has a glyph here (the printable ASCII). */
-    override fun covers(text: String) = text.all { it.code in FIRST..LAST || it == '\n' }
+    /** Whether every character of [text] has a glyph here. */
+    override fun covers(text: String) = ranges.covers(text)
 
     /** How far the pen moves after [c] at [pixels] size. */
     override fun advance(
         c: Char,
         pixels: Float,
         widthScale: Float,
-    ): Float = advances[(c.code - FIRST).coerceIn(0, advances.lastIndex)] * pixels * widthScale / 1000f
+    ): Float {
+        // The printable ASCII has the exact advances of the family; another character has the whole pixels of its record
+        if (c.code in FIRST..LAST) return advances[c.code - FIRST] * pixels * widthScale / 1000f
+        val g = glyphs.getOrNull(ranges.indexOf(c.code)) ?: return advances[0] * pixels * widthScale / 1000f
+        return g.advance * pixels / size * widthScale
+    }
 
     /** The bitmap of [c] for the font size [pixels], or null for a character without a shape (a space). */
     override fun glyph(
@@ -99,10 +107,11 @@ internal class SdfFont(
         look: GlyphLook,
         widthScale: Float,
     ): GlyphBitmap? {
-        if (c.code !in FIRST..LAST) return null
+        val index = ranges.indexOf(c.code)
+        if (index !in glyphs.indices) return null
         // Sizes are told apart by a quarter of a pixel, so the cache stays small
         val key = listOf(c.code, (pixels * 4f).toInt(), look, (widthScale * 100f).toInt())
-        return cache.getOrPut(key) { render(glyphs[c.code - FIRST], pixels, look, widthScale) }
+        return cache.getOrPut(key) { render(glyphs[index], pixels, look, widthScale) }
     }
 
     private fun render(

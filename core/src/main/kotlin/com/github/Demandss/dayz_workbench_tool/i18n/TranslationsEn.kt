@@ -535,6 +535,7 @@ internal val translationsEn: Map<String, String> =
         "Ширина и высота области в пикселях RefSize" to "The width and height of the area in RefSize pixels",
         "Ширина мягкого края маски, от 0 до 1" to "The width of the soft edge of the mask, from 0 to 1",
         "Ширина: пиксели или доля родителя, как выбран переключатель" to "Width: pixels or a share of the parent, as the switch is set",
+        "Шрифт текста" to "Font of the text",
         "Экспорт" to "Export",
         "Эталон Workbench" to "Workbench reference",
         "Это действие необратимо." to "This action cannot be undone.",

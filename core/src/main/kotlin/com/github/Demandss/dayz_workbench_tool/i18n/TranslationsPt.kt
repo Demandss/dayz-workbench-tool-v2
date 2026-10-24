@@ -535,6 +535,7 @@ internal val translationsPt: Map<String, String> =
         "Ширина и высота области в пикселях RefSize" to "Largura e altura da área em pixels RefSize",
         "Ширина мягкого края маски, от 0 до 1" to "A largura da borda suave da máscara, de 0 a 1",
         "Ширина: пиксели или доля родителя, как выбран переключатель" to "Largura: pixels ou fração do pai, conforme o seletor",
+        "Шрифт текста" to "Fonte do texto",
         "Экспорт" to "Exportar",
         "Эталон Workbench" to "Referência do Workbench",
         "Это действие необратимо." to "Esta ação não pode ser desfeita.",

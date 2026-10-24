@@ -3,6 +3,7 @@ package com.github.demandss.dayz_workbench_tool.layout_editor.mcp
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.asComposeImageBitmap
 import androidx.compose.ui.graphics.toAwtImage
+import com.github.demandss.dayz_workbench_tool.font.FontImporter
 import com.github.demandss.dayz_workbench_tool.layout.LayoutParser
 import com.github.demandss.dayz_workbench_tool.layout.LayoutSerializer
 import com.github.demandss.dayz_workbench_tool.layout.WidgetNode
@@ -24,6 +25,7 @@ import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.sanitizeW
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.screenRect
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.knownPropertyKeys
 import com.github.demandss.dayz_workbench_tool.layout_editor.updateNode
+import com.github.demandss.dayz_workbench_tool.texture.EddsCodec
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
@@ -128,7 +130,9 @@ internal class McpTools(
             "list_icons" -> listIcons(args)
             "list_styles" -> listStyles(args)
             "list_imagesets" -> state.imageSetNames(state.activeFile?.path).joinToString("\n")
-            "list_fonts" -> listFonts()
+            "list_fonts" -> listFonts(args)
+            "convert_texture" -> convertTexture(args)
+            "convert_font" -> convertFont(args)
             else -> throw ToolFailure("Unknown tool: $name")
         }
 
@@ -349,26 +353,132 @@ internal class McpTools(
         }.toString()
     }
 
-    private fun listFonts(): String {
-        val fonts = state.fontNames(state.activeFile?.path)
+    private fun listFonts(args: JsonObject): String {
+        val query = args.string("query")?.lowercase()
+        val fonts =
+            state
+                .fontInfos(state.activeFile?.path)
+                .filter { query == null || it.path.lowercase().contains(query) || it.origin.lowercase().contains(query) }
         return buildJsonObject {
             put(
                 "note",
-                "Put the path in quotes into the font property. bitmap and sdf fonts are drawn by the preview as they are; none of these is monospaced.",
+                "Put the path in quotes into the font property. A path with a size at its end is that size; without a size the nearest size of the family is used. No font of the game is monospaced.",
             )
+            put("total", fonts.size)
             put(
                 "fonts",
                 JsonArray(
-                    fonts.map { (path, kind) ->
+                    fonts.map { f ->
                         buildJsonObject {
-                            put("font", path)
-                            put("preview", kind)
+                            put("font", f.path)
+                            put("kind", f.kind)
+                            put("size", f.size)
+                            put("origin", f.origin)
+                            put("glyphs", f.glyphs)
+                            put("latin", f.latin)
+                            put("cyrillic", f.cyrillic)
                         }
                     },
                 ),
             )
         }.toString()
     }
+
+    // ---- conversions
+
+    /** `.png` to `.edds` and `.edds` to `.png`, chosen by the extension of the source. */
+    private fun convertTexture(args: JsonObject): String {
+        val source = java.io.File(args.string("source") ?: throw ToolFailure("source is required"))
+        if (!source.isFile) throw ToolFailure("No such file: ${source.path}")
+        val toEdds = !source.extension.equals("edds", ignoreCase = true)
+        val target =
+            args.string("output")?.let { java.io.File(it) }
+                ?: java.io.File(source.parentFile, source.nameWithoutExtension + if (toEdds) ".edds" else ".png")
+        if (target.exists() && args.bool("overwrite") != true) throw ToolFailure("${target.path} exists: pass overwrite=true to replace it")
+        target.parentFile?.mkdirs()
+        val info =
+            try {
+                if (toEdds) {
+                    val image = EddsCodec.decodePng(source.readBytes())
+                    target.writeBytes(EddsCodec.encode(image, args.bool("mips") ?: true))
+                    "${image.width}x${image.height}"
+                } else {
+                    val decoded = EddsCodec.decode(source)
+                    javax.imageio.ImageIO.write(decoded.toBufferedImage(), "png", target)
+                    "${decoded.width}x${decoded.height}, ${decoded.mipCount} mips, ${decoded.format}"
+                }
+            } catch (e: com.github.demandss.dayz_workbench_tool.texture.EddsException) {
+                throw ToolFailure(e.message.orEmpty())
+            }
+        return buildJsonObject {
+            put("output", target.path)
+            put("direction", if (toEdds) "image to edds" else "edds to png")
+            put("info", info)
+        }.toString()
+    }
+
+    /**
+     * Makes bitmap fonts of the game from a TrueType or OpenType file: one `.fnt` with its `.edds` atlas for every size. The files
+     * go into [output_dir]; the answer gives the path to write into `font`.
+     */
+    private fun convertFont(args: JsonObject): String {
+        val source = java.io.File(args.string("source") ?: throw ToolFailure("source is required (a .ttf or .otf file)"))
+        if (!source.isFile) throw ToolFailure("No such file: ${source.path}")
+        val outDir =
+            java.io.File(args.string("output_dir") ?: throw ToolFailure("output_dir is required, e.g. the gui/fonts folder of a mod"))
+        val name = sanitizeFontName(args.string("name") ?: source.nameWithoutExtension)
+        val sizes =
+            (args["sizes"] as? JsonArray)?.mapNotNull { (it as? JsonPrimitive)?.content?.toIntOrNull() }?.takeIf { it.isNotEmpty() }
+                ?: listOf(12, 14, 16, 22, 28, 48)
+        if (sizes.any { it !in 6..200 }) throw ToolFailure("sizes are pixels from 6 to 200")
+        val existing = sizes.filter { java.io.File(outDir, "$name$it.fnt").exists() }
+        if (existing.isNotEmpty() && args.bool("overwrite") != true) {
+            throw ToolFailure("${outDir.path} already has $name for the sizes $existing: pass overwrite=true to replace them")
+        }
+        val font =
+            try {
+                FontImporter.loadFont(source)
+            } catch (e: Exception) {
+                throw ToolFailure("Cannot read the font: ${e.message}")
+            }
+        val made =
+            try {
+                FontImporter.write(font, name, sizes, outDir, FontImporter.charset(args.string("charset")))
+            } catch (e: IllegalArgumentException) {
+                throw ToolFailure(e.message.orEmpty())
+            }
+        state.forgetFonts()
+        // The path a layout writes: from the folder that holds the mod folder (the work drive) when the files are under it
+        val drive = state.workDrivePath.takeIf { it.isNotBlank() }?.let { runCatching { java.io.File(it).canonicalFile }.getOrNull() }
+        val relative =
+            drive
+                ?.let { d ->
+                    runCatching {
+                        outDir.canonicalFile
+                            .relativeTo(d)
+                            .path
+                            .replace('\\', '/')
+                    }.getOrNull()
+                }?.takeIf { !it.startsWith("..") }
+        val prefix = relative?.let { if (it.isEmpty()) "" else "$it/" }
+        return buildJsonObject {
+            put("font", if (prefix != null) "$prefix$name" else name)
+            put("files", JsonArray(made.map { JsonPrimitive("${outDir.path}/${it.name}.fnt") }))
+            put("sizes", JsonArray(made.map { JsonPrimitive(it.size) }))
+            put("glyphs", made.first().glyphs)
+            put(
+                "note",
+                "Write the font property as \"font\": a path with a size at its end is that size, without a size the nearest one is used. The font must be inside the mod that is packed.",
+            )
+        }.toString()
+    }
+
+    private fun sanitizeFontName(text: String): String =
+        text
+            .trim()
+            .replace(Regex("[^A-Za-z0-9_-]"), "_")
+            .trim('_')
+            .ifEmpty { "CustomFont" }
 
     private fun listStyles(args: JsonObject): String {
         val widgetClass = args.string("widget_class") ?: throw ToolFailure("widget_class is required, e.g. PanelWidget")
@@ -1207,8 +1317,34 @@ internal class McpTools(
                 ),
                 tool("list_imagesets", "Names of the imagesets of the game and of the connected mods."),
                 tool(
+                    "convert_texture",
+                    "Converts an image to the game's .edds texture (png, jpg, bmp, gif) or a .edds back to .png, by the extension of the source. The .edds is uncompressed BGRA with mip levels.",
+                    mapOf(
+                        "source" to ("string" to "Full path of the file to convert"),
+                        "output" to ("string" to "Full path of the result, next to the source with the other extension by default"),
+                        "mips" to ("boolean" to "Make mip levels when writing .edds, true by default"),
+                        "overwrite" to ("boolean" to "Replace an existing result, false by default"),
+                    ),
+                    listOf("source"),
+                ),
+                tool(
+                    "convert_font",
+                    "Makes the game's bitmap fonts (a .fnt with its .edds atlas for each size) from a .ttf or .otf file, with Latin and Cyrillic letters by default. The answer gives the font path to write into the font property.",
+                    mapOf(
+                        "source" to ("string" to "Full path of the .ttf or .otf file"),
+                        "output_dir" to ("string" to "Folder for the files, usually gui/fonts of the mod (made when missing)"),
+                        "name" to ("string" to "Name of the font; the files are <name><size>.fnt, from the file name by default"),
+                        "sizes" to ("array" to "Line heights in pixels, from 6 to 200; 12, 14, 16, 22, 28, 48 by default"),
+                        "charset" to
+                            ("string" to "ascii, latin, cyrillic (Latin and Cyrillic) or default (what a font usually needs, default)"),
+                        "overwrite" to ("boolean" to "Replace existing files, false by default"),
+                    ),
+                    listOf("source", "output_dir"),
+                ),
+                tool(
                     "list_fonts",
-                    "The fonts of the game and of the connected mods (the gui/fonts folders), as the path to put in quotes into the font property, with what the preview does with each.",
+                    "The fonts of the game and of the connected mods (every .fnt with its atlas), as the path to put in quotes into the font property, with kind, size, origin and whether it has Latin and Cyrillic letters.",
+                    mapOf("query" to ("string" to "Part of the path or of the mod name")),
                 ),
             )
     }
