@@ -125,14 +125,20 @@ internal fun DrawScope.drawWidgetText(
     val italic = node.flagProp("italic text") || "italic" in face
     val wrap = node.flagProp("wrap")
     val halign =
-        when (node.prop("text halign")?.trim('"') ?: if (centered) "center" else "left") {
+        when ((node.prop("text halign") ?: node.prop("text_halign"))?.trim('"') ?: if (centered) "center" else "left") {
             "center" -> TextAlign.Center
             "right" -> TextAlign.Right
             else -> TextAlign.Left
         }
     // Only `center` is a vertical alignment of the text: `bottom` leaves it at the top (measured)
-    val valign = if (verticalCenter) "center" else node.prop("text valign")?.trim('"') ?: if (centered) "center" else "top"
-    val offsetParts = node.prop("text offset")?.trim()?.split(Regex("\\s+"))
+    val valign =
+        if (verticalCenter) {
+            "center"
+        } else {
+            (node.prop("text valign") ?: node.prop("text_valign"))?.trim('"')
+                ?: if (centered) "center" else "top"
+        }
+    val offsetParts = (node.prop("text offset") ?: node.prop("text_offset"))?.trim()?.split(Regex("\\s+"))
     val offset =
         Offset(
             (offsetParts?.getOrNull(0)?.toFloatOrNull() ?: 0f) * zoom,
