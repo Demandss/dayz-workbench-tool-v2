@@ -4,6 +4,8 @@ import androidx.compose.ui.geometry.Rect
 import com.github.demandss.dayz_workbench_tool.layout.WidgetNode
 import com.github.demandss.dayz_workbench_tool.layout.WidgetType
 import com.github.demandss.dayz_workbench_tool.layout_editor.EditorWidgetNode
+import com.github.demandss.dayz_workbench_tool.layout_editor.findNode
+import com.github.demandss.dayz_workbench_tool.layout_editor.pathTo
 import com.github.demandss.dayz_workbench_tool.layout_editor.updateNode
 import java.util.UUID
 
@@ -26,8 +28,9 @@ private fun EditorWidgetNode.placedAt(
 }
 
 /**
- * Puts the widgets [ids] into a new container of [type]. They must share one parent. The container takes the place of the
- * widgets and its rectangle is the one around them; the widgets keep what they look like, in pixels from its corner.
+ * Puts the widgets [ids] into a new container of [type]. The widgets may sit in different parents: the container goes into the
+ * nearest widget that holds all of them (where the topmost of them was, drawn over what they were in), and the widgets keep what
+ * they look like, in pixels from its corner. A widget inside another selected one goes along with it and is not moved on its own.
  * Returns the new tree and the id of the container, or null when the widgets cannot be wrapped.
  */
 internal fun wrapped(
@@ -37,14 +40,20 @@ internal fun wrapped(
     type: WidgetType,
     name: String,
 ): Pair<EditorWidgetNode, UUID>? {
-    val parent = ids.firstNotNullOfOrNull { root.parentOf(it) } ?: return null
-    if (ids.any { root.parentOf(it)?.id != parent.id }) return null
-    val rects = ids.mapNotNull { layout.rects[it] }
-    val parentRect = layout.rects[parent.id] ?: return null
-    if (rects.size != ids.size) return null
+    val tops = topLevel(root, ids).filter { it != root.id }
+    if (tops.isEmpty()) return null
+    val rects = tops.mapNotNull { layout.rects[it] }
+    if (rects.size != tops.size) return null
+    // The nearest widget above all of them: the longest start the paths from the root to their parents have in common
+    val parentPaths = tops.map { id -> root.parentOf(id)?.let { root.pathTo(it.id) } ?: return null }
+    var shared = 0
+    while (parentPaths.all { it.size > shared && it[shared].id == parentPaths[0][shared].id }) shared++
+    if (shared == 0) return null
+    val holder = parentPaths[0][shared - 1]
+    val holderRect = layout.rects[holder.id] ?: return null
     val union = Rect(rects.minOf { it.left }, rects.minOf { it.top }, rects.maxOf { it.right }, rects.maxOf { it.bottom })
 
-    val members = parent.children.filter { it.id in ids }
+    val members = tops.mapNotNull { root.findNode(it) }
     val container =
         EditorWidgetNode(
             UUID.randomUUID(),
@@ -53,7 +62,7 @@ internal fun wrapped(
                 type.className,
                 name,
                 linkedMapOf(
-                    "position" to "${fmt(union.left - parentRect.left)} ${fmt(union.top - parentRect.top)}",
+                    "position" to "${fmt(union.left - holderRect.left)} ${fmt(union.top - holderRect.top)}",
                     "size" to "${fmt(union.width)} ${fmt(union.height)}",
                     "hexactpos" to "1",
                     "vexactpos" to "1",
@@ -63,11 +72,19 @@ internal fun wrapped(
             ),
             members.map { m -> m.placedAt(layout.rects.getValue(m.id), union) }.toMutableList(),
         )
-    val at = parent.children.indexOfFirst { it.id in ids }
-    val rest = parent.children.filter { it.id !in ids }.toMutableList()
-    rest.add(at.coerceAtMost(rest.size), container)
-    return root.updateNode(parent.id) { it.copy(children = rest) } to container.id
+    // The group takes the place of the topmost of the widgets: after the last child of the holder that is a member or holds one
+    val topSet = tops.toSet()
+    val last = holder.children.indexOfLast { child -> child.id in topSet || tops.any { child.findNode(it) != null } }
+    val into = holder.children.take(last + 1).count { it.id !in topSet }
+    val without = root.withoutNodes(topSet)
+    val kept = without.findNode(holder.id)?.children ?: return null
+    val list = kept.toMutableList().also { it.add(into.coerceIn(0, kept.size), container) }
+    return without.updateNode(holder.id) { it.copy(children = list) } to container.id
 }
+
+/** A copy of the tree without the widgets [ids] (and what is in them). */
+private fun EditorWidgetNode.withoutNodes(ids: Set<UUID>): EditorWidgetNode =
+    copy(children = children.filter { it.id !in ids }.map { it.withoutNodes(ids) }.toMutableList())
 
 /** Takes the children out of the container [id] and puts them where it was. Returns the new tree and the children's ids. */
 internal fun ungrouped(

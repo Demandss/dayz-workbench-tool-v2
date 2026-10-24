@@ -780,7 +780,7 @@ class LayoutEditorState(
         val name = uniqueName(label, doc.root.allNames())
         val result = wrapped(doc.root, ids, layout, type, name)
         if (result == null) {
-            notify("Группировать можно виджеты одного родителя", ToastKind.INFO)
+            notify("Не удалось сгруппировать выбранные виджеты", ToastKind.INFO)
             return
         }
         pushUndo(idx, doc.root, "Группировка в $name")

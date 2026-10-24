@@ -65,23 +65,76 @@ class StructureOpsTest {
         assertEquals(layout.rects.getValue(a.id), layoutTree(freed, screen).rects.getValue(a.id))
     }
 
+    private fun holder(
+        name: String,
+        x: Int,
+        y: Int,
+        vararg kids: EditorWidgetNode,
+    ) = EditorWidgetNode(
+        UUID.randomUUID(),
+        WidgetNode(
+            WidgetType.FRAME,
+            WidgetType.FRAME.className,
+            name,
+            linkedMapOf("position" to "$x $y", "size" to "300 300", *exact),
+        ),
+        kids.toMutableList(),
+    )
+
     @Test
-    fun `widgets of different parents are not wrapped`() {
+    fun `widgets of different parents are wrapped in the nearest widget that holds them, and stay where they are`() {
         val inner = box("inner", 10, 10)
-        val outer =
-            EditorWidgetNode(
-                UUID.randomUUID(),
-                WidgetNode(
-                    WidgetType.FRAME,
-                    WidgetType.FRAME.className,
-                    "f",
-                    linkedMapOf("size" to "400 400", *exact),
-                ),
-                mutableListOf(inner),
-            )
+        val outer = holder("f", 100, 100, inner)
         val loose = box("loose", 500, 50)
         val root = frame(outer, loose)
-        assertNull(wrapped(root, listOf(inner.id, loose.id), layoutTree(root, screen), WidgetType.FRAME, "g"))
+        val layout = layoutTree(root, screen)
+        val (newRoot, groupId) = wrapped(root, listOf(inner.id, loose.id), layout, WidgetType.FRAME, "g")!!
+        val after = layoutTree(newRoot, screen)
+        assertEquals(layout.rects.getValue(inner.id), after.rects.getValue(inner.id))
+        assertEquals(layout.rects.getValue(loose.id), after.rects.getValue(loose.id))
+        // Both are in the group, the group is in the root, and the old parent has lost the widget it gave
+        val group = newRoot.findNode(groupId)!!
+        assertEquals(setOf(inner.id, loose.id), group.children.map { it.id }.toSet())
+        assertEquals(groupId, newRoot.parentOf(inner.id)!!.id)
+        assertEquals(newRoot.id, newRoot.parentOf(groupId)!!.id)
+        assertEquals(0, newRoot.findNode(outer.id)!!.children.size)
+    }
+
+    @Test
+    fun `two widgets deep in different branches go into the widget that holds both branches`() {
+        val a1 = box("a1", 10, 10)
+        val b1 = box("b1", 20, 20)
+        val a = holder("a", 50, 50, a1)
+        val b = holder("b", 400, 100, b1)
+        val middle = holder("middle", 0, 0, a, b)
+        val root = frame(middle)
+        val layout = layoutTree(root, screen)
+        val (newRoot, groupId) = wrapped(root, listOf(a1.id, b1.id), layout, WidgetType.FRAME, "g")!!
+        assertEquals(middle.id, newRoot.parentOf(groupId)!!.id)
+        val after = layoutTree(newRoot, screen)
+        assertEquals(layout.rects.getValue(a1.id), after.rects.getValue(a1.id))
+        assertEquals(layout.rects.getValue(b1.id), after.rects.getValue(b1.id))
+        // The group is drawn over the two branches it was taken from
+        assertEquals(listOf("a", "b", "g"), newRoot.findNode(middle.id)!!.children.map { it.node.name })
+    }
+
+    @Test
+    fun `a widget selected together with the widget it is in is carried by it`() {
+        val inner = box("inner", 10, 10)
+        val outer = holder("f", 100, 100, inner)
+        val other = box("other", 500, 50)
+        val root = frame(outer, other)
+        val layout = layoutTree(root, screen)
+        val (newRoot, groupId) = wrapped(root, listOf(outer.id, inner.id, other.id), layout, WidgetType.FRAME, "g")!!
+        assertEquals(
+            setOf(outer.id, other.id),
+            newRoot
+                .findNode(groupId)!!
+                .children
+                .map { it.id }
+                .toSet(),
+        )
+        assertEquals(outer.id, newRoot.parentOf(inner.id)!!.id)
     }
 
     @Test
