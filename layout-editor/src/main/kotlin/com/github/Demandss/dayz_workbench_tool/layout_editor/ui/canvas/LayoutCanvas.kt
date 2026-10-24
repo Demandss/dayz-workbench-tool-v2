@@ -41,6 +41,7 @@ import com.github.demandss.dayz_workbench_tool.layout_editor.EditorWidgetNode
 import com.github.demandss.dayz_workbench_tool.layout_editor.behavior.BehaviorEffect
 import com.github.demandss.dayz_workbench_tool.layout_editor.behavior.Behaviors
 import com.github.demandss.dayz_workbench_tool.layout_editor.behavior.PreviewDrag
+import com.github.demandss.dayz_workbench_tool.layout_editor.behavior.VanillaScripts
 import com.github.demandss.dayz_workbench_tool.layout_editor.behavior.expandSpawners
 import com.github.demandss.dayz_workbench_tool.layout_editor.behavior.previewEffects
 import com.github.demandss.dayz_workbench_tool.layout_editor.behavior.scriptClassName
@@ -1513,13 +1514,17 @@ private fun layoutOf(
     state: LayoutEditorState,
     root: EditorWidgetNode,
     rect: Rect,
-): TreeLayout =
-    layoutTree(
-        root,
-        rect,
-        { n -> textureAspect(state, n) },
-        { n, w, h -> state.textSizeFor(n, state.activeFile?.path, w, h) },
-    )
+): TreeLayout {
+    fun place(tree: EditorWidgetNode) =
+        layoutTree(
+            tree,
+            rect,
+            { n -> textureAspect(state, n) },
+            { n, w, h -> state.textSizeFor(n, state.activeFile?.path, w, h) },
+        )
+    // Live Preview runs the script classes of the game that size and place widgets, as Workbench does
+    return if (state.livePreview && VanillaScripts.present(root)) VanillaScripts.layout(root, ::place) else place(root)
+}
 
 /** How far the value of a slider is between its `minimum` and `maximum`, from 0 to 1. */
 private fun sliderShare(node: EditorWidgetNode): Float {
