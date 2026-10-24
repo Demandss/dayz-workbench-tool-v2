@@ -1,0 +1,439 @@
+FrameWidgetClass Root {
+ size 1920 1080
+ hexactsize 1
+ vexactsize 1
+ {
+  TextWidgetClass T1 {
+   position 60 120
+   size 520 28
+   hexactpos 1
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   color 1 1 1 1
+   text "HoverScale"
+   "exact text" 1
+   "exact text size" 18
+   "text valign" center
+  }
+  TextWidgetClass H1 {
+   position 60 148
+   size 520 24
+   hexactpos 1
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   color 0.7 0.7 0.7 1
+   text "наведи курсор: карточка растёт (Scale 1.1)"
+   "exact text" 1
+   "exact text size" 18
+   "text valign" center
+  }
+  ImageWidgetClass Card1 {
+   position 60 190
+   size 360 170
+   hexactpos 1
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   color 0.22 0.24 0.30 1
+   scriptclass "HoverScale"
+   {
+    ScriptParamsClass {
+     Scale "1.1"
+    }
+   }
+  }
+  TextWidgetClass T2 {
+   position 660 120
+   size 520 28
+   hexactpos 1
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   color 1 1 1 1
+   text "PressScale"
+   "exact text" 1
+   "exact text size" 18
+   "text valign" center
+  }
+  TextWidgetClass H2 {
+   position 660 148
+   size 520 24
+   hexactpos 1
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   color 0.7 0.7 0.7 1
+   text "зажми кнопку мыши: карточка уменьшается (Scale 0.9)"
+   "exact text" 1
+   "exact text size" 18
+   "text valign" center
+  }
+  ImageWidgetClass Card2 {
+   position 660 190
+   size 360 170
+   hexactpos 1
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   color 0.22 0.24 0.30 1
+   scriptclass "PressScale"
+   {
+    ScriptParamsClass {
+     Scale "0.9"
+    }
+   }
+  }
+  TextWidgetClass T3 {
+   position 1260 120
+   size 520 28
+   hexactpos 1
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   color 1 1 1 1
+   text "PressOffset"
+   "exact text" 1
+   "exact text size" 18
+   "text valign" center
+  }
+  TextWidgetClass H3 {
+   position 1260 148
+   size 520 24
+   hexactpos 1
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   color 0.7 0.7 0.7 1
+   text "зажми кнопку мыши: карточка сдвигается вниз (OffsetY 6)"
+   "exact text" 1
+   "exact text size" 18
+   "text valign" center
+  }
+  ImageWidgetClass Card3 {
+   position 1260 190
+   size 360 170
+   hexactpos 1
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   color 0.22 0.24 0.30 1
+   scriptclass "PressOffset"
+   {
+    ScriptParamsClass {
+     OffsetX "0"
+     OffsetY "6"
+    }
+   }
+  }
+  TextWidgetClass T4 {
+   position 60 420
+   size 520 28
+   hexactpos 1
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   color 1 1 1 1
+   text "HoverColor"
+   "exact text" 1
+   "exact text size" 18
+   "text valign" center
+  }
+  TextWidgetClass H4 {
+   position 60 448
+   size 520 24
+   hexactpos 1
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   color 0.7 0.7 0.7 1
+   text "наведи курсор: карточка меняет цвет (#E8622A)"
+   "exact text" 1
+   "exact text size" 18
+   "text valign" center
+  }
+  ImageWidgetClass Card4 {
+   position 60 490
+   size 360 170
+   hexactpos 1
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   color 0.22 0.24 0.30 1
+   scriptclass "HoverColor"
+   {
+    ScriptParamsClass {
+     Color "#E8622A"
+    }
+   }
+  }
+  TextWidgetClass T5 {
+   position 660 420
+   size 520 28
+   hexactpos 1
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   color 1 1 1 1
+   text "HoverColor, Target parent"
+   "exact text" 1
+   "exact text size" 18
+   "text valign" center
+  }
+  TextWidgetClass H5 {
+   position 660 448
+   size 520 24
+   hexactpos 1
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   color 0.7 0.7 0.7 1
+   text "прозрачный виджет ловит курсор, красится его родитель"
+   "exact text" 1
+   "exact text size" 18
+   "text valign" center
+  }
+  ImageWidgetClass Card5 {
+   position 660 490
+   size 360 170
+   hexactpos 1
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   color 0.22 0.24 0.30 1
+   {
+    ImageWidgetClass Hit5 {
+     position 0 0
+     size 360 170
+     hexactpos 1
+     vexactpos 1
+     hexactsize 1
+     vexactsize 1
+     color 1 1 1 0
+     scriptclass "HoverColor"
+     {
+      ScriptParamsClass {
+       Color "#2AE862"
+       Target "parent"
+      }
+     }
+    }
+   }
+  }
+  TextWidgetClass T6 {
+   position 1260 420
+   size 520 28
+   hexactpos 1
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   color 1 1 1 1
+   text "HoverScale, Target по имени"
+   "exact text" 1
+   "exact text size" 18
+   "text valign" center
+  }
+  TextWidgetClass H6 {
+   position 1260 448
+   size 520 24
+   hexactpos 1
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   color 0.7 0.7 0.7 1
+   text "наведи на карточку: растёт только значок (Target Icon6)"
+   "exact text" 1
+   "exact text size" 18
+   "text valign" center
+  }
+  ImageWidgetClass Card6 {
+   position 1260 490
+   size 360 170
+   hexactpos 1
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   color 0.22 0.24 0.30 1
+   {
+    ImageWidgetClass Icon6 {
+     position 130 45
+     size 100 80
+     hexactpos 1
+     vexactpos 1
+     hexactsize 1
+     vexactsize 1
+     color 0.91 0.38 0.16 1
+    }
+    ImageWidgetClass Hit6 {
+     position 0 0
+     size 360 170
+     hexactpos 1
+     vexactpos 1
+     hexactsize 1
+     vexactsize 1
+     color 1 1 1 0
+     scriptclass "HoverScale"
+     {
+      ScriptParamsClass {
+       Scale "1.4"
+       Target "Icon6"
+      }
+     }
+    }
+   }
+  }
+  TextWidgetClass T7 {
+   position 60 720
+   size 520 28
+   hexactpos 1
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   color 1 1 1 1
+   text "HoverScale + PressScale"
+   "exact text" 1
+   "exact text size" 18
+   "text valign" center
+  }
+  TextWidgetClass H7 {
+   position 60 748
+   size 520 24
+   hexactpos 1
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   color 0.7 0.7 0.7 1
+   text "один класс на виджет, поэтому второй стоит внутри"
+   "exact text" 1
+   "exact text size" 18
+   "text valign" center
+  }
+  ImageWidgetClass Card7 {
+   position 60 790
+   size 360 170
+   hexactpos 1
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   color 0.22 0.24 0.30 1
+   scriptclass "HoverScale"
+   {
+    ImageWidgetClass Press7 {
+     position 0 0
+     size 360 170
+     hexactpos 1
+     vexactpos 1
+     hexactsize 1
+     vexactsize 1
+     color 1 1 1 0
+     scriptclass "PressScale"
+     {
+      ScriptParamsClass {
+       Scale "0.92"
+      }
+     }
+    }
+   }
+   {
+    ScriptParamsClass {
+     Scale "1.08"
+    }
+   }
+  }
+  TextWidgetClass T8 {
+   position 660 720
+   size 520 28
+   hexactpos 1
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   color 1 1 1 1
+   text "MF_CLS_PressScale"
+   "exact text" 1
+   "exact text size" 18
+   "text valign" center
+  }
+  TextWidgetClass H8 {
+   position 660 748
+   size 520 24
+   hexactpos 1
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   color 0.7 0.7 0.7 1
+   text "класс мода, параметр PressScale 0.85"
+   "exact text" 1
+   "exact text size" 18
+   "text valign" center
+  }
+  ImageWidgetClass Card8 {
+   position 660 790
+   size 360 170
+   hexactpos 1
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   color 0.22 0.24 0.30 1
+   scriptclass "MF_CLS_PressScale"
+   {
+    ScriptParamsClass {
+     PressScale "0.85"
+    }
+   }
+  }
+  TextWidgetClass T9 {
+   position 1260 720
+   size 520 28
+   hexactpos 1
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   color 1 1 1 1
+   text "MF_CLS_HoverColorHandler"
+   "exact text" 1
+   "exact text size" 18
+   "text valign" center
+  }
+  TextWidgetClass H9 {
+   position 1260 748
+   size 520 24
+   hexactpos 1
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   color 0.7 0.7 0.7 1
+   text "класс мода, ColorParent 1: красится родитель"
+   "exact text" 1
+   "exact text size" 18
+   "text valign" center
+  }
+  ImageWidgetClass Card9 {
+   position 1260 790
+   size 360 170
+   hexactpos 1
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   color 0.22 0.24 0.30 1
+   {
+    ImageWidgetClass Hit9 {
+     position 0 0
+     size 360 170
+     hexactpos 1
+     vexactpos 1
+     hexactsize 1
+     vexactsize 1
+     color 1 1 1 0
+     scriptclass "MF_CLS_HoverColorHandler"
+     {
+      ScriptParamsClass {
+       HoverColor "#4A9EFF"
+       ColorParent "1"
+      }
+     }
+    }
+   }
+  }
+ }
+}
