@@ -40,7 +40,9 @@ import com.github.demandss.dayz_workbench_tool.layout.WidgetType
 import com.github.demandss.dayz_workbench_tool.layout_editor.EditorWidgetNode
 import com.github.demandss.dayz_workbench_tool.layout_editor.behavior.BehaviorEffect
 import com.github.demandss.dayz_workbench_tool.layout_editor.behavior.Behaviors
+import com.github.demandss.dayz_workbench_tool.layout_editor.behavior.expandSpawners
 import com.github.demandss.dayz_workbench_tool.layout_editor.behavior.previewEffects
+import com.github.demandss.dayz_workbench_tool.layout_editor.behavior.spawnerClick
 import com.github.demandss.dayz_workbench_tool.layout_editor.behavior.withEffectProperties
 import com.github.demandss.dayz_workbench_tool.layout_editor.findNode
 import com.github.demandss.dayz_workbench_tool.layout_editor.pathTo
@@ -147,20 +149,16 @@ private fun previewPointer(
     world: Offset,
 ) {
     val doc = state.activeFile ?: return
-    val layout = layoutOf(state, doc.root, screenRect(state))
-    val target = buttonAt(doc.root, world, layout)?.id
+    // The layout with the widgets that the script classes build in it
+    val tree = expandSpawners(doc.root, state.previewBehaviorState)
+    val layout = layoutOf(state, tree, screenRect(state))
+    val target = buttonAt(tree, world, layout)?.id
     // The topmost widget that takes the pointer and the widgets around it
     val hits = mutableListOf<EditorWidgetNode>()
-    hitsAt(doc.root, world, layout, emptySet(), hits)
-    val chain =
-        hits
-            .firstOrNull { it.prop("ignorepointer") != "1" }
-            ?.let { top ->
-                doc.root
-                    .pathTo(top.id)
-                    ?.map { it.id }
-                    ?.toSet()
-            }.orEmpty()
+    hitsAt(tree, world, layout, emptySet(), hits)
+    val top = hits.firstOrNull { it.prop("ignorepointer") != "1" }
+    val path = top?.let { tree.pathTo(it.id) }.orEmpty()
+    val chain = path.map { it.id }.toSet()
     when (type) {
         PointerEventType.Press -> {
             if (primaryDown) {
@@ -169,6 +167,13 @@ private fun previewPointer(
                 state.previewFocus = target
                 state.previewPressChain = chain
                 state.previewPressTimes = state.previewPressTimes + chain.associateWith { state.previewClock }
+                // A click is seen by every script class that builds widgets and has the clicked widget inside it
+                if (top != null) {
+                    for (owner in path) {
+                        val before = state.previewBehaviorState[owner.id].orEmpty()
+                        spawnerClick(owner, top.node.name, before)?.let { state.previewBehaviorState += (owner.id to it) }
+                    }
+                }
             }
         }
 
@@ -605,6 +610,7 @@ fun LayoutCanvas(
         if (!state.livePreview) return@LaunchedEffect
         state.previewClock = 0f
         state.previewPressTimes = emptyMap()
+        state.previewBehaviorState = emptyMap()
         val start = System.nanoTime()
         var seen: Any? = null
         var timed = false
@@ -1059,18 +1065,27 @@ fun LayoutCanvas(
         val atl = worldToScreen(Offset.Zero, zoom, pan)
         val abr = worldToScreen(Offset(refW, refH), zoom, pan)
         val aSize = Size(abr.x - atl.x, abr.y - atl.y)
-        val layout = doc?.let { layoutOf(state, it.root, Rect(0f, 0f, refW, refH)) }
+        // Live Preview shows the widgets that script classes build; the file itself does not have them
+        val tree = doc?.root?.let { if (state.livePreview) expandSpawners(it, state.previewBehaviorState) else it }
+        val layout = doc?.let { d -> tree?.let { layoutOf(state, it, Rect(0f, 0f, refW, refH)) } }
 
         fun DrawScope.widgets(pan: Offset) {
-            if (doc == null || layout == null) return
+            if (doc == null || layout == null || tree == null) return
             val effects =
                 if (state.livePreview) {
-                    previewEffects(doc.root, state.previewHoverChain, state.previewPressChain, state.previewClock, state.previewPressTimes)
+                    previewEffects(
+                        tree,
+                        state.previewHoverChain,
+                        state.previewPressChain,
+                        state.previewClock,
+                        state.previewPressTimes,
+                        state.previewBehaviorState,
+                    )
                 } else {
                     emptyMap()
                 }
             drawWidgetTree(
-                doc.root.withEffectProperties(effects),
+                tree.withEffectProperties(effects),
                 layout,
                 isRoot = true,
                 if (state.livePreview) emptySet() else selectedSet,

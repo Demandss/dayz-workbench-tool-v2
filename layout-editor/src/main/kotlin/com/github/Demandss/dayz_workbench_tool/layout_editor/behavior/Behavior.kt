@@ -65,16 +65,22 @@ internal class BehaviorContext(
     val time: Float = 0f,
     val sincePress: Float? = null,
 ) {
-    fun text(param: BehaviorParam): String =
-        (listOf(param.name) + param.aliases)
-            .firstNotNullOfOrNull { key -> values.entries.firstOrNull { it.key.equals(key, ignoreCase = true) }?.value }
-            ?.trim('"', ' ')
-            ?: param.default
+    fun text(param: BehaviorParam): String = paramText(values, param)
 
     fun float(param: BehaviorParam): Float = text(param).toFloatOrNull() ?: param.default.toFloat()
 
     fun color(param: BehaviorParam): Color? = parseHexColor(text(param))
 }
+
+/** The value of [param] in the `ScriptParamsClass` fields [values], under its own name or one of its aliases, or its default. */
+internal fun paramText(
+    values: Map<String, String>,
+    param: BehaviorParam,
+): String =
+    (listOf(param.name) + param.aliases)
+        .firstNotNullOfOrNull { key -> values.entries.firstOrNull { it.key.equals(key, ignoreCase = true) }?.value }
+        ?.trim('"', ' ')
+        ?: param.default
 
 internal class WidgetBehavior(
     val name: String,

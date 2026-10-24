@@ -212,6 +212,7 @@ internal fun previewEffects(
     pressed: Set<UUID>,
     time: Float = 0f,
     pressTimes: Map<UUID, Float> = emptyMap(),
+    states: Map<UUID, Map<String, String>> = emptyMap(),
 ): Map<UUID, BehaviorEffect> {
     val out = HashMap<UUID, BehaviorEffect>()
 
@@ -237,6 +238,7 @@ internal fun previewEffects(
         for (child in node.children) walk(child, node)
     }
     walk(root, null)
+    for ((id, effect) in spawnerEffects(root, states)) out[id] = (out[id] ?: BehaviorEffect()) + effect
     return out
 }
 

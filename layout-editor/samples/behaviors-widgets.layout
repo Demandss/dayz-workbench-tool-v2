@@ -1,0 +1,98 @@
+FrameWidgetClass Root {
+ size 1920 1080
+ hexactsize 1
+ vexactsize 1
+ {
+  TextWidgetClass T1 {
+   position 60 60
+   size 520 28
+   hexactpos 1
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   color 1 1 1 1
+   text "SelectGroup"
+   "exact text" 1
+   "exact text size" 18
+   "text valign" center
+  }
+  TextWidgetClass H1 {
+   position 60 88
+   size 520 24
+   hexactpos 1
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   color 0.7 0.7 0.7 1
+   text "пустой фрейм со скрипт-классом: класс строит ряд выбора. Кликни по пункту"
+   "exact text" 1
+   "exact text size" 18
+   "text valign" center
+  }
+  FrameWidgetClass Group1 {
+   position 60 122
+   size 360 60
+   hexactpos 1
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   scriptclass "SelectGroup"
+   {
+    ScriptParamsClass {
+     Items "Easy|Normal|Hard"
+     Selected "1"
+    }
+   }
+  }
+  TextWidgetClass T2 {
+   position 660 60
+   size 520 28
+   hexactpos 1
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   color 1 1 1 1
+   text "Collapse"
+   "exact text" 1
+   "exact text size" 18
+   "text valign" center
+  }
+  TextWidgetClass H2 {
+   position 660 88
+   size 520 24
+   hexactpos 1
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   color 0.7 0.7 0.7 1
+   text "пустой фрейм строит заголовок; клик открывает и закрывает виджет Body2"
+   "exact text" 1
+   "exact text size" 18
+   "text valign" center
+  }
+  FrameWidgetClass Head2 {
+   position 660 122
+   size 360 40
+   hexactpos 1
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   scriptclass "Collapse"
+   {
+    ScriptParamsClass {
+     Title "Подробности"
+     Body "Body2"
+    }
+   }
+  }
+  ImageWidgetClass Body2 {
+   position 660 166
+   size 360 100
+   hexactpos 1
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   color 0.22 0.24 0.30 1
+  }
+ }
+}
