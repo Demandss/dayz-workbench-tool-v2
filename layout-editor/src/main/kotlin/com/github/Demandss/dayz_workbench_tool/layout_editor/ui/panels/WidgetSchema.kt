@@ -2,6 +2,7 @@
 
 package com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels
 
+import com.github.demandss.dayz_workbench_tool.i18n.trKey
 import com.github.demandss.dayz_workbench_tool.layout.WidgetType
 
 /** How the value of a property is written in a .layout file and edited in the properties panel. */
@@ -102,10 +103,10 @@ private val FONT =
             "exact text",
             "Вкл: размер шрифта задан в пикселях (exact text size).\nВыкл: размер считается долей высоты виджета (text_proportion).",
         ),
-        number("exact text size", "Размер шрифта в пикселях при включённом exact text"),
+        number("exact text size", trKey("Размер шрифта в пикселях при включённом exact text")),
         number("text_proportion", "Размер шрифта как доля высоты виджета, когда exact text выключен", "1"),
-        check("bold text", "Вкл: жирный шрифт."),
-        check("italic text", "Вкл: курсив."),
+        check("bold text", trKey("Вкл: жирный шрифт.")),
+        check("italic text", trKey("Вкл: курсив.")),
         number("text sharpness", "Резкость контура шрифта: больше значит резче"),
     )
 
@@ -113,15 +114,15 @@ private val TEXT_LOOK =
     listOf(
         choice("text halign", "Выравнивание текста по горизонтали внутри виджета", *ALIGN_H, default = "left"),
         choice("text valign", "Выравнивание текста по вертикали внутри виджета", *ALIGN_V, default = "top"),
-        numbers("text offset", "Сдвиг текста от края в пикселях: «x y»"),
+        numbers("text offset", trKey("Сдвиг текста от края в пикселях: «x y»")),
         numbers("text spacing", "Дополнительный интервал между символами и строками: «x y»"),
-        check("size to text h", "Вкл: ширина виджета подгоняется под текст."),
-        check("size to text v", "Вкл: высота виджета подгоняется под текст."),
-        check("wrap", "Вкл: длинный текст переносится на следующую строку."),
-        number("shadow size", "Размер тени текста в пикселях; 0 — без тени"),
-        color("shadow color", "Цвет тени текста: r g b a от 0 до 1"),
-        numbers("shadow offset", "Смещение тени: «x y»"),
-        number("shadow opacity", "Непрозрачность тени от 0 до 1"),
+        check("size to text h", trKey("Вкл: ширина виджета подгоняется под текст.")),
+        check("size to text v", trKey("Вкл: высота виджета подгоняется под текст.")),
+        check("wrap", trKey("Вкл: длинный текст переносится на следующую строку.")),
+        number("shadow size", trKey("Размер тени текста в пикселях; 0 — без тени")),
+        color("shadow color", trKey("Цвет тени текста: r g b a от 0 до 1")),
+        numbers("shadow offset", trKey("Смещение тени: «x y»")),
+        number("shadow opacity", trKey("Непрозрачность тени от 0 до 1")),
         number("outline size", "Толщина обводки текста в пикселях; 0 — без обводки"),
         color("outline color", "Цвет обводки текста: r g b a от 0 до 1"),
     )
@@ -135,8 +136,8 @@ private val RICH_EXTRA =
 
 private val STATE_COLORS =
     listOf(
-        color("text color", "Цвет текста: r g b a от 0 до 1"),
-        color("disabled text color", "Цвет текста выключенного виджета (disabled)"),
+        color("text color", trKey("Цвет текста: r g b a от 0 до 1")),
+        color("disabled text color", trKey("Цвет текста выключенного виджета (disabled)")),
     )
 
 private fun focusable(
@@ -155,7 +156,7 @@ internal fun schemaFor(
                 PropSection(
                     "Text",
                     listOf(text("text", "Текст виджета; строка вида #ключ берётся из stringtable")) + FONT + TEXT_LOOK +
-                        listOf(color("text color", "Цвет текста; если не задан, берётся color")),
+                        listOf(color("text color", trKey("Цвет текста; если не задан, берётся color"))),
                 ),
             )
         }
@@ -197,59 +198,59 @@ internal fun schemaFor(
                     "exact text",
                     "Вкл: размер шрифта задан в пикселях (exact text size).\nВыкл: размер считается долей высоты кнопки (text_proportion).",
                 ),
-                number("exact text size", "Размер шрифта в пикселях при включённом exact text"),
+                number("exact text size", trKey("Размер шрифта в пикселях при включённом exact text")),
                 number("text_proportion", "Размер шрифта как доля высоты кнопки, когда exact text выключен", "1"),
                 choice("text_halign", "Выравнивание подписи по горизонтали", *ALIGN_H, default = "center"),
                 choice("text_valign", "Выравнивание подписи по вертикали", *ALIGN_V, default = "center"),
-                numbers("text_offset", "Сдвиг подписи от края в пикселях: «x y»"),
-                check("bold text", "Вкл: жирный шрифт."),
-                check("italic text", "Вкл: курсив."),
+                numbers("text_offset", trKey("Сдвиг подписи от края в пикселях: «x y»")),
+                check("bold text", trKey("Вкл: жирный шрифт.")),
+                check("italic text", trKey("Вкл: курсив.")),
                 number("text sharpness", "Резкость контура шрифта: больше значит резче"),
-                color("text color", "Цвет подписи: r g b a от 0 до 1"),
-                color("disabled text color", "Цвет подписи выключенной кнопки (disabled)"),
+                color("text color", trKey("Цвет подписи: r g b a от 0 до 1")),
+                color("disabled text color", trKey("Цвет подписи выключенной кнопки (disabled)")),
                 color("text outline color", "Цвет обводки подписи"),
-                color("text shadow color", "Цвет тени подписи"),
+                color("text shadow color", trKey("Цвет тени подписи")),
             )
         }
 
         WidgetType.CHECKBOX, WidgetType.THREE_STATE_CHECKBOX -> {
             focusable(
                 "CheckBox",
-                check("checked", "Вкл: флажок отмечен при показе."),
-                text("text", "Подпись рядом с флажком"),
+                check("checked", trKey("Вкл: флажок отмечен при показе.")),
+                text("text", trKey("Подпись рядом с флажком")),
                 text("font", "Путь к шрифту без расширения"),
-                color("text color", "Цвет подписи: r g b a от 0 до 1"),
+                color("text color", trKey("Цвет подписи: r g b a от 0 до 1")),
                 number("text outline size", "Толщина обводки подписи в пикселях"),
                 color("text outline color", "Цвет обводки подписи"),
-                color("text shadow color", "Цвет тени подписи"),
+                color("text shadow color", trKey("Цвет тени подписи")),
             )
         }
 
         WidgetType.EDIT_BOX, WidgetType.PASSWORD_EDIT_BOX -> {
             focusable(
                 if (type == WidgetType.EDIT_BOX) "EditBox" else "PasswordEditBox",
-                text("text", "Текст в поле при показе"),
-                check("Use default text", "Вкл: пока поле пусто, показывается подсказка из text цветом Default text color."),
-                check("limit visible", "Вкл: видимая часть строки ограничена шириной поля."),
+                text("text", trKey("Текст в поле при показе")),
+                check("Use default text", trKey("Вкл: пока поле пусто, показывается подсказка из text цветом Default text color.")),
+                check("limit visible", trKey("Вкл: видимая часть строки ограничена шириной поля.")),
                 *(
                     if (type ==
                         WidgetType.PASSWORD_EDIT_BOX
                     ) {
-                        arrayOf(check("hide text", "Вкл: символы заменяются точками."))
+                        arrayOf(check("hide text", trKey("Вкл: символы заменяются точками.")))
                     } else {
                         emptyArray()
                     }
                 ),
                 text("font", "Путь к шрифту без расширения"),
-                check("exact text", "Вкл: размер шрифта задан в пикселях (exact text size)."),
-                number("exact text size", "Размер шрифта в пикселях при включённом exact text"),
+                check("exact text", trKey("Вкл: размер шрифта задан в пикселях (exact text size).")),
+                number("exact text size", trKey("Размер шрифта в пикселях при включённом exact text")),
                 choice("text halign", "Выравнивание текста по горизонтали", *ALIGN_H, default = "left"),
                 choice("text valign", "Выравнивание текста по вертикали", *ALIGN_V, default = "top"),
-                check("bold text", "Вкл: жирный шрифт."),
+                check("bold text", trKey("Вкл: жирный шрифт.")),
                 number("text sharpness", "Резкость контура шрифта: больше значит резче"),
-                color("text color", "Цвет вводимого текста: r g b a от 0 до 1"),
-                color("Default text color", "Цвет подсказки пустого поля"),
-                color("disabled text color", "Цвет текста выключенного поля (disabled)"),
+                color("text color", trKey("Цвет вводимого текста: r g b a от 0 до 1")),
+                color("Default text color", trKey("Цвет подсказки пустого поля")),
+                color("disabled text color", trKey("Цвет текста выключенного поля (disabled)")),
                 color("text outline color", "Цвет обводки текста"),
             )
         }
@@ -257,17 +258,17 @@ internal fun schemaFor(
         WidgetType.MULTILINE_EDIT_BOX -> {
             focusable(
                 "MultilineEditBox",
-                text("text", "Текст в поле при показе"),
+                text("text", trKey("Текст в поле при показе")),
                 number("lines", "Сколько строк видно в поле"),
-                check("limit visible", "Вкл: видимая часть ограничена размером поля."),
-                check("size to text v", "Вкл: высота поля подгоняется под текст."),
-                check("size to text h", "Вкл: ширина поля подгоняется под текст."),
+                check("limit visible", trKey("Вкл: видимая часть ограничена размером поля.")),
+                check("size to text v", trKey("Вкл: высота поля подгоняется под текст.")),
+                check("size to text h", trKey("Вкл: ширина поля подгоняется под текст.")),
                 text("font", "Путь к шрифту без расширения"),
-                number("exact text size", "Размер шрифта в пикселях"),
+                number("exact text size", trKey("Размер шрифта в пикселях")),
                 number("text_proportion", "Размер шрифта как доля высоты виджета"),
-                check("bold text", "Вкл: жирный шрифт."),
-                check("italic text", "Вкл: курсив."),
-                color("text color", "Цвет текста: r g b a от 0 до 1"),
+                check("bold text", trKey("Вкл: жирный шрифт.")),
+                check("italic text", trKey("Вкл: курсив.")),
+                color("text color", trKey("Цвет текста: r g b a от 0 до 1")),
             )
         }
 
@@ -275,13 +276,13 @@ internal fun schemaFor(
             focusable(
                 "Slider",
                 number("minimum", "Наименьшее значение ползунка", "0"),
-                number("maximum", "Наибольшее значение ползунка", "1"),
+                number("maximum", trKey("Наибольшее значение ползунка"), "1"),
                 number("current", "Значение ползунка при показе"),
-                number("step", "Шаг изменения значения; 0 — плавно"),
-                check("vertical", "Вкл: ползунок вертикальный."),
-                check("flipped", "Вкл: направление значений обратное."),
+                number("step", trKey("Шаг изменения значения; 0 — плавно")),
+                check("vertical", trKey("Вкл: ползунок вертикальный.")),
+                check("flipped", trKey("Вкл: направление значений обратное.")),
                 check("fill in", "Вкл: пройденная часть полосы закрашена."),
-                check("draw marker", "Вкл: на полосе рисуется маркер текущего значения."),
+                check("draw marker", trKey("Вкл: на полосе рисуется маркер текущего значения.")),
                 number("marker thickness", "Толщина маркера как доля длины полосы"),
                 check("listen to input", "Вкл: ползунок реагирует на ввод мыши и геймпада.", default = "1"),
             )
@@ -293,10 +294,10 @@ internal fun schemaFor(
                     "ProgressBar",
                     listOf(
                         number("minimum", "Значение, при котором полоса пуста", "0"),
-                        number("maximum", "Значение, при котором полоса полна", "100"),
+                        number("maximum", trKey("Значение, при котором полоса полна"), "100"),
                         number("current", "Текущее значение при показе"),
-                        check("vertical", "Вкл: полоса растёт снизу вверх."),
-                        check("flipped", "Вкл: полоса растёт в обратную сторону."),
+                        check("vertical", trKey("Вкл: полоса растёт снизу вверх.")),
+                        check("flipped", trKey("Вкл: полоса растёт в обратную сторону.")),
                     ),
                 ),
             )
@@ -305,12 +306,12 @@ internal fun schemaFor(
         WidgetType.XCOMBO_BOX -> {
             focusable(
                 "XComboBox",
-                text("items", "Пункты списка через точку с запятой: «Alpha;Beta;Gamma»"),
+                text("items", trKey("Пункты списка через точку с запятой: «Alpha;Beta;Gamma»")),
                 number("current item", "Номер выбранного пункта при показе, с нуля"),
-                text("text", "Подпись, пока ничего не выбрано"),
+                text("text", trKey("Подпись, пока ничего не выбрано")),
                 text("font", "Путь к шрифту без расширения"),
-                color("text color", "Цвет текста: r g b a от 0 до 1"),
-                check("bold text", "Вкл: жирный шрифт."),
+                color("text color", trKey("Цвет текста: r g b a от 0 до 1")),
+                check("bold text", trKey("Вкл: жирный шрифт.")),
                 number("text sharpness", "Резкость контура шрифта"),
             )
         }
@@ -326,7 +327,7 @@ internal fun schemaFor(
                 if (type == WidgetType.GRID_SPACER) {
                     listOf(
                         number("Columns", "Сколько колонок в сетке"),
-                        number("Rows", "Сколько рядов в сетке"),
+                        number("Rows", trKey("Сколько рядов в сетке")),
                     )
                 } else {
                     emptyList()
@@ -360,9 +361,9 @@ internal fun schemaFor(
                 PropSection(
                     "Scroll",
                     listOf(
-                        check("Scrollbar V", "Вкл: показывается вертикальная полоса прокрутки."),
-                        check("Scrollbar H", "Вкл: показывается горизонтальная полоса прокрутки."),
-                        check("Scrollbar V Left", "Вкл: вертикальная полоса стоит слева."),
+                        check("Scrollbar V", trKey("Вкл: показывается вертикальная полоса прокрутки.")),
+                        check("Scrollbar H", trKey("Вкл: показывается горизонтальная полоса прокрутки.")),
+                        check("Scrollbar V Left", trKey("Вкл: вертикальная полоса стоит слева.")),
                         check("Ignore invisible", "Вкл: скрытые дети не входят в размер прокрутки."),
                     ),
                 ),
@@ -374,8 +375,8 @@ internal fun schemaFor(
                 PropSection(
                     "Window",
                     listOf(
-                        check("title visible", "Вкл: показывается заголовок окна."),
-                        text("text", "Заголовок окна"),
+                        check("title visible", trKey("Вкл: показывается заголовок окна.")),
+                        text("text", trKey("Заголовок окна")),
                         text("font", "Путь к шрифту без расширения"),
                     ) + STATE_COLORS,
                 ),
@@ -385,14 +386,14 @@ internal fun schemaFor(
         WidgetType.TEXT_LISTBOX, WidgetType.SERVER_BROWSER -> {
             focusable(
                 if (type == WidgetType.TEXT_LISTBOX) "TextListbox" else "ServerBrowser",
-                check("title visible", "Вкл: показывается строка заголовков."),
-                number("colums", "Сколько колонок (так в файле, с опечаткой)"),
+                check("title visible", trKey("Вкл: показывается строка заголовков.")),
+                number("colums", trKey("Сколько колонок (так в файле, с опечаткой)")),
                 number("lines", "Сколько строк видно"),
                 *(
                     if (type == WidgetType.TEXT_LISTBOX) {
                         arrayOf(
-                            check("highlight row", "Вкл: строка под курсором подсвечивается."),
-                            color("text color", "Цвет текста: r g b a от 0 до 1"),
+                            check("highlight row", trKey("Вкл: строка под курсором подсвечивается.")),
+                            color("text color", trKey("Цвет текста: r g b a от 0 до 1")),
                         )
                     } else {
                         emptyArray()
@@ -402,7 +403,7 @@ internal fun schemaFor(
         }
 
         WidgetType.HTML -> {
-            listOf(PropSection("Html", listOf(check("wrap", "Вкл: длинный текст переносится."))))
+            listOf(PropSection("Html", listOf(check("wrap", trKey("Вкл: длинный текст переносится.")))))
         }
 
         WidgetType.EMBEDDED -> {
@@ -410,7 +411,7 @@ internal fun schemaFor(
                 PropSection(
                     "Embedded",
                     listOf(
-                        text("layout", "Путь к .layout, который показывается внутри виджета"),
+                        text("layout", trKey("Путь к .layout, который показывается внутри виджета")),
                         text("Caption", "Подпись, которую получает вложенный лайаут"),
                     ),
                 ),
@@ -426,9 +427,9 @@ internal fun schemaFor(
                 PropSection(
                     "Video",
                     listOf(
-                        text("text", "Подпись поверх видео"),
-                        color("text color", "Цвет подписи"),
-                        numbers("text offset", "Сдвиг подписи: «x y»"),
+                        text("text", trKey("Подпись поверх видео")),
+                        color("text color", trKey("Цвет подписи")),
+                        numbers("text offset", trKey("Сдвиг подписи: «x y»")),
                         color("text background", "Цвет фона подписи"),
                         color("background color", "Цвет фона видео"),
                         number("outline size", "Толщина обводки в пикселях"),
@@ -445,7 +446,7 @@ internal fun schemaFor(
                         "SimpleProgressBar",
                         listOf(
                             number("minimum", "Значение, при котором полоса пуста", "0"),
-                            number("maximum", "Значение, при котором полоса полна", "100"),
+                            number("maximum", trKey("Значение, при котором полоса полна"), "100"),
                             number("current", "Текущее значение при показе"),
                         ),
                     ),

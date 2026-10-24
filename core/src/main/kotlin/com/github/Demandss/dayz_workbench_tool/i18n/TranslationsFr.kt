@@ -36,10 +36,59 @@ internal val translationsFr: Map<String, String> =
         "Взять" to "Prendre",
         "Виджет по имени…" to "Widget par nom…",
         "Виджеты, которые можно добавить" to "Widgets que l'on peut ajouter",
+        "Вкл: вертикальная полоса стоит слева." to "Activé : la barre verticale est à gauche.",
+        "Вкл: виджет можно перетаскивать мышью.\nВыкл: виджет не перетаскивается." to
+            "Activé : le widget peut être déplacé à la souris.\nDésactivé : le widget ne peut pas être déplacé.",
+        "Вкл: виджет не отвечает на ввод, но виден.\nВыкл: виджет работает как обычно." to
+            "Activé : le widget ne répond pas aux entrées mais reste visible.\nDésactivé : le widget fonctionne normalement.",
         "Вкл: виджет учитывает безопасную зону экрана (рамка overscan на телевизорах).\nВыкл: безопасная зона не учитывается." to
             "Activé : le widget tient compte de la zone de sécurité de l'écran (cadre d'overscan des téléviseurs).\nDésactivé : la zone de sécurité est ignorée.",
+        "Вкл: видимая часть ограничена размером поля." to "Activé : la partie visible est limitée par la taille du champ.",
+        "Вкл: видимая часть строки ограничена шириной поля." to
+            "Activé : la partie visible de la ligne est limitée par la largeur du champ.",
+        "Вкл: высота виджета подгоняется под текст." to "Activé : la hauteur du widget s'ajuste au texte.",
+        "Вкл: высота поля подгоняется под текст." to "Activé : la hauteur du champ s'ajuste au texte.",
+        "Вкл: дети обрезаются по границам виджета.\nВыкл: дети могут торчать наружу." to
+            "Activé : les enfants sont coupés aux bords du widget.\nDésactivé : les enfants peuvent dépasser.",
+        "Вкл: длинный текст переносится на следующую строку." to "Activé : le texte long passe à la ligne suivante.",
+        "Вкл: длинный текст переносится." to "Activé : le texte long passe à la ligne.",
+        "Вкл: жирный шрифт." to "Activé : police grasse.",
+        "Вкл: картинка отражена по вертикали.\nВыкл: картинка не отражена." to
+            "Activé : l'image est retournée verticalement.\nDésactivé : l'image n'est pas retournée.",
+        "Вкл: картинка отражена по горизонтали.\nВыкл: картинка не отражена." to
+            "Activé : l'image est retournée horizontalement.\nDésactivé : l'image n'est pas retournée.",
+        "Вкл: картинка сглаживается при масштабировании.\nВыкл: сглаживание выключено." to
+            "Activé : l'image est lissée lors de la mise à l'échelle.\nDésactivé : le lissage est désactivé.",
+        "Вкл: курсив." to "Activé : police italique.",
+        "Вкл: мышь проходит сквозь виджет к тому, что под ним.\nВыкл: виджет принимает мышь." to
+            "Activé : la souris traverse le widget vers ce qui se trouve dessous.\nDésactivé : le widget capte la souris.",
+        "Вкл: на полосе рисуется маркер текущего значения." to "Activé : un repère de la valeur actuelle est dessiné sur la barre.",
+        "Вкл: направление значений обратное." to "Activé : les valeurs vont dans le sens inverse.",
+        "Вкл: пока поле пусто, показывается подсказка из text цветом Default text color." to
+            "Activé : tant que le champ est vide, l'indication de text s'affiche avec Default text color.",
+        "Вкл: показывает виджет.\nВыкл: скрывает виджет." to "Activé : affiche le widget.\nDésactivé : masque le widget.",
+        "Вкл: показывается вертикальная полоса прокрутки." to "Activé : la barre de défilement verticale est affichée.",
+        "Вкл: показывается горизонтальная полоса прокрутки." to "Activé : la barre de défilement horizontale est affichée.",
+        "Вкл: показывается заголовок окна." to "Activé : le titre de la fenêtre est affiché.",
+        "Вкл: показывается строка заголовков." to "Activé : la ligne de titres est affichée.",
+        "Вкл: ползунок вертикальный." to "Activé : le curseur est vertical.",
+        "Вкл: полоса растёт в обратную сторону." to "Activé : la barre croît dans le sens inverse.",
+        "Вкл: полоса растёт снизу вверх." to "Activé : la barre croît de bas en haut.",
+        "Вкл: прозрачность берётся из альфа-канала картинки.\nВыкл: альфа-канал картинки не используется." to
+            "Activé : la transparence vient du canal alpha de l'image.\nDésactivé : le canal alpha de l'image n'est pas utilisé.",
+        "Вкл: прозрачность родителя действует и на этот виджет.\nВыкл: прозрачность родителя не влияет." to
+            "Activé : la transparence du parent s'applique aussi à ce widget.\nDésactivé : la transparence du parent n'a pas d'effet.",
+        "Вкл: размер шрифта задан в пикселях (exact text size)." to
+            "Activé : la taille de la police est donnée en pixels (exact text size).",
+        "Вкл: символы заменяются точками." to "Activé : les caractères sont remplacés par des points.",
+        "Вкл: строка под курсором подсвечивается." to "Activé : la ligne sous le curseur est mise en évidence.",
+        "Вкл: текстура не держится в кэше.\nВыкл: текстура кэшируется." to
+            "Activé : la texture n'est pas gardée en cache.\nDésactivé : la texture est mise en cache.",
         "Вкл: флаг «Ignore global LV» из инспектора Workbench; что именно он делает, не проверялось.\nВыкл: флаг не задан." to
             "Activé : l'indicateur « Ignore global LV » de l'inspecteur Workbench ; son effet exact n'a pas été vérifié.\nDésactivé : l'indicateur n'est pas défini.",
+        "Вкл: флажок отмечен при показе." to "Activé : la case est cochée à l'affichage.",
+        "Вкл: ширина виджета подгоняется под текст." to "Activé : la largeur du widget s'ajuste au texte.",
+        "Вкл: ширина поля подгоняется под текст." to "Activé : la largeur du champ s'ajuste au texte.",
         "Включить сервер" to "Activer le serveur",
         "Включить: " to "Activer : ",
         "Вписать атлас в окно (Shift+1)" to "Ajuster l'atlas à la fenêtre (Maj+1)",
@@ -85,6 +134,7 @@ internal val translationsFr: Map<String, String> =
         "Выровнять по правому краю" to "Aligner sur le bord droit",
         "Выровнять по центру по вертикали" to "Centrer verticalement",
         "Выровнять по центру по горизонтали" to "Centrer horizontalement",
+        "Высота: пиксели или доля родителя, как выбран переключатель" to "Hauteur : pixels ou part du parent, selon le commutateur",
         "Выше в порядке отрисовки" to "Plus haut dans l'ordre de dessin",
         "Горячие клавиши" to "Raccourcis clavier",
         "Группа" to "Groupe",
@@ -116,6 +166,7 @@ internal val translationsFr: Map<String, String> =
         "Есть несохранённые изменения, они пропадут." to "Il y a des modifications non enregistrées, elles seront perdues.",
         "Ещё один файл текстуры для другого mpix" to "Un autre fichier de texture pour un autre mpix",
         "Заблокировать выбор на холсте (только в редакторе)" to "Verrouiller la sélection sur le canevas (éditeur uniquement)",
+        "Заголовок окна" to "Titre de la fenêtre",
         "Загрузить…" to "Charger…",
         "Загрузка…" to "Chargement…",
         "Закрыть" to "Fermer",
@@ -132,6 +183,7 @@ internal val translationsFr: Map<String, String> =
         "Записать размер текстуры в RefSize" to "Écrire la taille de la texture dans RefSize",
         "Заполнить слоты по именам…" to "Remplir les slots par noms…",
         "Запоминать размер окна" to "Mémoriser la taille de la fenêtre",
+        "Значение, при котором полоса полна" to "La valeur pour laquelle la barre est pleine",
         "И ещё {0}" to "Et {0} de plus",
         "Игнорировать" to "Ignorer",
         "Из набора" to "De l'ensemble",
@@ -159,10 +211,17 @@ internal val translationsFr: Map<String, String> =
         "Как Workbench 1.30: color читается как линейный свет и смешивается в нём. Выключено: как в игре (F6)" to
             "Comme Workbench 1.30 : color est lu en lumière linéaire et mélangé dedans. Désactivé : comme dans le jeu (F6)",
         "Как в системе: {0}" to "Comme le système : {0}",
+        "Как картинка заполняет виджет: tile повторяет, stretch растягивает" to
+            "Comment l'image remplit le widget : tile répète, stretch étire",
+        "Как картинка смешивается с тем, что под ней: blend, add, multiply, color, alpha, overlay" to
+            "Comment l'image se mélange avec ce qui est dessous : blend, add, multiply, color, alpha, overlay",
         "Картинка для {0} · {1}" to "Image pour {0} · {1}",
+        "Картинка: путь к текстуре или запись вида set:имя image:имя из imageset" to
+            "Image : un chemin vers une texture ou une entrée comme set:nom image:nom d'un imageset",
         "Картинки ({0})" to "Images ({0})",
         "Картинки с именами вида Frame + LeftTop, Top, Center… раскладываются по слотам этого состояния" to
             "Les images nommées comme Frame + LeftTop, Top, Center… sont réparties dans les slots de cet état",
+        "Класс скрипта, привязанный к виджету" to "La classe de script liée au widget",
         "Клик: выбрать другой класс" to "Clic : choisir une autre classe",
         "Код доступа скопирован: {0}" to "Code d'accès copié : {0}",
         "Команда…" to "Commande…",
@@ -190,6 +249,7 @@ internal val translationsFr: Map<String, String> =
         "Наведение и нажатие" to "Survol et appui",
         "Наведите курсор на превью: Highlight, зажмите кнопку мыши: Pushed" to
             "Placez le curseur sur l'aperçu : Highlight ; maintenez le bouton de la souris : Pushed",
+        "Наибольшее значение ползунка" to "La plus grande valeur du curseur",
         "Найдено: {0}" to "Trouvé : {0}",
         "Найдено: {0} из {1}" to "Trouvé : {0} sur {1}",
         "Настройки" to "Paramètres",
@@ -211,6 +271,7 @@ internal val translationsFr: Map<String, String> =
         "Не удалось сохранить {0}: {1}" to "Impossible d'enregistrer {0} : {1}",
         "Не удалось удалить {0}: {1}" to "Impossible de supprimer {0} : {1}",
         "Неподдерживаемый формат изображения" to "Format d'image non pris en charge",
+        "Непрозрачность тени от 0 до 1" to "Opacité de l'ombre de 0 à 1",
         "Нет картинок для превью: слоты пусты или набор не найден" to
             "Aucune image pour l'aperçu : les slots sont vides ou l'ensemble est introuvable",
         "Нет открытых файлов" to "Aucun fichier ouvert",
@@ -259,10 +320,12 @@ internal val translationsFr: Map<String, String> =
         "По правому краю" to "Sur le bord droit",
         "По умолчанию берётся язык системы. Язык, которого нет в списке, заменяется английским." to
             "Par défaut, la langue du système est utilisée. Une langue absente de la liste est remplacée par l'anglais.",
+        "По умолчанию: {0}" to "Par défaut : {0}",
         "По центру по вертикали" to "Centre vertical",
         "По центру по горизонтали" to "Centre horizontal",
         "Поведения: поставить скрипт-класс на выбранный виджет и скопировать скрипт" to
             "Comportements : placer une classe de script sur le widget sélectionné et copier le script",
+        "Поворот картинки в градусах" to "Rotation de l'image en degrés",
         "Повторение картинки при растягивании в виджете" to "Répétition de l'image lorsqu'elle est étirée dans le widget",
         "Повторить" to "Rétablir",
         "Повторить (Ctrl+Y)" to "Rétablir (Ctrl+Y)",
@@ -273,6 +336,9 @@ internal val translationsFr: Map<String, String> =
         "Подписи виджетов (F7)" to "Étiquettes des widgets (F7)",
         "Подписи виджетов на холсте (F7)" to "Étiquettes des widgets sur le canevas (F7)",
         "Подписи областей на атласе" to "Étiquettes des zones sur l'atlas",
+        "Подпись поверх видео" to "Une légende sur la vidéo",
+        "Подпись рядом с флажком" to "Le libellé à côté de la case",
+        "Подпись, пока ничего не выбрано" to "Le libellé tant que rien n'est sélectionné",
         "Поиск виджета…" to "Rechercher un widget…",
         "Поиск по имени…" to "Rechercher par nom…",
         "Поиск по названию иконки или набора…" to "Rechercher par nom d'icône ou d'ensemble…",
@@ -287,6 +353,10 @@ internal val translationsFr: Map<String, String> =
         "Показать сетку" to "Afficher la grille",
         "Показать состояние {0}" to "Afficher l'état {0}",
         "Показывать сетку" to "Afficher la grille",
+        "Положение по вертикали: пиксели или доля родителя, как выбран переключатель" to
+            "Position verticale : pixels ou part du parent, selon le commutateur",
+        "Положение по горизонтали: пиксели или доля родителя, как выбран переключатель" to
+            "Position horizontale : pixels ou part du parent, selon le commutateur",
         "Порт" to "Port",
         "Порядок отрисовки" to "Ordre de dessin",
         "Порядок отрисовки среди соседей: больше значит выше" to "Ordre de dessin parmi les voisins : plus grand signifie plus haut",
@@ -304,6 +374,9 @@ internal val translationsFr: Map<String, String> =
         "Прочитать файл с диска заново" to "Relire le fichier depuis le disque",
         "Прочитать файл с диска заново, правки в редакторе пропадут" to
             "Relire le fichier depuis le disque ; les modifications de l'éditeur seront perdues",
+        "Пункты списка через точку с запятой: «Alpha;Beta;Gamma»" to
+            "Éléments de la liste séparés par des points-virgules : « Alpha;Beta;Gamma »",
+        "Путь к .layout, который показывается внутри виджета" to "Le chemin du .layout affiché dans le widget",
         "Путь к шрифту без расширения, например gui/fonts/MetronBook; пусто — шрифт по умолчанию" to
             "Chemin de la police sans extension, par exemple gui/fonts/MetronBook ; vide : police par défaut",
         "Работает: {0}" to "En cours : {0}",
@@ -320,6 +393,9 @@ internal val translationsFr: Map<String, String> =
             "La taille est enregistrée à chaque changement et rétablie au prochain démarrage.",
         "Размер текстуры в пикселях, в которых заданы Pos и Size картинок" to
             "Taille de la texture dans les pixels où sont donnés Pos et Size des images",
+        "Размер тени текста в пикселях; 0 — без тени" to "Taille de l'ombre du texte en pixels ; 0 signifie sans ombre",
+        "Размер шрифта в пикселях" to "Taille de la police en pixels",
+        "Размер шрифта в пикселях при включённом exact text" to "Taille de la police en pixels lorsque exact text est activé",
         "Разрезать" to "Découper",
         "Разрезать выбранную область на девять частей для 9-slice. Угол — треть меньшей стороны, дальше правится руками" to
             "Découper la zone sélectionnée en neuf parties pour le 9-slice. Un coin vaut un tiers du plus petit côté, puis ajustez à la main",
@@ -335,15 +411,23 @@ internal val translationsFr: Map<String, String> =
         "Свойства выбранного виджета" to "Propriétés du widget sélectionné",
         "Свойства скопированы: {0}" to "Propriétés copiées : {0}",
         "Свойство" to "Propriété",
+        "Свойство из файла, которого нет в списке известных редактору" to
+            "Une propriété du fichier qui ne figure pas dans la liste connue de l'éditeur",
         "Сгруппировать в Frame" to "Grouper dans un Frame",
         "Сгруппировать в Frame (Ctrl+G), в WrapSpacer: Shift+A" to "Grouper dans un Frame (Ctrl+G), dans un WrapSpacer : Maj+A",
         "Сгруппировать в WrapSpacer" to "Grouper dans un WrapSpacer",
+        "Сдвиг подписи от края в пикселях: «x y»" to "Décalage du libellé par rapport au bord en pixels : « x y »",
+        "Сдвиг подписи: «x y»" to "Décalage du libellé : « x y »",
+        "Сдвиг текста от края в пикселях: «x y»" to "Décalage du texte par rapport au bord en pixels : « x y »",
         "Сделайте снимок лайаута в Workbench при тех же разрешении и масштабе 100%, обрежьте до экрана и загрузите сюда." to
             "Faites une capture du layout dans Workbench avec la même résolution et un zoom de 100 %, rognez-la à l'écran et chargez-la ici.",
         "Сессия сохранена" to "Session enregistrée",
         "Сетка" to "Grille",
         "Сетка пикселей при большом увеличении" to "Une grille de pixels à fort zoom",
         "Сколько виджетов изменится" to "Combien de widgets changeront",
+        "Сколько картинки уже проявилось через маску, от 0 до 1" to "Quelle part de l'image est apparue à travers le masque, de 0 à 1",
+        "Сколько колонок (так в файле, с опечаткой)" to "Combien de colonnes (écrit ainsi dans le fichier, avec une faute)",
+        "Сколько рядов в сетке" to "Combien de lignes dans la grille",
         "Сконвертировано: {0} → {1}" to "Converti : {0} → {1}",
         "Скопировано" to "Copié",
         "Скопировано виджетов: {0}" to "Widgets copiés : {0}",
@@ -360,6 +444,7 @@ internal val translationsFr: Map<String, String> =
         "Скрипт-класс на выбранный виджет и в буфер" to "Une classe de script sur le widget sélectionné et dans le presse-papiers",
         "Скрыть на холсте (только в редакторе)" to "Masquer sur le canevas (éditeur uniquement)",
         "Скрыть эталон" to "Masquer la référence",
+        "Смещение тени: «x y»" to "Décalage de l'ombre : « x y »",
         "Сначала скопируйте свойства (Ctrl+Alt+C)" to "Copiez d'abord les propriétés (Ctrl+Alt+C)",
         "Снимок {0}×{1} растянут на выбранное разрешение" to "La capture {0}×{1} est étirée à la résolution choisie",
         "Создать" to "Créer",
@@ -371,15 +456,23 @@ internal val translationsFr: Map<String, String> =
         "Стиль" to "Style",
         "Стиль «{0}» уже есть у этого виджета" to "Le style « {0} » est déjà sur ce widget",
         "Стиль виджета" to "Style du widget",
+        "Стиль из .styles: рисует фон, рамку и состояния виджета. Список — стили игры для этого типа виджета" to
+            "Un style d'un fichier .styles : dessine le fond, la bordure et les états du widget. La liste contient les styles du jeu pour ce type de widget",
         "Стиль: {0} · {1}" to "Style : {0} · {1}",
+        "Текст в поле при показе" to "Le texte du champ à l'affichage",
         "Текстура imageset" to "Texture de l'imageset",
         "Текстура {0} × {1}" to "Texture {0} × {1}",
+        "Текстура маски, через которую картинка проявляется" to "La texture du masque à travers laquelle l'image apparaît",
         "Текстуры" to "Textures",
         "Текущее состояние" to "État actuel",
         "Текущий масштаб" to "Zoom actuel",
         "Текущий масштаб холста" to "Zoom actuel du canevas",
         "Тип {0}" to "Type {0}",
         "Только выбранные виджеты" to "Widgets sélectionnés uniquement",
+        "Точка поворота по вертикали, от 0 до 1" to "Le pivot à la verticale, de 0 à 1",
+        "Точка поворота по горизонтали, от 0 до 1" to "Le pivot à l'horizontale, de 0 à 1",
+        "Точка, вокруг которой картинка поворачивается, от 0 до 1 по каждой оси" to
+            "Le point autour duquel l'image tourne, de 0 à 1 sur chaque axe",
         "Убрать" to "Retirer",
         "Убрать скриншот с холста" to "Retirer la capture du canevas",
         "Убрать слот" to "Retirer le slot",
@@ -401,29 +494,51 @@ internal val translationsFr: Map<String, String> =
         "Файл изменён на диске." to "Le fichier a été modifié sur le disque.",
         "Файл по имени…" to "Fichier par nom…",
         "Файл текстуры не найден: картинки показаны без неё" to "Fichier de texture introuvable : les images sont affichées sans elle",
+        "Файл текстуры, который рисует виджет. Кнопка «..» выбирает файл" to
+            "Le fichier de texture dessiné par le widget. Le bouton « .. » choisit le fichier",
         "Формат" to "Format",
         "Холст" to "Canevas",
+        "Цвет вводимого текста: r g b a от 0 до 1" to "Couleur du texte saisi : r g b a de 0 à 1",
         "Цвет пишется как AARRGGBB, например FFFFFFFF" to "La couleur s'écrit AARRGGBB, par exemple FFFFFFFF",
+        "Цвет подписи" to "Couleur du libellé",
+        "Цвет подписи выключенной кнопки (disabled)" to "Couleur du libellé d'un bouton désactivé (disabled)",
+        "Цвет подписи: r g b a от 0 до 1" to "Couleur du libellé : r g b a de 0 à 1",
+        "Цвет подсказки пустого поля" to "Couleur de l'indication d'un champ vide",
         "Цвет стиля AARRGGBB. FFFFFFFF — без изменений, 00000000 — прозрачный, цвет виджета его заменяет" to
             "Couleur du style en AARRGGBB. FFFFFFFF est inchangé, 00000000 est transparent, la couleur du widget la remplace",
+        "Цвет текста выключенного виджета (disabled)" to "Couleur du texte d'un widget désactivé (disabled)",
+        "Цвет текста выключенного поля (disabled)" to "Couleur du texte d'un champ désactivé (disabled)",
+        "Цвет текста: r g b a от 0 до 1" to "Couleur du texte : r g b a de 0 à 1",
+        "Цвет текста; если не задан, берётся color" to "Couleur du texte ; si elle n'est pas définie, color est utilisé",
+        "Цвет тени подписи" to "Couleur de l'ombre du libellé",
+        "Цвет тени текста: r g b a от 0 до 1" to "Couleur de l'ombre du texte : r g b a de 0 à 1",
         "Цвета" to "Couleurs",
         "Цвета в файле линейные; Workbench показывает их в sRGB" to "Les couleurs du fichier sont linéaires ; Workbench les affiche en sRGB",
+        "Цвета в файле линейные; Workbench показывает их в sRGB. Клик по образцу открывает палитру" to
+            "Les couleurs du fichier sont linéaires ; Workbench les affiche en sRGB. Un clic sur l'échantillon ouvre la palette",
         "Цвета как в Workbench 1.30 (F6)" to "Couleurs comme dans Workbench 1.30 (F6)",
         "Цвета этого layout" to "Couleurs de ce layout",
+        "Числовой идентификатор виджета, который скрипт читает через GetUserID()" to
+            "Un identifiant numérique du widget qu'un script lit via GetUserID()",
         "Чистый вид без рамок, подписей и выделения (F5)" to "Vue propre sans bordures, étiquettes ni sélection (F5)",
         "Чистый вид включён. Выключается кнопкой Live Preview" to "La vue propre est activée. Elle se désactive avec le bouton Live Preview",
         "Что в layout выглядит неверно" to "Ce qui semble incorrect dans le layout",
+        "Что за краем текстуры: clamp тянет край, wrap повторяет, mirror отражает" to
+            "Ce qui se trouve au-delà du bord de la texture : clamp étire le bord, wrap répète, mirror reflète",
         "Что заменить" to "Quoi remplacer",
         "Что заменить (пусто: любое значение)" to "Quoi remplacer (vide : toute valeur)",
         "Шаблон скопирован: {0}" to "Modèle copié : {0}",
         "Шаблон скрипта в буфер" to "Modèle de script dans le presse-papiers",
         "Шаблон скрипта: {0}" to "Modèle de script : {0}",
+        "Шаг изменения значения; 0 — плавно" to "Le pas de la valeur ; 0 signifie progressif",
         "Шаг сетки в пикселях" to "Pas de la grille en pixels",
         "Шаг сетки, пикселей" to "Pas de la grille, pixels",
         "Шагов в истории (отмена и возврат)" to "Étapes dans l'historique (annuler et rétablir)",
         "Шахматка" to "Damier",
         "Шахматный фон, чтобы видеть прозрачность" to "Un fond en damier pour voir la transparence",
         "Ширина и высота области в пикселях RefSize" to "Largeur et hauteur de la zone en pixels RefSize",
+        "Ширина мягкого края маски, от 0 до 1" to "La largeur du bord doux du masque, de 0 à 1",
+        "Ширина: пиксели или доля родителя, как выбран переключатель" to "Largeur : pixels ou part du parent, selon le commutateur",
         "Экспорт" to "Exporter",
         "Эталон Workbench" to "Référence Workbench",
         "Это действие необратимо." to "Cette action est irréversible.",
