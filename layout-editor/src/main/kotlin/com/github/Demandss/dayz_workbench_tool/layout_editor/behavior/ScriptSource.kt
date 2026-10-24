@@ -429,7 +429,9 @@ class __CLASS__ : ScriptedWidgetEventHandler
     void OnWidgetScriptInit(Widget w)
     {
         m_Target = FindTarget(w, Target);
+#ifndef WORKBENCH
         m_Target.SetAlpha(0);
+#endif
 $SUBSCRIBE    }
 $FIND_TARGET$PARAM_FLOAT$UPDATE_SUBSCRIPTION
 #ifndef WORKBENCH
@@ -518,8 +520,12 @@ class __CLASS__ : ScriptedWidgetEventHandler
         if (!m_Bar)
             return;
 
+#ifdef WORKBENCH
+        m_Bar.SetCurrent(ParamFloat(Value, 75));
+#else
         m_Bar.SetCurrent(0);
         AnimateTo(ParamFloat(Value, 75));
+#endif
 $SUBSCRIBE    }
 
     /** Fills the bar smoothly from where it is to [value], on the scale of its `current`. */
@@ -569,8 +575,13 @@ class __CLASS__ : ScriptedWidgetEventHandler
         if (!m_Text)
             return;
 
+#ifdef WORKBENCH
+        int shown = Math.Round(ParamFloat(Value, 100));
+        m_Text.SetText(shown.ToString());
+#else
         m_Text.SetText("0");
         CountTo(ParamFloat(Value, 100));
+#endif
 $SUBSCRIBE    }
 
     /** Counts the number in the text up (or down) to [value]. */
@@ -630,10 +641,14 @@ $FIND_TARGET$UPDATE_SUBSCRIPTION
         if (w != m_Widget || button != 0)
             return false;
 
+#ifndef WORKBENCH
         GetMousePos(m_StartMouseX, m_StartMouseY);
         m_Target.GetScreenPos(m_StartX, m_StartY);
         m_Dragging = true;
         return true;
+#else
+        return false;
+#endif
     }
 
     override bool OnMouseButtonUp(Widget w, int x, int y, int button)
