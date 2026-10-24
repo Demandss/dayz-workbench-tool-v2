@@ -138,6 +138,8 @@ class ScriptClassIndexTest {
         for (menu in listOf("UIScriptedMenu", "MainMenu", "InGameMenu", "MissionGameplay", "ScriptedWidgetEventHandler")) {
             assertFalse(menu in names, menu)
         }
+        val undescribed = list.filter { it.source != EDITOR && !ScriptClassIndex.describes(it.name) }.map { it.name }
+        assertTrue(undescribed.isEmpty(), "classes of the game without a description: $undescribed")
         val ofGame = list.count { it.source == "Игра" }
         assertTrue(ofGame < 60, "too many classes: $ofGame")
         val info = list.first { it.name == "SizeToChild" }

@@ -106,7 +106,7 @@ internal object ScriptClassIndex {
         return editorClasses.filter { it.name !in names } + found
     }
 
-    // What the classes do, for the tooltip of the list; the editor's own classes first, then the vanilla ones a layout often uses
+    // What the classes do, for the tooltip of the list: the editor's own classes, then those of the game
     private val about =
         mapOf(
             "HoverScale" to "Увеличивает виджет, пока курсор над ним.",
@@ -126,19 +126,87 @@ internal object ScriptClassIndex {
             "NumberStepper" to "Число с кнопками минус и плюс. Строит виджеты в пустом фрейме.",
             "EditFilter" to "Пропускает в поле ввода только нужные символы и ограничивает длину.",
             "DragMove" to "Двигает родителя (окно), когда тянут за этот виджет.",
-            "SizeToChild" to "Подгоняет размер виджета под вложенный виджет m_ChildName, с отступами. Играется в Live Preview.",
-            "SizeToParent" to "Делает размер виджета долей родителя по выбранным осям. Играется в Live Preview.",
-            "AutoHeightSpacer" to
-                "Выстраивает детей рядами и берёт высоту стопки (AlignChilds, Gap, MinHeight, MaxHeight). Играется в Live Preview.",
-            "NoticeSpacer" to "AutoHeightSpacer, который пересчитывается по событиям. Играется в Live Preview.",
-            "HorizontalSpacer" to "Делит ширину поровну между детьми, с Border и Gap. Играется в Live Preview.",
-            "VerticalSpacer" to "Делит высоту поровну между детьми, с border и gap. Играется в Live Preview.",
-            "TabberUI" to "Вкладки: кнопки сверху и панели под ними.",
-            "Tabber" to "Простые вкладки: переключает панели по кнопкам.",
-            "HoverEffect" to "Подсвечивает виджет красным и увеличивает при наведении.",
-            "Bouncer" to "Покачивает виджет.",
-            "Rotator" to "Вращает виджет.",
+            "SizeToChild" to
+                "Подгоняет размер виджета под вложенный виджет m_ChildName, с отступами m_HorizontalOffset и m_VerticalOffset " +
+                "по осям m_ResizeHorizontal и m_ResizeVertical.",
+            "SizeToParent" to "Снимает точный размер по осям m_ResizeHorizontal и m_ResizeVertical: размер становится долей родителя.",
+            "AutoHeightSpacer" to "Выстраивает детей рядами и берёт высоту стопки. Параметры AlignChilds, Gap, Top, MinHeight, MaxHeight.",
+            "NoticeSpacer" to "AutoHeightSpacer, который пересчитывается ещё и по событиям виджета.",
+            "SpacerBase" to
+                "Основа HorizontalSpacer и VerticalSpacer: считает детей и ставит им точную позицию и размер. Ячейки задают наследники.",
+            "HorizontalSpacer" to "Делит ширину поровну между детьми, с отступом Border от краёв и промежутком Gap.",
+            "VerticalSpacer" to "Делит высоту поровну между детьми, с отступом border от краёв и промежутком gap.",
+            "HorizontalSpacerWithFixedAspect" to
+                "Первый ребёнок задаёт размер ячейки, остальные ставятся правее, на ширину ячейки плюс coef от неё. " +
+                "Параметры border и gap в коде не используются.",
+            "RightGap" to "Делает виджет шириной родителя без gap и высотой родителя, в пикселях.",
+            "Tabber" to "Простые вкладки: дети ButtonsPanel переключают дочерние панели ContentPanel, видна одна (SelectedTab).",
+            "TabberUI" to "Вкладки: кнопки Tab_Control_N в Tab_Control_Container и панели Tab_N. Выбранная вкладка красная на чёрном, " +
+                "при наведении так же, остальные белые.",
+            "HoverEffect" to
+                "По замыслу при наведении плавно увеличивает виджет на долю amount от размера (рост от левого верхнего угла) " +
+                "и красит в красноватый (1, 1, 0.5, 0.5), скорость speed. Цвет не настраивается и не возвращается к прежнему, " +
+                "а доходит до белого. По исходнику его Update не подключён к очереди обновлений и таймер не тикает, " +
+                "поэтому в игре он, судя по коду, ничего не меняет.",
+            "Bouncer" to
+                "По замыслу покачивает виджет: ширина растёт, высота падает по кругу (amount, speed). Update не подключён и таймер " +
+                "не тикает, по коду ничего не меняет.",
+            "Rotator" to "По замыслу вращает виджет со скоростью speed. Update не подключён и таймер не тикает, по коду ничего не меняет.",
+            "MainMenuButtonEffect" to
+                "Кнопка в фокусе сдвигает текст вправо на amount * 4 пикселя и красит его красным, остальное время текст " +
+                "белый. Реагирует на фокус кнопки, не на наведение.",
+            "EmbededButtonScript" to "Ставит текст Caption на кнопку, лежащую первой внутри виджета.",
+            "RadialProgressBar" to
+                "Круговой прогресс из двух половин BarHider_<имя> и BarPart2_<имя>, угол задаёт скрипт через SetProgress. " +
+                "В начале обе половины скрыты.",
+            "ItemsCounter" to "При создании считает вложенные виджеты в NumberOfItems, ничего не рисует.",
+            "ScrollBarContainer" to
+                "Прокрутка: дети Content, ScrollBar и Scroller, колесо мыши и перетаскивание ползунка. Параметр Invert.",
+            "InventoryGrid" to "Сетка ячеек инвентаря: предметы, перетаскивание и события приходят из игры.",
+            "ItemActionsWidget" to "Подсказки действий над предметом в руках игрока, берёт предмет и ввод из игры.",
+            "ActionTargetsCursor" to
+                "Курсор действий у объекта, на который смотрит игрок, с иконками доступных действий. Нужны объект и действия игры.",
+            "ContinuousActionProgress" to "Прогресс длительного действия игрока (поднять, ремонтировать). Нужны игрок и его действие.",
+            "CrossHairSelector" to "Выбирает и показывает прицел по оружию и настройкам профиля. Нужны игрок и профиль.",
+            "ProjectedCrosshair" to "Прицел, который проецируется туда, куда направлено оружие. Позицию даёт игра.",
+            "RadialMenu" to "Радиальное меню выбора по секциям: мышь и геймпад, секции регистрируют свои классы. Управляется из игры.",
+            "ObjectFollower" to "Ведёт виджет за экранной позицией объекта мира (SetTarget). Нужен объект игры.",
+            "PasswordMenuToolbarHandler" to "Подсказки кнопок геймпада в меню ввода пароля.",
+            "ConsoleToolbarWidgetHandlerBase" to "Основа подсказок кнопок геймпада внизу консольных меню.",
+            "ScriptConsoleToolTipEventHandler" to "Подсказки в отладочной консоли скриптов.",
         )
+
+    // Which classes of the game Live Preview plays: those that size and place widgets or answer the pointer, those that do nothing
+    // in the source, and the rest, which need the game
+    private val played =
+        setOf(
+            "SizeToChild",
+            "SizeToParent",
+            "AutoHeightSpacer",
+            "NoticeSpacer",
+            "HorizontalSpacer",
+            "VerticalSpacer",
+            "HorizontalSpacerWithFixedAspect",
+            "RightGap",
+            "Tabber",
+            "TabberUI",
+            "MainMenuButtonEffect",
+            "EmbededButtonScript",
+            "RadialProgressBar",
+        )
+    private val idle = setOf("HoverEffect", "Bouncer", "Rotator", "ItemsCounter")
+
+    /** True when the tooltip has a description of the class [name]. */
+    fun describes(name: String): Boolean = about.containsKey(name)
+
+    /** What Live Preview does with a class of the game: plays it, shows nothing because the class does nothing, or cannot (needs the game). */
+    private fun previewStatus(name: String): String? =
+        when {
+            name in played -> "Live Preview: играется"
+            name in idle -> "Live Preview: ничего не меняется"
+            about.containsKey(name) -> "Live Preview: не играется, нужны данные или управление игры"
+            else -> null
+        }
 
     /** The text of the tooltip of [info]: what the class does, what it takes and where it is from. */
     fun tooltip(info: ScriptClassInfo): String {
@@ -148,6 +216,7 @@ internal object ScriptClassIndex {
             lines += "Параметры: " + entry.params.joinToString(", ") { "${it.name} = ${it.default.ifEmpty { "\"\"" }}" }
             lines += if (entry.spawner != null) "Ставится на пустой фрейм, виджеты строит сам" else "Ставится на готовый виджет"
         }
+        if (info.source == "Игра") previewStatus(info.name)?.let { lines += it }
         if (info.source != EDITOR) {
             if (info.parent.isNotEmpty() && info.parent != ROOT) lines += "Наследует ${info.parent}"
             val file =

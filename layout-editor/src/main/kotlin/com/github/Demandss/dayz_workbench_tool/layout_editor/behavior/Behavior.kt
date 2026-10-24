@@ -32,13 +32,17 @@ internal data class BehaviorEffect(
     // The text of a text widget and the `current` value of a progress bar
     val text: String? = null,
     val current: Float? = null,
+    // How far the text of a button is moved to the right, in pixels
+    val textOffset: Float? = null,
 ) {
     /** True when the widget has to be drawn in a transformed or faded layer. */
     val moves: Boolean get() = scale != 1f || offset != Offset.Zero || alpha < 1f
 
     /** True when the widget has to be drawn from a changed copy of itself. */
     val changesProperties: Boolean
-        get() = color != null || visible != null || image != null || textColor != null || text != null || current != null
+        get() =
+            color != null || visible != null || image != null || textColor != null || text != null || current != null ||
+                textOffset != null
 
     operator fun plus(other: BehaviorEffect) =
         BehaviorEffect(
@@ -51,6 +55,7 @@ internal data class BehaviorEffect(
             alpha * other.alpha,
             other.text ?: text,
             other.current ?: current,
+            other.textOffset ?: textOffset,
         )
 }
 

@@ -16,7 +16,17 @@ import kotlin.math.max
  * already have, and the layout is made again until nothing changes (a script class inside another waits for the inner one).
  */
 internal object VanillaScripts {
-    private val classes = setOf("SizeToChild", "SizeToParent", "AutoHeightSpacer", "NoticeSpacer", "HorizontalSpacer", "VerticalSpacer")
+    private val classes =
+        setOf(
+            "SizeToChild",
+            "SizeToParent",
+            "AutoHeightSpacer",
+            "NoticeSpacer",
+            "HorizontalSpacer",
+            "VerticalSpacer",
+            "HorizontalSpacerWithFixedAspect",
+            "RightGap",
+        )
     private const val MAX_PASSES = 8
 
     /** True when the tree has a widget with one of these script classes. */
@@ -49,6 +59,8 @@ internal object VanillaScripts {
             "AutoHeightSpacer", "NoticeSpacer" -> autoHeight(node, layout, edits)
             "HorizontalSpacer" -> evenly(node, layout, edits, horizontal = true)
             "VerticalSpacer" -> evenly(node, layout, edits, horizontal = false)
+            "HorizontalSpacerWithFixedAspect" -> fixedAspect(node, layout, edits)
+            "RightGap" -> rightGap(node, layout, edits)
         }
         node.children.forEach { collect(it, layout, edits) }
     }
@@ -188,6 +200,33 @@ internal object VanillaScripts {
         if (minHeight > height) height = minHeight
         val (rawW, rawH) = pair(node, "size", 0.1f)
         if (abs(rawH - height) > 1f) edits.set(node, "size", "${text(rawW)} ${text(height)}")
+    }
+
+    /** The first child sets the size of a cell; every other child is put to the right of it, `coef` of a cell further. */
+    private fun fixedAspect(
+        node: EditorWidgetNode,
+        layout: TreeLayout,
+        edits: MutableMap<UUID, MutableMap<String, String>>,
+    ) {
+        val coef = number(params(node)["coef"])
+        val cell = node.children.firstOrNull()?.let { layout.rects[it.id] } ?: return
+        node.children.drop(1).forEach { child ->
+            edits.set(child, "position", "${text(cell.width + cell.width * coef)} 0")
+            edits.set(child, "hexactpos", "1")
+            edits.set(child, "vexactpos", "1")
+        }
+    }
+
+    /** Makes the widget as wide as its parent less `gap`, and as high as its parent, in pixels. */
+    private fun rightGap(
+        node: EditorWidgetNode,
+        layout: TreeLayout,
+        edits: MutableMap<UUID, MutableMap<String, String>>,
+    ) {
+        val parent = layout.parentRects[node.id] ?: return
+        edits.set(node, "size", "${text(parent.width - number(params(node)["gap"]))} ${text(parent.height)}")
+        edits.set(node, "hexactsize", "1")
+        edits.set(node, "vexactsize", "1")
     }
 
     /** Divides the widget into as many equal cells as it has children, in a row or a column, with a border and a gap. */

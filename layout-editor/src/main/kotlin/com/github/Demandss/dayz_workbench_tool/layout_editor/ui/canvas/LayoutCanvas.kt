@@ -41,6 +41,7 @@ import com.github.demandss.dayz_workbench_tool.layout_editor.EditorWidgetNode
 import com.github.demandss.dayz_workbench_tool.layout_editor.behavior.BehaviorEffect
 import com.github.demandss.dayz_workbench_tool.layout_editor.behavior.Behaviors
 import com.github.demandss.dayz_workbench_tool.layout_editor.behavior.PreviewDrag
+import com.github.demandss.dayz_workbench_tool.layout_editor.behavior.VanillaPreview
 import com.github.demandss.dayz_workbench_tool.layout_editor.behavior.VanillaScripts
 import com.github.demandss.dayz_workbench_tool.layout_editor.behavior.expandSpawners
 import com.github.demandss.dayz_workbench_tool.layout_editor.behavior.previewEffects
@@ -191,6 +192,11 @@ private fun previewPointer(
                     for (owner in path) {
                         val before = state.previewBehaviorState[owner.id].orEmpty()
                         spawnerClick(owner, top.node.name, before)?.let { state.previewBehaviorState += (owner.id to it) }
+                    }
+                    // The same for the classes of the game that answer to clicks (tabs): they see the widgets from the owner down to the click
+                    path.forEachIndexed { index, owner ->
+                        val before = state.previewBehaviorState[owner.id].orEmpty()
+                        VanillaPreview.click(owner, path.drop(index + 1), before)?.let { state.previewBehaviorState += (owner.id to it) }
                     }
                 }
             }
@@ -1128,6 +1134,7 @@ fun LayoutCanvas(
                         state.previewClock,
                         state.previewPressTimes,
                         state.previewBehaviorState,
+                        state.previewFocus,
                     )
                 } else {
                     emptyMap()

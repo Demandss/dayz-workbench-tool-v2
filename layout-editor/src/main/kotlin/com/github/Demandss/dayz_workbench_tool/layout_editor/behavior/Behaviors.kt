@@ -254,6 +254,7 @@ internal fun previewEffects(
     time: Float = 0f,
     pressTimes: Map<UUID, Float> = emptyMap(),
     states: Map<UUID, Map<String, String>> = emptyMap(),
+    focus: UUID? = null,
 ): Map<UUID, BehaviorEffect> {
     val out = HashMap<UUID, BehaviorEffect>()
 
@@ -281,6 +282,7 @@ internal fun previewEffects(
     }
     walk(root, null)
     for ((id, effect) in spawnerEffects(root, states)) out[id] = (out[id] ?: BehaviorEffect()) + effect
+    for ((id, effect) in VanillaPreview.effects(root, states, hovered, focus)) out[id] = (out[id] ?: BehaviorEffect()) + effect
     return out
 }
 
@@ -300,6 +302,7 @@ internal fun EditorWidgetNode.withEffectProperties(effects: Map<UUID, BehaviorEf
             effect.textColor?.let { props[if (node.node.type == WidgetType.BUTTON) "text color" else "color"] = colorProperty(it) }
             effect.text?.let { props["text"] = "\"$it\"" }
             effect.current?.let { props["current"] = it.toString() }
+            effect.textOffset?.let { props["text_offset"] = "${it.toInt()} 0" }
         }
         return node.copy(node = node.node.copy(properties = props), children = children.toMutableList())
     }
