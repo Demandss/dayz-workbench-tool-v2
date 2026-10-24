@@ -1933,6 +1933,35 @@ class LayoutEditorState(
         return vanillaSheet?.stylesFor(widgetClass).orEmpty()
     }
 
+    /**
+     * The fonts that lie in the `gui/fonts` folders of the work drive and the connected mods, as `gui/fonts/<name>`, each with
+     * what the preview does with it: `bitmap` and `sdf` fonts are drawn as they are, anything else is drawn as Metron.
+     */
+    fun fontNames(nearPath: String?): List<Pair<String, String>> {
+        val found = linkedMapOf<String, String>()
+        for (root in resourceRoots(nearPath)) {
+            val dir = runCatching { inRoot(root, "gui/fonts") }.getOrNull() ?: continue
+            val files = runCatching { dir.listFiles() }.getOrNull() ?: continue
+            val names = files.map { it.name }.toSet()
+            for (file in files.sortedBy { it.name.lowercase() }) {
+                val stem = file.nameWithoutExtension
+                val kind =
+                    when {
+                        file.extension.equals("fnt", true) && "$stem.edds" in names -> "bitmap"
+
+                        stem.startsWith(
+                            "sdf_",
+                            true,
+                        ) && (file.extension.equals("fnt", true) || file.extension.equals("fsdf", true)) -> "sdf"
+
+                        else -> continue
+                    }
+                found.putIfAbsent("gui/fonts/$stem", kind)
+            }
+        }
+        return found.entries.map { it.key to it.value }
+    }
+
     private fun findVanillaStyles(nearPath: String?): File? {
         val relative = "gui/looknfeel/dayzwidgets.styles"
         return resourceRoots(nearPath).map { inRoot(it, relative) }.firstOrNull { it.isFile }

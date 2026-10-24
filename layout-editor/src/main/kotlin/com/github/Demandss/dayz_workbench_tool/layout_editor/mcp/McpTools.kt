@@ -128,6 +128,7 @@ internal class McpTools(
             "list_icons" -> listIcons(args)
             "list_styles" -> listStyles(args)
             "list_imagesets" -> state.imageSetNames(state.activeFile?.path).joinToString("\n")
+            "list_fonts" -> listFonts()
             else -> throw ToolFailure("Unknown tool: $name")
         }
 
@@ -348,6 +349,27 @@ internal class McpTools(
         }.toString()
     }
 
+    private fun listFonts(): String {
+        val fonts = state.fontNames(state.activeFile?.path)
+        return buildJsonObject {
+            put(
+                "note",
+                "Put the path in quotes into the font property. bitmap and sdf fonts are drawn by the preview as they are; none of these is monospaced.",
+            )
+            put(
+                "fonts",
+                JsonArray(
+                    fonts.map { (path, kind) ->
+                        buildJsonObject {
+                            put("font", path)
+                            put("preview", kind)
+                        }
+                    },
+                ),
+            )
+        }.toString()
+    }
+
     private fun listStyles(args: JsonObject): String {
         val widgetClass = args.string("widget_class") ?: throw ToolFailure("widget_class is required, e.g. PanelWidget")
         return state
@@ -441,6 +463,16 @@ internal class McpTools(
             }
     }
 
+    /** The properties that hold a text or a path, which the file writes in quotes. */
+    private val quotedKeys = setOf("text", "font", "image0", "imagetexture", "scriptclass", "items", "layout", "caption")
+
+    private fun unquotedWarnings(values: Map<String, String?>): List<String> =
+        values
+            .filter { (key, value) -> key.lowercase() in quotedKeys && !value.isNullOrEmpty() && !value.trim().startsWith("\"") }
+            .map { (key, value) ->
+                "Property '$key' is a text and needs quotes: write \"$value\" (without them the game cannot read the file)"
+            }
+
     private fun withWarnings(
         json: JsonObject,
         warnings: List<String>,
@@ -468,7 +500,9 @@ internal class McpTools(
             }
         }
         val after = requireNode(buildJsonObject { put("id", node.id.toString()) })
-        return withWarnings(widgetJson(after, withRect = true), warningsFor(after, cleaned.filterValues { it !is JsonNull }.keys))
+        val given = cleaned.filterValues { it !is JsonNull }
+        val unquoted = unquotedWarnings(given.mapValues { (_, v) -> (v as? JsonPrimitive)?.content })
+        return withWarnings(widgetJson(after, withRect = true), warningsFor(after, given.keys) + unquoted)
     }
 
     private fun typeOf(text: String): WidgetType {
@@ -547,7 +581,10 @@ internal class McpTools(
         }
         state.selectedIds.clear()
         state.selectedIds.add(created.id)
-        return withWarnings(widgetJson(created, withRect = false), warningsFor(created, created.node.properties.keys))
+        return withWarnings(
+            widgetJson(created, withRect = false),
+            warningsFor(created, created.node.properties.keys) + unquotedWarnings(created.node.properties),
+        )
     }
 
     /** Many widgets in one call and one step of the history. A widget may name a parent that an earlier one of the list created. */
@@ -573,7 +610,13 @@ internal class McpTools(
                         p.copy(children = list)
                     }
                 created += widget
-                warnings += warningsFor(widget, widget.node.properties.keys).map { "${widget.node.name}: $it" }
+                warnings +=
+                    (
+                        warningsFor(
+                            widget,
+                            widget.node.properties.keys,
+                        ) + unquotedWarnings(widget.node.properties)
+                    ).map { "${widget.node.name}: $it" }
             } catch (e: ToolFailure) {
                 throw ToolFailure("widgets[$i]: ${e.message}. Nothing was added")
             }
@@ -611,7 +654,11 @@ internal class McpTools(
         if (source.id == doc.root.id) throw ToolFailure("The root widget cannot be copied")
         val count = (args.int("count") ?: 1).coerceIn(1, 200)
         val prefix = args.string("name_prefix").orEmpty()
-        val suffix = args.string("name_suffix") ?: "_{n}"
+        val find = args.string("name_find")
+        val replaceWith = args.string("name_replace")
+        // With name_find the part is replaced in every name and nothing is added; otherwise the suffix is added
+        val suffix = if (find != null) "" else args.string("name_suffix") ?: "_{n}"
+        val firstNumber = args.int("number_start") ?: 1
         val shift =
             args
                 .string("offset")
@@ -638,7 +685,11 @@ internal class McpTools(
             n: EditorWidgetNode,
             copyNumber: Int,
         ): EditorWidgetNode {
-            val wanted = sanitizeWidgetName(prefix + n.node.name + suffix.replace("{n}", copyNumber.toString()))
+            val number = copyNumber + firstNumber - 1
+
+            fun fill(text: String) = text.replace("{nn}", "%02d".format(number)).replace("{n}", number.toString())
+            val base = if (find != null) n.node.name.replace(find, fill(replaceWith ?: "")) else n.node.name
+            val wanted = sanitizeWidgetName(prefix + base + fill(suffix))
             var name = wanted
             var k = 1
             while (name in taken) name = wanted + (++k)
@@ -791,7 +842,8 @@ internal class McpTools(
             }
             // The frame with the new view has to be drawn before it is taken
             Thread.sleep(600)
-            val image = onMain { capture(area) } ?: return textResult("The window cannot be captured", isError = true)
+            val image =
+                onMain { capture(if (screenOnly) "window" else area) } ?: return textResult("The window cannot be captured", isError = true)
             // The screen of the layout alone is scaled to its own pixels, so that it can be compared with a reference one to one
             if (screenOnly) {
                 val screenHeight =
@@ -799,7 +851,13 @@ internal class McpTools(
                 val exact = BufferedImage(screenWidth, screenHeight, BufferedImage.TYPE_INT_ARGB)
                 val g = exact.createGraphics()
                 g.setRenderingHint(java.awt.RenderingHints.KEY_INTERPOLATION, java.awt.RenderingHints.VALUE_INTERPOLATION_BICUBIC)
-                g.drawImage(image, 0, 0, screenWidth, screenHeight, null)
+                // The corner of the screen is at a fraction of a pixel in the window: the whole window is moved and scaled by
+                // the exact amounts, so that a layout pixel does not land half a pixel off
+                val bounds = state.canvasBoundsInWindow
+                val scale = 1.0 / state.zoom.toDouble()
+                val left = (bounds.left + state.panOffset.x).toDouble()
+                val top = (bounds.top + state.panOffset.y).toDouble()
+                g.drawImage(image, java.awt.geom.AffineTransform(scale, 0.0, 0.0, scale, -left * scale, -top * scale), null)
                 g.dispose()
                 return imageResult(
                     exact,
@@ -1039,6 +1097,15 @@ internal class McpTools(
                             "count" to ("integer" to "How many copies, 1 by default"),
                             "name_prefix" to ("string" to "Put before every name in the copy, empty by default"),
                             "name_suffix" to ("string" to "Put after every name; {n} is the number of the copy, _{n} by default"),
+                            "name_find" to
+                                ("string" to "Instead of a suffix: this part of every name is replaced, e.g. Card_01 becomes Card_02"),
+                            "name_replace" to
+                                (
+                                    "string" to
+                                        "What replaces name_find; {n} is the number of the copy, {nn} the same with two digits, e.g. Card_{nn}"
+                                ),
+                            "number_start" to
+                                ("integer" to "The number of the first copy for {n}, 1 by default (2 to make Card_02 from Card_01)"),
                             "offset" to
                                 (
                                     "string" to
@@ -1139,6 +1206,10 @@ internal class McpTools(
                     listOf("widget_class"),
                 ),
                 tool("list_imagesets", "Names of the imagesets of the game and of the connected mods."),
+                tool(
+                    "list_fonts",
+                    "The fonts of the game and of the connected mods (the gui/fonts folders), as the path to put in quotes into the font property, with what the preview does with each.",
+                ),
             )
     }
 }

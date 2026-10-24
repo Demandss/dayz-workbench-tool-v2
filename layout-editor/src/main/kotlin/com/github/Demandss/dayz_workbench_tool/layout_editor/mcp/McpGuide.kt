@@ -35,6 +35,7 @@ internal object McpGuide {
         - halign and valign anchor to the parent: left_ref, center_ref, right_ref (and top_ref, bottom_ref). A bare center does not centre.
         - color is r g b a from 0 to 1. The editor reads it as sRGB, like the game. Workbench 1.30 reads it as linear light and shows it lighter.
         - Names of widgets are Latin letters, digits and underscore, because scripts find a widget by name (FindAnyWidget).
+        - Fonts: list_fonts gives the paths that exist; put one in quotes into font. The game has no monospaced font, and a name that is not in the list is drawn as Metron.
         - Icons come from imagesets: list_icons gives set:NAME image:IMAGE, which goes into image0. Textures go into imageTexture with a path from the mod folder.
         - Styles: list_styles for a widget class, then set the style property. A panel without a style draws nothing, so give it style Colorable to get a flat fill of its color (Colorable works on panels and buttons although list_styles may not show it). On a button Colorable colours the text too.
         - Files inside the game's PBO are read-only.
