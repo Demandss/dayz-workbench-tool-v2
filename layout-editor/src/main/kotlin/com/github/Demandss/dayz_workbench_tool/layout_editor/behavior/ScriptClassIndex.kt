@@ -1,6 +1,7 @@
 package com.github.demandss.dayz_workbench_tool.layout_editor.behavior
 
 import com.github.demandss.dayz_workbench_tool.pbo.PboArchive
+import com.github.demandss.dayz_workbench_tool.ui.icons.AppIcon
 import java.io.File
 
 /** One class a layout can name in `scriptclass`: where it comes from and where its source is. */
@@ -29,10 +30,13 @@ internal const val EDITOR = "Поведения редактора"
 /** Where a class comes from, as the list marks it: made for the editor, a class of the game, or a class of a connected mod. */
 internal enum class ScriptKind(
     val label: String,
+    /** What the icon in the list says, for its tooltip. */
+    val meaning: String,
+    val icon: AppIcon,
 ) {
-    CUSTOM("кастомный"),
-    VANILLA("ванильный"),
-    MOD("мод"),
+    CUSTOM("кастомный", "Кастомный класс редактора", AppIcon.UI_ANCHOR),
+    VANILLA("ванильный", "Ванильный класс игры (файлы игры только для чтения)", AppIcon.UI_LOCK),
+    MOD("мод", "Класс подключённого мода", AppIcon.FOLDER),
 }
 
 internal fun ScriptClassInfo.kind(): ScriptKind =

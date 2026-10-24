@@ -50,6 +50,7 @@ import com.github.demandss.dayz_workbench_tool.layout_editor.behavior.kind
 import com.github.demandss.dayz_workbench_tool.layout_editor.behavior.useBehavior
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.LayoutEditorState
 import com.github.demandss.dayz_workbench_tool.ui.components.Tip
+import com.github.demandss.dayz_workbench_tool.ui.icons.AppIconView
 import com.github.demandss.dayz_workbench_tool.ui.theme.DarkenedBorder
 import com.github.demandss.dayz_workbench_tool.ui.theme.ElementsBackground
 import com.github.demandss.dayz_workbench_tool.ui.theme.FrameBackground
@@ -258,7 +259,7 @@ private fun ScriptClassPopup(
     }
 }
 
-/** A small mark that tells whether a class was made for the editor, belongs to the game or comes from a mod. */
+/** An icon that tells whether a class was made for the editor, belongs to the game or comes from a mod; the tooltip says it in words. */
 @Composable
 private fun KindBadge(info: ScriptClassInfo) {
     val kind = info.kind()
@@ -268,16 +269,8 @@ private fun KindBadge(info: ScriptClassInfo) {
             ScriptKind.VANILLA -> Color(0xFF4A9EFF)
             ScriptKind.MOD -> Color(0xFF5CB85C)
         }
-    Text(
-        kind.label,
-        color = color,
-        fontSize = 9.sp,
-        maxLines = 1,
-        modifier =
-            Modifier
-                .background(
-                    color.copy(alpha = 0.16f),
-                ).border(1.dp, color.copy(alpha = 0.5f))
-                .padding(horizontal = 4.dp, vertical = 1.dp),
-    )
+    val meaning = if (kind == ScriptKind.MOD) "${kind.meaning}: ${info.source}" else kind.meaning
+    Tip(meaning) {
+        AppIconView(kind.icon, size = 13.dp, tint = color)
+    }
 }
