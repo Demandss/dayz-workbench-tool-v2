@@ -117,8 +117,9 @@ class ScriptClassIndexTest {
             ScriptClassInfo("SizeToChild", "Игра", "ScriptedWidgetEventHandler", "pbo:scripts/3_game/gui/containers/sizetochild.c")
         val vanillaTip = ScriptClassIndex.tooltip(vanilla)
         assertTrue("Live Preview" in vanillaTip && "Источник: Игра · sizetochild.c" in vanillaTip)
+        assertTrue("Ванильный класс игры" in vanillaTip && "Кастомный класс редактора" in ownTip)
         val modTip = ScriptClassIndex.tooltip(ScriptClassInfo("MF_Thing", "MF_CLS_Client", "SpacerBase", "K:/m/Thing.c"))
-        assertTrue("Наследует SpacerBase" in modTip && "MF_CLS_Client" in modTip)
+        assertTrue("Наследует SpacerBase" in modTip && "Класс подключённого мода: MF_CLS_Client" in modTip)
     }
 
     @Test

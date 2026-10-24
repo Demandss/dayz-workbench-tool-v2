@@ -259,7 +259,7 @@ private fun ScriptClassPopup(
     }
 }
 
-/** An icon that tells whether a class was made for the editor, belongs to the game or comes from a mod; the tooltip says it in words. */
+/** An icon that tells whether a class was made for the editor, belongs to the game or comes from a mod; the tooltip of the row says it in words. */
 @Composable
 private fun KindBadge(info: ScriptClassInfo) {
     val kind = info.kind()
@@ -269,8 +269,6 @@ private fun KindBadge(info: ScriptClassInfo) {
             ScriptKind.VANILLA -> Color(0xFF4A9EFF)
             ScriptKind.MOD -> Color(0xFF5CB85C)
         }
-    val meaning = if (kind == ScriptKind.MOD) "${kind.meaning}: ${info.source}" else kind.meaning
-    Tip(meaning) {
-        AppIconView(kind.icon, size = 13.dp, tint = color)
-    }
+    // No tooltip of its own: it sits inside a row or a field that has one, and two tooltips would lie on top of each other
+    AppIconView(kind.icon, size = 13.dp, tint = color)
 }

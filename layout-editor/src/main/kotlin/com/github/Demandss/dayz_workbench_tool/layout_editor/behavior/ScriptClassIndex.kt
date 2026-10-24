@@ -231,6 +231,8 @@ internal object ScriptClassIndex {
     /** The text of the tooltip of [info]: what the class does, what it takes and where it is from. */
     fun tooltip(info: ScriptClassInfo): String {
         val lines = mutableListOf(info.name)
+        // What the icon of the row means; the icon has no tooltip of its own
+        info.kind().let { lines += if (it == ScriptKind.MOD) "${it.meaning}: ${info.source}" else it.meaning }
         about[info.name]?.let { lines += it }
         BehaviorCatalogue.find(info.name)?.takeIf { info.source == EDITOR }?.let { entry ->
             lines += "Параметры: " + entry.params.joinToString(", ") { "${it.name} = ${it.default.ifEmpty { "\"\"" }}" }
