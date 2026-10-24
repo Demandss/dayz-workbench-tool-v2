@@ -204,7 +204,7 @@ private fun ScriptClassPopup(
                 },
                 modifier = Modifier.focusRequester(requester),
             )
-            LazyColumn(Modifier.heightIn(max = 320.dp)) {
+            LazyColumn(Modifier.heightIn(max = 320.dp).weight(1f, fill = false)) {
                 items(lines) { line ->
                     when (line) {
                         is Line.Caption -> {
@@ -255,20 +255,50 @@ private fun ScriptClassPopup(
                     }
                 }
             }
+            KindLegend()
         }
     }
 }
+
+private fun kindColor(kind: ScriptKind): Color =
+    when (kind) {
+        ScriptKind.CUSTOM -> Color(0xFFE8622A)
+        ScriptKind.VANILLA -> Color(0xFF4A9EFF)
+        ScriptKind.MOD -> Color(0xFF5CB85C)
+    }
 
 /** An icon that tells whether a class was made for the editor, belongs to the game or comes from a mod; the tooltip of the row says it in words. */
 @Composable
 private fun KindBadge(info: ScriptClassInfo) {
     val kind = info.kind()
-    val color =
-        when (kind) {
-            ScriptKind.CUSTOM -> Color(0xFFE8622A)
-            ScriptKind.VANILLA -> Color(0xFF4A9EFF)
-            ScriptKind.MOD -> Color(0xFF5CB85C)
-        }
     // No tooltip of its own: it sits inside a row or a field that has one, and two tooltips would lie on top of each other
-    AppIconView(kind.icon, size = 13.dp, tint = color)
+    AppIconView(kind.icon, size = 13.dp, tint = kindColor(kind))
+}
+
+/** What the icons of the list stand for, in a line under it. */
+@Composable
+private fun KindLegend() {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .background(FrameBackground)
+            .padding(horizontal = 10.dp, vertical = 5.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(14.dp),
+    ) {
+        for (kind in ScriptKind.entries) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                AppIconView(kind.icon, size = 12.dp, tint = kindColor(kind))
+                Text(
+                    when (kind) {
+                        ScriptKind.CUSTOM -> "редактора"
+                        ScriptKind.VANILLA -> "игры"
+                        ScriptKind.MOD -> "мода"
+                    },
+                    color = GhostlyText,
+                    fontSize = 9.sp,
+                )
+            }
+        }
+    }
 }
