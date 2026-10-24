@@ -583,6 +583,15 @@ internal class McpTools(
                 "Property '$key' is a text and needs quotes: write \"$value\" (without them the game cannot read the file)"
             }
 
+    /** A font name the game cannot find is drawn in its system font, a small pixel font without Cyrillic. */
+    private fun fontWarnings(values: Map<String, String?>): List<String> {
+        val value = values["font"]?.takeIf { it.isNotBlank() } ?: return emptyList()
+        if (state.fontExists(value, state.activeFile?.path)) return emptyList()
+        return listOf(
+            "Font ${value.trim()} is not among list_fonts (a family needs its .xml descriptor): the game draws its small system font instead",
+        )
+    }
+
     private fun withWarnings(
         json: JsonObject,
         warnings: List<String>,
@@ -611,8 +620,11 @@ internal class McpTools(
         }
         val after = requireNode(buildJsonObject { put("id", node.id.toString()) })
         val given = cleaned.filterValues { it !is JsonNull }
-        val unquoted = unquotedWarnings(given.mapValues { (_, v) -> (v as? JsonPrimitive)?.content })
-        return withWarnings(widgetJson(after, withRect = true), warningsFor(after, given.keys) + unquoted)
+        val texts = given.mapValues { (_, v) -> (v as? JsonPrimitive)?.content }
+        return withWarnings(
+            widgetJson(after, withRect = true),
+            warningsFor(after, given.keys) + unquotedWarnings(texts) + fontWarnings(texts),
+        )
     }
 
     private fun typeOf(text: String): WidgetType {
@@ -693,7 +705,8 @@ internal class McpTools(
         state.selectedIds.add(created.id)
         return withWarnings(
             widgetJson(created, withRect = false),
-            warningsFor(created, created.node.properties.keys) + unquotedWarnings(created.node.properties),
+            warningsFor(created, created.node.properties.keys) + unquotedWarnings(created.node.properties) +
+                fontWarnings(created.node.properties),
         )
     }
 
@@ -725,7 +738,7 @@ internal class McpTools(
                         warningsFor(
                             widget,
                             widget.node.properties.keys,
-                        ) + unquotedWarnings(widget.node.properties)
+                        ) + unquotedWarnings(widget.node.properties) + fontWarnings(widget.node.properties)
                     ).map { "${widget.node.name}: $it" }
             } catch (e: ToolFailure) {
                 throw ToolFailure("widgets[$i]: ${e.message}. Nothing was added")

@@ -1354,6 +1354,21 @@ class LayoutEditorState(
                 }
             }
         if (sizes.isEmpty()) return sdfFontFor(path, nearPath)
+        // A name without a size is a family, and the game knows a family by its descriptor `<family>.xml`: without it Workbench
+        // draws its system font (measured), so the font is not found here either
+        if (fixed == null) {
+            val descriptor = "$family.xml".lowercase()
+            val described =
+                roots.any { root ->
+                    runCatching {
+                        inRoot(
+                            root,
+                            directory,
+                        ).listFiles().orEmpty().any { it.name.lowercase() == descriptor }
+                    }.getOrDefault(false)
+                }
+            if (!described) return null
+        }
         val size =
             when {
                 fixed != null && fixed in sizes -> fixed
@@ -1954,6 +1969,23 @@ class LayoutEditorState(
     }
 
     private val fontCatalogCache = java.util.concurrent.ConcurrentHashMap<String, List<FontInfo>>()
+
+    /** True when a `font` value names a font file or a family with its descriptor; false when the game would use its system font. */
+    fun fontExists(
+        value: String,
+        nearPath: String?,
+    ): Boolean {
+        val path =
+            value
+                .trim()
+                .trim('"')
+                .replace('\\', '/')
+                .trimEnd('.')
+        if (path.isEmpty()) return true
+        val infos = fontInfos(nearPath)
+        if (infos.any { it.path.equals(path, true) }) return true
+        return infos.any { it.familyXml && it.family.equals(path, true) }
+    }
 
     /** Counts the times the fonts were forgotten, so that a select that shows them reads the list again. */
     var fontsVersion by mutableStateOf(0)
