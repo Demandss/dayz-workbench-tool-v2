@@ -34,6 +34,16 @@ internal class BitmapFont(
 ) : GameFont() {
     private val cache = HashMap<Pair<Int, Int>, GlyphBitmap?>()
 
+    // The height of a line is the height of the glyph cells, not the number the header names: a font of a mod can be called
+    // 14 and have cells of 18 pixels, and Workbench scales the cell to the size of the text (measured)
+    private val line: Int =
+        glyphs
+            .groupingBy { it.height }
+            .eachCount()
+            .maxByOrNull { it.value }
+            ?.key
+            ?.takeIf { it > 0 } ?: size
+
     override fun covers(text: String) = ranges.covers(text)
 
     override fun advance(
@@ -42,7 +52,7 @@ internal class BitmapFont(
         widthScale: Float,
     ): Float {
         val g = glyphs[ranges.indexOf(c.code).takeIf { it in glyphs.indices } ?: 0]
-        return (g.leftBearing + g.width + g.rightBearing) * pixels / size * widthScale
+        return (g.leftBearing + g.width + g.rightBearing) * pixels / line * widthScale
     }
 
     override fun glyph(
@@ -58,7 +68,7 @@ internal class BitmapFont(
             if (g.width <= 0 || g.height <= 0 || g.x + g.width > atlas.width || g.y + g.height > atlas.height) {
                 null
             } else {
-                val s = pixels / size
+                val s = pixels / line
                 GlyphBitmap(
                     atlas.getSubimage(g.x, g.y, g.width, g.height).toComposeImageBitmap(),
                     g.leftBearing * s * widthScale,
