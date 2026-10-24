@@ -4,7 +4,7 @@ FrameWidgetClass Root {
  vexactsize 1
  {
   TextWidgetClass T1 {
-   position 60 120
+   position 60 60
    size 520 28
    hexactpos 1
    vexactpos 1
@@ -17,7 +17,7 @@ FrameWidgetClass Root {
    "text valign" center
   }
   TextWidgetClass H1 {
-   position 60 148
+   position 60 88
    size 520 24
    hexactpos 1
    vexactpos 1
@@ -30,8 +30,8 @@ FrameWidgetClass Root {
    "text valign" center
   }
   ImageWidgetClass Card1 {
-   position 60 190
-   size 360 170
+   position 60 122
+   size 360 150
    hexactpos 1
    vexactpos 1
    hexactsize 1
@@ -45,7 +45,7 @@ FrameWidgetClass Root {
    }
   }
   TextWidgetClass T2 {
-   position 660 120
+   position 660 60
    size 520 28
    hexactpos 1
    vexactpos 1
@@ -58,7 +58,7 @@ FrameWidgetClass Root {
    "text valign" center
   }
   TextWidgetClass H2 {
-   position 660 148
+   position 660 88
    size 520 24
    hexactpos 1
    vexactpos 1
@@ -71,8 +71,8 @@ FrameWidgetClass Root {
    "text valign" center
   }
   ImageWidgetClass Card2 {
-   position 660 190
-   size 360 170
+   position 660 122
+   size 360 150
    hexactpos 1
    vexactpos 1
    hexactsize 1
@@ -86,7 +86,7 @@ FrameWidgetClass Root {
    }
   }
   TextWidgetClass T3 {
-   position 1260 120
+   position 1260 60
    size 520 28
    hexactpos 1
    vexactpos 1
@@ -99,7 +99,7 @@ FrameWidgetClass Root {
    "text valign" center
   }
   TextWidgetClass H3 {
-   position 1260 148
+   position 1260 88
    size 520 24
    hexactpos 1
    vexactpos 1
@@ -112,8 +112,8 @@ FrameWidgetClass Root {
    "text valign" center
   }
   ImageWidgetClass Card3 {
-   position 1260 190
-   size 360 170
+   position 1260 122
+   size 360 150
    hexactpos 1
    vexactpos 1
    hexactsize 1
@@ -128,7 +128,7 @@ FrameWidgetClass Root {
    }
   }
   TextWidgetClass T4 {
-   position 60 420
+   position 60 295
    size 520 28
    hexactpos 1
    vexactpos 1
@@ -141,7 +141,7 @@ FrameWidgetClass Root {
    "text valign" center
   }
   TextWidgetClass H4 {
-   position 60 448
+   position 60 323
    size 520 24
    hexactpos 1
    vexactpos 1
@@ -154,8 +154,8 @@ FrameWidgetClass Root {
    "text valign" center
   }
   ImageWidgetClass Card4 {
-   position 60 490
-   size 360 170
+   position 60 357
+   size 360 150
    hexactpos 1
    vexactpos 1
    hexactsize 1
@@ -169,7 +169,7 @@ FrameWidgetClass Root {
    }
   }
   TextWidgetClass T5 {
-   position 660 420
+   position 660 295
    size 520 28
    hexactpos 1
    vexactpos 1
@@ -182,7 +182,7 @@ FrameWidgetClass Root {
    "text valign" center
   }
   TextWidgetClass H5 {
-   position 660 448
+   position 660 323
    size 520 24
    hexactpos 1
    vexactpos 1
@@ -195,8 +195,8 @@ FrameWidgetClass Root {
    "text valign" center
   }
   ImageWidgetClass Card5 {
-   position 660 490
-   size 360 170
+   position 660 357
+   size 360 150
    hexactpos 1
    vexactpos 1
    hexactsize 1
@@ -205,7 +205,7 @@ FrameWidgetClass Root {
    {
     ImageWidgetClass Hit5 {
      position 0 0
-     size 360 170
+     size 360 150
      hexactpos 1
      vexactpos 1
      hexactsize 1
@@ -222,7 +222,7 @@ FrameWidgetClass Root {
    }
   }
   TextWidgetClass T6 {
-   position 1260 420
+   position 1260 295
    size 520 28
    hexactpos 1
    vexactpos 1
@@ -235,7 +235,7 @@ FrameWidgetClass Root {
    "text valign" center
   }
   TextWidgetClass H6 {
-   position 1260 448
+   position 1260 323
    size 520 24
    hexactpos 1
    vexactpos 1
@@ -248,8 +248,8 @@ FrameWidgetClass Root {
    "text valign" center
   }
   ImageWidgetClass Card6 {
-   position 1260 490
-   size 360 170
+   position 1260 357
+   size 360 150
    hexactpos 1
    vexactpos 1
    hexactsize 1
@@ -267,7 +267,7 @@ FrameWidgetClass Root {
     }
     ImageWidgetClass Hit6 {
      position 0 0
-     size 360 170
+     size 360 150
      hexactpos 1
      vexactpos 1
      hexactsize 1
@@ -284,7 +284,7 @@ FrameWidgetClass Root {
    }
   }
   TextWidgetClass T7 {
-   position 60 720
+   position 60 530
    size 520 28
    hexactpos 1
    vexactpos 1
@@ -297,7 +297,7 @@ FrameWidgetClass Root {
    "text valign" center
   }
   TextWidgetClass H7 {
-   position 60 748
+   position 60 558
    size 520 24
    hexactpos 1
    vexactpos 1
@@ -310,8 +310,8 @@ FrameWidgetClass Root {
    "text valign" center
   }
   ImageWidgetClass Card7 {
-   position 60 790
-   size 360 170
+   position 60 592
+   size 360 150
    hexactpos 1
    vexactpos 1
    hexactsize 1
@@ -321,7 +321,7 @@ FrameWidgetClass Root {
    {
     ImageWidgetClass Press7 {
      position 0 0
-     size 360 170
+     size 360 150
      hexactpos 1
      vexactpos 1
      hexactsize 1
@@ -342,7 +342,7 @@ FrameWidgetClass Root {
    }
   }
   TextWidgetClass T8 {
-   position 660 720
+   position 660 530
    size 520 28
    hexactpos 1
    vexactpos 1
@@ -355,7 +355,7 @@ FrameWidgetClass Root {
    "text valign" center
   }
   TextWidgetClass H8 {
-   position 660 748
+   position 660 558
    size 520 24
    hexactpos 1
    vexactpos 1
@@ -368,8 +368,8 @@ FrameWidgetClass Root {
    "text valign" center
   }
   ImageWidgetClass Card8 {
-   position 660 790
-   size 360 170
+   position 660 592
+   size 360 150
    hexactpos 1
    vexactpos 1
    hexactsize 1
@@ -383,7 +383,7 @@ FrameWidgetClass Root {
    }
   }
   TextWidgetClass T9 {
-   position 1260 720
+   position 1260 530
    size 520 28
    hexactpos 1
    vexactpos 1
@@ -396,7 +396,7 @@ FrameWidgetClass Root {
    "text valign" center
   }
   TextWidgetClass H9 {
-   position 1260 748
+   position 1260 558
    size 520 24
    hexactpos 1
    vexactpos 1
@@ -409,8 +409,8 @@ FrameWidgetClass Root {
    "text valign" center
   }
   ImageWidgetClass Card9 {
-   position 1260 790
-   size 360 170
+   position 1260 592
+   size 360 150
    hexactpos 1
    vexactpos 1
    hexactsize 1
@@ -419,7 +419,7 @@ FrameWidgetClass Root {
    {
     ImageWidgetClass Hit9 {
      position 0 0
-     size 360 170
+     size 360 150
      hexactpos 1
      vexactpos 1
      hexactsize 1
@@ -432,6 +432,160 @@ FrameWidgetClass Root {
        ColorParent "1"
       }
      }
+    }
+   }
+  }
+  TextWidgetClass T10 {
+   position 60 765
+   size 520 28
+   hexactpos 1
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   color 1 1 1 1
+   text "HoverShow"
+   "exact text" 1
+   "exact text size" 18
+   "text valign" center
+  }
+  TextWidgetClass H10 {
+   position 60 793
+   size 520 24
+   hexactpos 1
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   color 0.7 0.7 0.7 1
+   text "наведи на карточку: появляется оранжевая полоса (Target Tip10)"
+   "exact text" 1
+   "exact text size" 18
+   "text valign" center
+  }
+  ImageWidgetClass Trigger10 {
+   position 60 827
+   size 360 150
+   hexactpos 1
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   color 0.22 0.24 0.30 1
+   scriptclass "HoverShow"
+   {
+    ScriptParamsClass {
+     Target "Tip10"
+    }
+   }
+  }
+  ImageWidgetClass Tip10 {
+   position 80 927
+   size 320 30
+   hexactpos 1
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   color 0.91 0.38 0.16 1
+  }
+  TextWidgetClass T11 {
+   position 660 765
+   size 520 28
+   hexactpos 1
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   color 1 1 1 1
+   text "HoverImage"
+   "exact text" 1
+   "exact text size" 18
+   "text valign" center
+  }
+  TextWidgetClass H11 {
+   position 660 793
+   size 520 24
+   hexactpos 1
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   color 0.7 0.7 0.7 1
+   text "наведи на значок: стрелка вниз меняется на стрелку вверх"
+   "exact text" 1
+   "exact text size" 18
+   "text valign" center
+  }
+  ImageWidgetClass Card11 {
+   position 660 827
+   size 360 150
+   hexactpos 1
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   color 0.22 0.24 0.30 1
+  }
+  ImageWidgetClass Icon11 {
+   position 790 852
+   size 100 100
+   hexactpos 1
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   color 1 1 1 1
+   image0 "set:dayz_gui image:icon_plus"
+   "src alpha" 1
+   scriptclass "HoverImage"
+   {
+    ScriptParamsClass {
+     Image "set:dayz_gui image:icon_minus"
+    }
+   }
+  }
+  TextWidgetClass T12 {
+   position 1260 765
+   size 520 28
+   hexactpos 1
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   color 1 1 1 1
+   text "HoverText"
+   "exact text" 1
+   "exact text size" 18
+   "text valign" center
+  }
+  TextWidgetClass H12 {
+   position 1260 793
+   size 520 24
+   hexactpos 1
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   color 0.7 0.7 0.7 1
+   text "наведи на надпись: цвет текста меняется (#E8622A)"
+   "exact text" 1
+   "exact text size" 18
+   "text valign" center
+  }
+  ImageWidgetClass Card12 {
+   position 1260 827
+   size 360 150
+   hexactpos 1
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   color 0.22 0.24 0.30 1
+  }
+  TextWidgetClass Label12 {
+   position 1280 882
+   size 320 40
+   hexactpos 1
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   text "Наведи на меня"
+   "exact text" 1
+   "exact text size" 26
+   scriptclass "HoverText"
+   {
+    ScriptParamsClass {
+     Color "#E8622A"
     }
    }
   }

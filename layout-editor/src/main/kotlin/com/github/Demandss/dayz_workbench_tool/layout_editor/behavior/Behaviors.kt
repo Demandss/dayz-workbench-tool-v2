@@ -2,6 +2,7 @@ package com.github.demandss.dayz_workbench_tool.layout_editor.behavior
 
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import com.github.demandss.dayz_workbench_tool.layout.WidgetType
 import com.github.demandss.dayz_workbench_tool.layout_editor.EditorWidgetNode
 import java.util.UUID
 
@@ -9,6 +10,11 @@ private val SCALE_HOVER = BehaviorParam("Scale", "1.05", "Size while the pointer
 private val SCALE_PRESS = BehaviorParam("Scale", "0.95", "Size while the button is held (1 is unchanged)", listOf("PressScale"))
 private val COLOR_HOVER =
     BehaviorParam("Color", "#FFFFFF", "Colour while the pointer is over the widget, #RRGGBB or #RRGGBBAA", listOf("HoverColor"))
+private val SHOW_TARGET = BehaviorParam("Target", "", "Name of the widget that appears on hover (hidden until then)")
+private val IMAGE_HOVER =
+    BehaviorParam("Image", "", "Picture on hover: set:NAME image:IMAGE or the path of a texture", listOf("HoverImage"))
+private val COLOR_HOVER_TEXT =
+    BehaviorParam("Color", "#FFFFFF", "Colour of the text on hover, #RRGGBB or #RRGGBBAA", listOf("HoverColor", "TextColor"))
 private val OFFSET_X = BehaviorParam("OffsetX", "0", "Shift to the right in pixels while the button is held")
 private val OFFSET_Y = BehaviorParam("OffsetY", "2", "Shift down in pixels while the button is held")
 
@@ -48,6 +54,30 @@ internal object Behaviors {
             ) { c ->
                 if (c.hovered) c.color(COLOR_HOVER)?.let { BehaviorEffect(color = it) } else null
             },
+            WidgetBehavior(
+                "HoverShow",
+                BehaviorKind.ON_WIDGET,
+                "Shows another widget while the pointer is over this one and hides it otherwise",
+                listOf(SHOW_TARGET),
+            ) { c ->
+                BehaviorEffect(visible = c.hovered)
+            },
+            WidgetBehavior(
+                "HoverImage",
+                BehaviorKind.ON_WIDGET,
+                "Swaps the picture of an image widget while the pointer is over it",
+                listOf(IMAGE_HOVER, TARGET),
+            ) { c ->
+                if (c.hovered) c.text(IMAGE_HOVER).takeIf { it.isNotEmpty() }?.let { BehaviorEffect(image = it) } else null
+            },
+            WidgetBehavior(
+                "HoverText",
+                BehaviorKind.ON_WIDGET,
+                "Changes the colour of the text while the pointer is over the widget",
+                listOf(COLOR_HOVER_TEXT, TARGET),
+            ) { c ->
+                if (c.hovered) c.color(COLOR_HOVER_TEXT)?.let { BehaviorEffect(textColor = it) } else null
+            },
         )
 
     /** The behaviour a `scriptclass` value stands for: its own name, or that of a class of a mod such as `MF_CLS_HoverColorHandler`. */
@@ -75,16 +105,14 @@ private fun targetOf(
     parent: EditorWidgetNode?,
     behavior: WidgetBehavior,
 ): EditorWidgetNode {
-    if (TARGET !in behavior.params) return widget
-    val raw = BehaviorContext(widget, widget, widget.paramValues(), hovered = false, pressed = false).text(TARGET)
+    val param = behavior.params.firstOrNull { it.name == TARGET.name } ?: return widget
+    val raw = BehaviorContext(widget, widget, widget.paramValues(), hovered = false, pressed = false).text(param)
     return when {
         raw == "1" || raw.equals("parent", ignoreCase = true) -> parent ?: widget
         raw == "0" || raw.isEmpty() || raw.equals("self", ignoreCase = true) -> widget
         else -> findByName(root, raw) ?: widget
     }
 }
-
-private operator fun List<BehaviorParam>.contains(param: BehaviorParam) = any { it === param }
 
 /**
  * What the behaviours of the layout do right now, by widget. A widget counts as hovered or held when the pointer is on it or on
@@ -95,7 +123,6 @@ internal fun previewEffects(
     hovered: Set<UUID>,
     pressed: Set<UUID>,
 ): Map<UUID, BehaviorEffect> {
-    if (hovered.isEmpty() && pressed.isEmpty()) return emptyMap()
     val out = HashMap<UUID, BehaviorEffect>()
 
     fun walk(
@@ -114,16 +141,21 @@ internal fun previewEffects(
     return out
 }
 
-/** A copy of the tree in which the widgets with a colour effect have that colour; the widgets without keep their own objects. */
-internal fun EditorWidgetNode.withEffectColors(effects: Map<UUID, BehaviorEffect>): EditorWidgetNode {
-    if (effects.values.none { it.color != null }) return this
+/** A copy of the tree in which the widgets with an effect on their properties have them changed; the others keep their objects. */
+internal fun EditorWidgetNode.withEffectProperties(effects: Map<UUID, BehaviorEffect>): EditorWidgetNode {
+    if (effects.values.none { it.changesProperties }) return this
 
     fun copyOf(node: EditorWidgetNode): EditorWidgetNode {
         val children = node.children.map { copyOf(it) }
-        val color = effects[node.id]?.color
-        if (color == null && children.indices.all { children[it] === node.children[it] }) return node
+        val effect = effects[node.id]?.takeIf { it.changesProperties }
+        if (effect == null && children.indices.all { children[it] === node.children[it] }) return node
         val props = LinkedHashMap(node.node.properties)
-        if (color != null) props["color"] = colorProperty(color)
+        if (effect != null) {
+            effect.color?.let { props["color"] = colorProperty(it) }
+            effect.visible?.let { props["visible"] = if (it) "1" else "0" }
+            effect.image?.let { props["image0"] = if (it.startsWith("set:")) "\"$it\"" else it }
+            effect.textColor?.let { props[if (node.node.type == WidgetType.BUTTON) "text color" else "color"] = colorProperty(it) }
+        }
         return node.copy(node = node.node.copy(properties = props), children = children.toMutableList())
     }
     return copyOf(this)

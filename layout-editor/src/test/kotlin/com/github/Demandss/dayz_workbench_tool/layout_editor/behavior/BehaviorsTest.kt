@@ -81,7 +81,7 @@ class BehaviorsTest {
         val handler = widget("H", "HoverColor", mapOf("Color" to "#FF0000"))
         val root = widget("Root", children = arrayOf(handler))
         val effects = previewEffects(root, setOf(handler.id), emptySet())
-        val shown = root.withEffectColors(effects)
+        val shown = root.withEffectProperties(effects)
         val color =
             assertNotNull(
                 shown.children
@@ -90,6 +90,33 @@ class BehaviorsTest {
             )
         assertEquals("1.0 0.0 0.0 1.0", color)
         assertNull(handler.node.properties["color"])
+    }
+
+    @Test
+    fun `a widget named by HoverShow is hidden until the pointer is over the trigger`() {
+        val tip = widget("Tip")
+        val trigger = widget("Trigger", "HoverShow", mapOf("Target" to "Tip"))
+        val root = widget("Root", children = arrayOf(trigger, tip))
+        val idle = previewEffects(root, emptySet(), emptySet())
+        assertEquals(false, idle[tip.id]?.visible)
+        assertEquals(
+            "0",
+            root
+                .withEffectProperties(idle)
+                .children[1]
+                .node.properties["visible"],
+        )
+        assertEquals(true, previewEffects(root, setOf(trigger.id), emptySet())[tip.id]?.visible)
+    }
+
+    @Test
+    fun `HoverImage swaps image0 and HoverText colours the text`() {
+        val icon = widget("Icon", "HoverImage", mapOf("Image" to "set:a image:b"))
+        val label = widget("Label", "HoverText", mapOf("Color" to "#FF0000"))
+        val root = widget("Root", children = arrayOf(icon, label))
+        val shown = root.withEffectProperties(previewEffects(root, setOf(icon.id, label.id), emptySet()))
+        assertEquals("\"set:a image:b\"", shown.children[0].node.properties["image0"])
+        assertEquals("1.0 0.0 0.0 1.0", shown.children[1].node.properties["color"])
     }
 
     @Test

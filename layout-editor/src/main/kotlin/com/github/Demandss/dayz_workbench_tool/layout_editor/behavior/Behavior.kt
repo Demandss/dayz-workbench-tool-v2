@@ -24,10 +24,24 @@ internal data class BehaviorEffect(
     val scale: Float = 1f,
     val offset: Offset = Offset.Zero,
     val color: Color? = null,
+    val visible: Boolean? = null,
+    val image: String? = null,
+    val textColor: Color? = null,
 ) {
     val moves: Boolean get() = scale != 1f || offset != Offset.Zero
 
-    operator fun plus(other: BehaviorEffect) = BehaviorEffect(scale * other.scale, offset + other.offset, other.color ?: color)
+    /** True when the widget has to be drawn from a changed copy of itself. */
+    val changesProperties: Boolean get() = color != null || visible != null || image != null || textColor != null
+
+    operator fun plus(other: BehaviorEffect) =
+        BehaviorEffect(
+            scale * other.scale,
+            offset + other.offset,
+            other.color ?: color,
+            other.visible ?: visible,
+            other.image ?: image,
+            other.textColor ?: textColor,
+        )
 }
 
 /** What a behaviour sees: the widget it sits on, the widget it works on, its parameters and the pointer. */

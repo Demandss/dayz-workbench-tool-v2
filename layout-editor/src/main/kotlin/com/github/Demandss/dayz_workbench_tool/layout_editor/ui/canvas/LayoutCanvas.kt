@@ -38,7 +38,7 @@ import com.github.demandss.dayz_workbench_tool.layout.WidgetType
 import com.github.demandss.dayz_workbench_tool.layout_editor.EditorWidgetNode
 import com.github.demandss.dayz_workbench_tool.layout_editor.behavior.BehaviorEffect
 import com.github.demandss.dayz_workbench_tool.layout_editor.behavior.previewEffects
-import com.github.demandss.dayz_workbench_tool.layout_editor.behavior.withEffectColors
+import com.github.demandss.dayz_workbench_tool.layout_editor.behavior.withEffectProperties
 import com.github.demandss.dayz_workbench_tool.layout_editor.findNode
 import com.github.demandss.dayz_workbench_tool.layout_editor.pathTo
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.CanvasMenu
@@ -1035,7 +1035,7 @@ fun LayoutCanvas(
             if (doc == null || layout == null) return
             val effects = if (state.livePreview) previewEffects(doc.root, state.previewHoverChain, state.previewPressChain) else emptyMap()
             drawWidgetTree(
-                doc.root.withEffectColors(effects),
+                doc.root.withEffectProperties(effects),
                 layout,
                 isRoot = true,
                 if (state.livePreview) emptySet() else selectedSet,
