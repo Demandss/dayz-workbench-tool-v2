@@ -122,14 +122,14 @@ fun LayoutEditorWindow(
             shownName?.let { append(" — $it") }
         }
 
-    // The window comes back in the size it was left in, kept within the screen it opens on
+    // The window comes back in the size it was left in, kept within the part of the screen the taskbar leaves free
     val saved =
         remember {
-            val screen =
-                java.awt.Toolkit
-                    .getDefaultToolkit()
-                    .screenSize
-            state.savedWindow().fittedTo(screen.width, screen.height)
+            val usable =
+                java.awt.GraphicsEnvironment
+                    .getLocalGraphicsEnvironment()
+                    .maximumWindowBounds
+            state.savedWindow().fittedTo(usable.width, usable.height)
         }
     val windowState =
         rememberWindowState(
