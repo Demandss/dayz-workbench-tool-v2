@@ -34,7 +34,7 @@ internal object McpGuide {
         - color is r g b a from 0 to 1. The editor reads it as sRGB, like the game. Workbench 1.30 reads it as linear light and shows it lighter.
         - Names of widgets are Latin letters, digits and underscore, because scripts find a widget by name (FindAnyWidget).
         - Icons come from imagesets: list_icons gives set:NAME image:IMAGE, which goes into image0. Textures go into imageTexture with a path from the mod folder.
-        - Styles: list_styles for a widget class, then set the style property. Panels without a style draw their color as a flat fill in the game.
+        - Styles: list_styles for a widget class, then set the style property. A panel without a style draws nothing, so give it style Colorable (or another) to get a flat fill of its color. On a button Colorable colours the text too.
         - Files inside the game's PBO are read-only.
 
         Scripts
