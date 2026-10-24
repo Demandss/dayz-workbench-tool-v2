@@ -19,6 +19,7 @@ import androidx.compose.ui.graphics.ImageBitmapConfig
 import androidx.compose.ui.graphics.ImageShader
 import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.ShaderBrush
+import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.TileMode
 import androidx.compose.ui.graphics.colorspace.ColorSpaces
 import androidx.compose.ui.graphics.drawscope.CanvasDrawScope
@@ -462,7 +463,7 @@ internal fun DrawScope.drawWidgetTree(
                 val measured =
                     textMeasurer.measure(
                         label,
-                        TextStyle(color = Color(0xCCFFFFFF), fontSize = 11.sp),
+                        TextStyle(color = Color(0xDDFFFFFF), fontSize = 11.sp, shadow = LabelShadow),
                     )
                 drawText(measured, topLeft = Offset(tl.x + 2f, tl.y + 1f))
             }
@@ -486,7 +487,7 @@ internal fun DrawScope.drawWidgetTree(
                 val measured =
                     textMeasurer.measure(
                         label,
-                        TextStyle(color = Color(0xCCCCCCFF), fontSize = 11.sp),
+                        TextStyle(color = Color(0xDDCCCCFF), fontSize = 11.sp, shadow = LabelShadow),
                     )
                 drawText(measured, topLeft = Offset(tl.x + 2f, tl.y + 1f))
             }
@@ -547,9 +548,15 @@ internal fun DrawScope.drawWidgetTree(
     // Border
     val showBorder = showBorders || isSelected
     if (showBorder && ss.width > 0f && ss.height > 0f) {
-        val borderColor = if (isSelected) Color(0xFF4A9EFF) else Color(0x44FFFFFF)
-        val stroke = if (isSelected) 2f else 1f
-        drawRect(borderColor, tl, ss, style = Stroke(stroke))
+        if (isSelected) {
+            drawRect(Color(0xFF4A9EFF), tl, ss, style = Stroke(2f))
+        } else {
+            // A dark line with a light one inside it: seen on the grey of the work area, on a dark widget and on a light one
+            drawRect(Color(0x99000000), tl, ss, style = Stroke(1f))
+            if (ss.width > 3f && ss.height > 3f) {
+                drawRect(Color(0x66FFFFFF), Offset(tl.x + 1f, tl.y + 1f), Size(ss.width - 2f, ss.height - 2f), style = Stroke(1f))
+            }
+        }
     }
 
     // Widget type label (screen-space, fixed 10sp, only when big enough)
@@ -561,7 +568,7 @@ internal fun DrawScope.drawWidgetTree(
         val measured =
             textMeasurer.measure(
                 label,
-                TextStyle(color = Color(0x88FFFFFF), fontSize = 9.sp),
+                TextStyle(color = Color(0xDDFFFFFF), fontSize = 9.sp, shadow = LabelShadow),
             )
         drawText(measured, topLeft = Offset(tl.x + 2f, tl.y + 2f))
     }
@@ -1183,7 +1190,9 @@ fun LayoutCanvas(
             }
             drawRect(Color(0xFF555860), atl, aSize, style = Stroke(1f))
         } else {
-            drawRect(Color(0xFF232528), atl, aSize)
+            // The same grey as Live Preview, so that the colours of the layout look the way they do there: dark and translucent ones
+            // disappear on a dark background
+            drawRect(PREVIEW_GREY, atl, aSize)
             drawRect(Color(0xFF555860), atl, aSize, style = Stroke(1f))
             // 5. Widgets, with the grid over them so that no widget hides it
             widgets(pan)
@@ -1496,6 +1505,9 @@ internal object WidgetNames {
 
 /** The grey the Workbench preview clears its window with. */
 private val PREVIEW_GREY = Color(0xFF828282)
+
+// The names of the widgets are read on any background: grey, dark panels and light ones
+private val LabelShadow = Shadow(Color(0xFF000000), Offset(1f, 1f), 2f)
 
 private object LinearSurface {
     var bitmap: ImageBitmap? = null
