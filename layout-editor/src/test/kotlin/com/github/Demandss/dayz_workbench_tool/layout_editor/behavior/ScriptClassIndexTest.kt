@@ -83,6 +83,19 @@ class ScriptClassIndexTest {
     }
 
     @Test
+    fun `a class is marked as custom, vanilla or from a mod by where it comes from`() {
+        val list =
+            ScriptClassIndex.build(
+                ScriptClassIndex.parse("class Own { void OnWidgetScriptInit(Widget w) { } }", "MF_CLS_Client", "x.c") +
+                    ScriptClassIndex.parse("class Base { void OnWidgetScriptInit(Widget w) { } }", "Игра", "pbo:a.c"),
+            )
+        assertEquals(ScriptKind.CUSTOM, list.first { it.name == "HoverScale" }.kind())
+        assertEquals(ScriptKind.VANILLA, list.first { it.name == "Base" }.kind())
+        assertEquals(ScriptKind.MOD, list.first { it.name == "Own" }.kind())
+        assertEquals(listOf("кастомный", "ванильный", "мод"), ScriptKind.entries.map { it.label })
+    }
+
+    @Test
     fun `a cycle of parents does not hang`() {
         assertTrue(names("class A : B { }\nclass B : A { }").isEmpty())
     }

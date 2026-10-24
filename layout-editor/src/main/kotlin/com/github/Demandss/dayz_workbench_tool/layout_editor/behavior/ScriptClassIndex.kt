@@ -26,6 +26,22 @@ internal class ScriptDeclaration(
 
 internal const val EDITOR = "Поведения редактора"
 
+/** Where a class comes from, as the list marks it: made for the editor, a class of the game, or a class of a connected mod. */
+internal enum class ScriptKind(
+    val label: String,
+) {
+    CUSTOM("кастомный"),
+    VANILLA("ванильный"),
+    MOD("мод"),
+}
+
+internal fun ScriptClassInfo.kind(): ScriptKind =
+    when (source) {
+        EDITOR -> ScriptKind.CUSTOM
+        "Игра" -> ScriptKind.VANILLA
+        else -> ScriptKind.MOD
+    }
+
 /**
  * The script classes a widget can carry: the classes of the game and of the connected mods that extend
  * `ScriptedWidgetEventHandler`, found by reading the declarations of every script file, and the catalogue of the editor.

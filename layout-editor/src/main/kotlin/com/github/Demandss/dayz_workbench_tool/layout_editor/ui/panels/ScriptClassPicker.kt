@@ -44,7 +44,9 @@ import com.github.demandss.dayz_workbench_tool.layout_editor.EditorWidgetNode
 import com.github.demandss.dayz_workbench_tool.layout_editor.behavior.EDITOR
 import com.github.demandss.dayz_workbench_tool.layout_editor.behavior.ScriptClassIndex
 import com.github.demandss.dayz_workbench_tool.layout_editor.behavior.ScriptClassInfo
+import com.github.demandss.dayz_workbench_tool.layout_editor.behavior.ScriptKind
 import com.github.demandss.dayz_workbench_tool.layout_editor.behavior.exportScriptClass
+import com.github.demandss.dayz_workbench_tool.layout_editor.behavior.kind
 import com.github.demandss.dayz_workbench_tool.layout_editor.behavior.useBehavior
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.LayoutEditorState
 import com.github.demandss.dayz_workbench_tool.ui.components.Tip
@@ -99,13 +101,17 @@ internal fun RowScope.ScriptClassPicker(
                     .padding(horizontal = 6.dp),
                 contentAlignment = Alignment.CenterStart,
             ) {
-                Text(
-                    current.ifEmpty { "— (нет)" },
-                    color = if (current.isEmpty()) GhostlyText else TextForeground,
-                    fontSize = 11.sp,
-                    fontFamily = FontFamily.Monospace,
-                    maxLines = 1,
-                )
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        current.ifEmpty { "— (нет)" },
+                        color = if (current.isEmpty()) GhostlyText else TextForeground,
+                        fontSize = 11.sp,
+                        fontFamily = FontFamily.Monospace,
+                        maxLines = 1,
+                        modifier = Modifier.weight(1f),
+                    )
+                    known?.let { KindBadge(it) }
+                }
             }
         }
         if (open) {
@@ -233,8 +239,14 @@ private fun ScriptClassPopup(
                                     horizontalArrangement = Arrangement.SpaceBetween,
                                 ) {
                                     Text(info?.name ?: "— (нет)", color = TextForeground, fontSize = 11.sp, maxLines = 1)
-                                    if (info != null && info.parent.isNotEmpty() && info.parent != "ScriptedWidgetEventHandler") {
-                                        Text(info.parent, color = GhostlyText, fontSize = 9.sp, maxLines = 1)
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                    ) {
+                                        if (info != null && info.parent.isNotEmpty() && info.parent != "ScriptedWidgetEventHandler") {
+                                            Text(info.parent, color = GhostlyText, fontSize = 9.sp, maxLines = 1)
+                                        }
+                                        info?.let { KindBadge(it) }
                                     }
                                 }
                             }
@@ -244,4 +256,28 @@ private fun ScriptClassPopup(
             }
         }
     }
+}
+
+/** A small mark that tells whether a class was made for the editor, belongs to the game or comes from a mod. */
+@Composable
+private fun KindBadge(info: ScriptClassInfo) {
+    val kind = info.kind()
+    val color =
+        when (kind) {
+            ScriptKind.CUSTOM -> Color(0xFFE8622A)
+            ScriptKind.VANILLA -> Color(0xFF4A9EFF)
+            ScriptKind.MOD -> Color(0xFF5CB85C)
+        }
+    Text(
+        kind.label,
+        color = color,
+        fontSize = 9.sp,
+        maxLines = 1,
+        modifier =
+            Modifier
+                .background(
+                    color.copy(alpha = 0.16f),
+                ).border(1.dp, color.copy(alpha = 0.5f))
+                .padding(horizontal = 4.dp, vertical = 1.dp),
+    )
 }
