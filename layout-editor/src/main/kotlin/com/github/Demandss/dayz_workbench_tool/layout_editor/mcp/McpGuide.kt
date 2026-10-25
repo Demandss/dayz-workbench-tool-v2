@@ -37,6 +37,9 @@ internal object McpGuide {
         - color is r g b a from 0 to 1. The editor reads it as sRGB, like the game. Workbench 1.30 reads it as linear light and shows it lighter.
         - Names of widgets are Latin letters, digits and underscore, because scripts find a widget by name (FindAnyWidget).
         - Fonts: list_fonts gives the paths that exist; put one in quotes into font. The game has no monospaced font, and a name that is not in the list is drawn as Metron.
+        - The built-in bitmap fonts (metron, metron-bold ...) come in the sizes 12, 14, 16, 22, 28, 48 and 58 only: exact text size does not scale them. For other sizes use an sdf_* font, or make a font of the size you need with convert_font. measure_text gives the width a text takes with a font and a size, so no screenshot is needed to fit it.
+        - A text is cut at the left and right edge of its own widget: a text that starts left of its box loses its first letters. Give the box room.
+        - Group the widgets by logical blocks (Header, ToolBar, MainInfo, Progress, RewardsList, Footer): every block is a Frame or Panel with the rectangle of the block, and its children are placed relative to it. Not a flat list in the root, no parent with more than about 9 children.
         - Icons come from imagesets: list_icons gives set:NAME image:IMAGE, which goes into image0. Textures go into imageTexture with a path from the mod folder.
         - Styles: list_styles for a widget class, then set the style property. A panel without a style draws nothing. For a flat fill of its color use style rover_sim_colorable on a panel: the style Colorable exists for buttons, windows, scrolls and spacers, and on a panel the game draws nothing for it. On a button Colorable colours the text too. A style that list_styles does not show for the class draws nothing in the game, and the tools warn about it.
         - Files inside the game's PBO are read-only.

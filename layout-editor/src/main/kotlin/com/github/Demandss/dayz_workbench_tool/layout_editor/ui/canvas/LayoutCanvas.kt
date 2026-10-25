@@ -1405,7 +1405,9 @@ private fun DrawScope.drawSkin(
     zoom: Float,
     alphaFactor: Float = 1f,
 ) {
-    if (ss.width < 1f || ss.height < 1f) return
+    if (ss.width <= 0f || ss.height <= 0f) return
+    // A widget thinner than a device pixel (1 px thick at a zoom below 1) still shows as a line of one pixel
+    val ss = Size(ss.width.coerceAtLeast(1f), ss.height.coerceAtLeast(1f))
     val baseTint = node.node.properties["color"]?.let { parseWidgetColor(it) } ?: skin.styleColor
     val tint = baseTint.copy(alpha = baseTint.alpha * alphaFactor)
     drawSkinWidget(
@@ -1434,7 +1436,8 @@ internal fun DrawScope.drawSkinTinted(
     ss: Size,
     zoom: Float,
 ) {
-    if (ss.width < 1f || ss.height < 1f) return
+    if (ss.width <= 0f || ss.height <= 0f) return
+    val ss = Size(ss.width.coerceAtLeast(1f), ss.height.coerceAtLeast(1f))
     val dst =
         androidx.compose.ui.geometry
             .Rect(tl.x, tl.y, tl.x + ss.width, tl.y + ss.height)

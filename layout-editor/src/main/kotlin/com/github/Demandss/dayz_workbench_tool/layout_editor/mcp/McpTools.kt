@@ -21,6 +21,7 @@ import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.allNames
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.copiedWithNewIds
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.findProblems
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.layoutTree
+import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.measureText
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.sanitizeWidgetName
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.screenRect
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.knownPropertyKeys
@@ -64,6 +65,10 @@ internal class McpTools(
             val result =
                 when (name) {
                     "screenshot" -> return screenshot(args)
+
+                    // Waits for fonts that load in the background, so it must not hold the main thread
+                    "measure_text" -> return textResult(measureTextTool(args))
+
                     else -> onMain { run(name, args) }
                 }
             return textResult(result)
@@ -923,7 +928,79 @@ internal class McpTools(
         state.pushUndo(idx, doc.root, "MCP: replace layout")
         state.updateActiveRoot(parsed.toEditorNode())
         state.selectedIds.clear()
-        return "Replaced"
+        val root = state.openFiles[idx].root
+        val warnings = mutableListOf<String>()
+        var count = 0
+
+        fun visit(w: EditorWidgetNode) {
+            count++
+            val props = w.node.properties
+            warnings +=
+                (warningsFor(w, props.keys) + unquotedWarnings(props) + fontWarnings(props) + styleWarnings(w) + numberWarnings(props))
+                    .map { "${w.node.name}: $it" }
+            w.children.forEach(::visit)
+        }
+        visit(root)
+        return withWarnings(
+            buildJsonObject {
+                put("replaced", true)
+                put("widgets", count)
+            },
+            warnings.take(40) + if (warnings.size > 40) listOf("... and ${warnings.size - 40} more warnings") else emptyList(),
+        )
+    }
+
+    private fun countWidgets(n: EditorWidgetNode): Int = 1 + n.children.sumOf(::countWidgets)
+
+    /** The width and height a text takes with a font and a size, so that no screenshot is needed to fit it to a reference. */
+    private fun measureTextTool(args: JsonObject): String {
+        val text = args.string("text") ?: throw ToolFailure("text is required")
+        val font = args.string("font") ?: "gui/fonts/MetronBook"
+        val size = args.int("size") ?: throw ToolFailure("size is required (the exact text size, a whole number)")
+        val wrap = args.bool("wrap") == true
+        val bold = args.bool("bold") == true
+        val boxWidth = args.int("width")?.toFloat() ?: 100000f
+        val props =
+            linkedMapOf(
+                "position" to "0 0",
+                "size" to "$boxWidth ${size * 2}",
+                "text" to "\"$text\"",
+                "font" to "\"$font\"",
+                "exact text" to "1",
+                "exact text size" to size.toString(),
+            )
+        if (wrap) props["wrap"] = "1"
+        if (bold) props["bold text"] = "1"
+        val node =
+            EditorWidgetNode(
+                node = WidgetNode(type = WidgetType.TEXT, originalClassName = WidgetType.TEXT.className, name = "m", properties = props),
+            )
+        val path = onMain { state.activeFile?.path }
+
+        // A font loads in the background: the first answer is null, so it is asked again for up to 5 seconds
+        fun loaded(px: Float) =
+            (0 until 25).firstNotNullOfOrNull { i ->
+                onMain { state.gameFontFor(font, path, px) } ?: run {
+                    Thread.sleep(200)
+                    null
+                }
+            }
+        val found = loaded(size.toFloat())
+        val box =
+            measureText(
+                node,
+                { px -> found.takeIf { px == size.toFloat() } ?: loaded(px) },
+                boxWidth,
+                size * 2f,
+                font,
+            )
+        return buildJsonObject {
+            put("width", Math.round(box.width))
+            put("height", Math.round(box.height))
+            put("lines", if (size > 0) Math.round(box.height / size) else 1)
+            put("font_found", found != null)
+            if (found == null) put("note", "The font could not be loaded: the number is a guess (about half of the size per letter)")
+        }.toString()
     }
 
     private fun setView(args: JsonObject): String {
@@ -978,7 +1055,9 @@ internal class McpTools(
                 }
             }
             // The frame with the new view has to be drawn before it is taken
-            Thread.sleep(600)
+            // A big layout needs longer to be drawn (600 ms for a small one, 3 ms more for each widget)
+            val widgetCount = onMain { state.activeFile?.root?.let { countWidgets(it) } ?: 0 }
+            Thread.sleep((600 + widgetCount * 3L).coerceAtMost(4000L))
             val image =
                 onMain { capture(if (screenOnly) "window" else area) } ?: return textResult("The window cannot be captured", isError = true)
             // The screen of the layout alone is scaled to its own pixels, so that it can be compared with a reference one to one
@@ -1323,7 +1402,11 @@ internal class McpTools(
                                 "string" to
                                     "canvas (default), window, or screen: only the screen of the layout, scaled to exactly the pixels of the resolution (1920x1080), for comparing with a reference one to one"
                             ),
-                        "max_width" to ("integer" to "Scale down to this width, 1600 by default"),
+                        "max_width" to
+                            (
+                                "integer" to
+                                    "Scale down to this width, 1600 by default (ignored for area screen, which is always the size of the layout screen)"
+                            ),
                         "fit" to ("boolean" to "Fit the screen into the view first, true by default"),
                         "actual_size" to ("boolean" to "With fit false: zoom to 100%"),
                     ),
@@ -1367,6 +1450,19 @@ internal class McpTools(
                         "overwrite" to ("boolean" to "Replace existing files, false by default"),
                     ),
                     listOf("source", "output_dir"),
+                ),
+                tool(
+                    "measure_text",
+                    "The width and height in pixels that a text takes with a font and an exact text size, as the editor draws it. Use it to choose a size that makes a text as wide as in a reference, instead of screenshots. Give width and wrap to measure a wrapped text.",
+                    mapOf(
+                        "text" to ("string" to "The text"),
+                        "font" to ("string" to "Font path as in list_fonts, MetronBook by default"),
+                        "size" to ("integer" to "exact text size, a whole number"),
+                        "bold" to ("boolean" to "bold text"),
+                        "wrap" to ("boolean" to "Wrap the text at width"),
+                        "width" to ("integer" to "Width of the box in pixels for wrapping"),
+                    ),
+                    listOf("text", "size"),
                 ),
                 tool(
                     "list_fonts",
