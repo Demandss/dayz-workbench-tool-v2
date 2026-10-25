@@ -430,6 +430,15 @@ class LayoutEditorState(
         resourceRootsCache.clear()
         bitmapSizesCache.clear()
         forgetFonts()
+        // A texture or imageset that a tool wrote again must be read again, not taken from what was loaded before
+        textureCache.clear()
+        texturesLoading.clear()
+        pictureCache.clear()
+        skinPlans.clear()
+        skinCache.clear()
+        parsedImageSets.clear()
+        reloadImageSetTextures()
+        imageSetIndexFor = null
         scanMods()
     }
 
