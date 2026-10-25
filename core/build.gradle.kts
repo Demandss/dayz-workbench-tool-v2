@@ -28,6 +28,9 @@ dependencies {
 
 tasks.test {
     useJUnitPlatform()
+    // The test of the translations reads the sources of every module, so a change there has to run it again
+    inputs.dir(rootProject.file("layout-editor/src/main")).withPropertyName("layoutEditorSources")
+    inputs.dir(rootProject.file("app/src/main")).withPropertyName("appSources")
 }
 
 // Library module — disable the run task added by the compose plugin

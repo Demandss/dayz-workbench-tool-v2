@@ -47,6 +47,7 @@ import com.github.demandss.dayz_workbench_tool.layout_editor.state.DragSource
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.LayoutDocument
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.LayoutEditorState
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.PaletteMode
+import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.FontViewer
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.LayoutCanvas
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.TextureViewer
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.findProblems
@@ -372,6 +373,8 @@ fun LayoutEditorWindow(
                                 StylesEditor(state, styles, Modifier.weight(1f).fillMaxWidth())
                             } else if (imageSet != null) {
                                 ImageSetEditor(state, imageSet, Modifier.weight(1f).fillMaxWidth())
+                            } else if (texture != null && texture.path.endsWith(".fnt", ignoreCase = true)) {
+                                FontViewer(state, texture, Modifier.weight(1f).fillMaxWidth())
                             } else if (texture != null) {
                                 TextureViewer(state, texture, Modifier.weight(1f).fillMaxWidth())
                             } else {

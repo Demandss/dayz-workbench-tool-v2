@@ -612,7 +612,7 @@ class LayoutEditorState(
         scanning = true
         scope.launch(Dispatchers.IO) {
             val found = ArrayList<File>()
-            val wanted = setOf("layout", "imageset", "styles", "edds", "png")
+            val wanted = setOf("layout", "imageset", "styles", "edds", "png", "fnt")
             runCatching {
                 File(workDrivePath)
                     .walkTopDown()
@@ -1388,6 +1388,18 @@ class LayoutEditorState(
         return null
     }
 
+    /** The font in a `.fnt` file as it is (a bitmap font or an SDF one, with the atlas next to it), for the font viewer. */
+    internal fun loadGameFontFile(file: File): GameFont? {
+        val header = runCatching { GameFontFile.header(file.readBytes()) }.getOrNull() ?: return null
+        val roots = listOfNotNull(file.parentFile)
+        val path = file.nameWithoutExtension
+        return if (header.kind == "FNT5") {
+            runCatching { loadSdfFont(path, roots) }.getOrNull()
+        } else {
+            runCatching { loadBitmapFont(path, roots) }.getOrNull()
+        }
+    }
+
     private fun loadBitmapFont(
         path: String,
         roots: List<File>,
@@ -1668,6 +1680,7 @@ class LayoutEditorState(
             path.endsWith(".layout", ignoreCase = true) -> openFile(path)
             path.endsWith(".imageset", ignoreCase = true) -> openImageSet(path)
             path.endsWith(".styles", ignoreCase = true) -> openStyles(path)
+            path.endsWith(".fnt", ignoreCase = true) -> openTexture(path)
             else -> openTexture(path)
         }
     }
@@ -2452,7 +2465,10 @@ class LayoutEditorState(
             val file = fileAt(path)
             val loaded =
                 try {
-                    if (file.extension.equals("edds", ignoreCase = true)) {
+                    if (file.extension.equals("fnt", ignoreCase = true)) {
+                        // A font has no picture to load: the viewer reads the files itself
+                        TextureDocument(path, null, "FNT", 0, file.length(), loading = false)
+                    } else if (file.extension.equals("edds", ignoreCase = true)) {
                         val image = EddsCodec.decode(readBytesOf(file))
                         TextureDocument(path, image.toBufferedImage(), image.format, image.mipCount, file.length(), loading = false)
                     } else {

@@ -60,7 +60,7 @@ import kotlin.math.roundToInt
 /** Whether a path points into a game PBO. */
 private fun isInPbo(path: Path): Boolean = PboFile.resolve(path.toString()) != null
 
-private val TEXTURE_EXTENSIONS = listOf(".edds", ".png", ".jpg", ".jpeg")
+private val TEXTURE_EXTENSIONS = listOf(".edds", ".png", ".jpg", ".jpeg", ".fnt")
 
 private data class TreeEntry(
     val path: Path,
