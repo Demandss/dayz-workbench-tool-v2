@@ -104,7 +104,7 @@ object GameFontFile {
 
     /**
      * FNT3: eight bytes of header, then the number of glyphs, the number of runs and pairs of 16 bit numbers.
-     * FNT5: the text RICH in 16 bit characters, the same two counts and pairs of 32 bit numbers.
+     * FNT5: the text RICH in 16 bit characters, the same two counts and pairs of a 32 bit start and a 16 bit count (plus 16 bits that are not read).
      */
     private fun readRanges(
         buffer: ByteBuffer,
@@ -120,7 +120,8 @@ object GameFontFile {
             (0 until runCount).map { i ->
                 val at = body + 16 + i * pair
                 if (wide) {
-                    buffer.getInt(at) to buffer.getInt(at + 4)
+                    // The count is the low 16 bits: the game fonts keep something else in the high ones (MetronBook24: 0x3100003F is 63 glyphs)
+                    buffer.getInt(at) to (buffer.getInt(at + 4) and 0xFFFF)
                 } else {
                     (buffer.getShort(at).toInt() and 0xFFFF) to (buffer.getShort(at + 2).toInt() and 0xFFFF)
                 }
