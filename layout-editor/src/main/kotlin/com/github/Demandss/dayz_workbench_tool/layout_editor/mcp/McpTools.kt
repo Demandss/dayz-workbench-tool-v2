@@ -142,6 +142,7 @@ internal class McpTools(
             "list_imagesets" -> state.imageSetNames(state.activeFile?.path).joinToString("\n")
             "list_fonts" -> listFonts(args)
             "list_strings" -> listStrings(args)
+            "open_file" -> openFile(args)
             "create_imageset" -> createImageset(args)
             "create_style" -> createStyle(args)
             "register_assets" -> registerAssets(args)
@@ -444,10 +445,15 @@ internal class McpTools(
                 .forEach { sources += assetName(it.nameWithoutExtension) to it }
         }
         if (sources.isEmpty()) throw ToolFailure("Give images (a list of {name, source}) or a folder with pictures")
+        val masked = args.bool("mask") == true
+        val builder = com.github.demandss.dayz_workbench_tool.assets.ImageSetBuilder
+        val coloured = mutableListOf<String>()
         val pictures =
             sources.map { (name, file) ->
                 if (!file.isFile) throw ToolFailure("No such file: ${file.path}")
-                name to readPicture(file)
+                val picture = readPicture(file)
+                if (!masked && builder.hasColor(picture)) coloured += name
+                name to if (masked) builder.toMask(picture) else picture
             }
         val packed =
             try {
@@ -492,6 +498,13 @@ internal class McpTools(
                     },
                 ),
             )
+            if (coloured.isNotEmpty()) {
+                put(
+                    "warning",
+                    "These pictures have colour: ${coloured.take(30).joinToString()}. Shapes and icons should be white to black on a " +
+                        "transparent background, so that the widget colour tints them like a mask; pass mask=true to turn them grey.",
+                )
+            }
             put(
                 "note",
                 "Next: register_assets writes the imageset into config.cpp (CfgMods defs imageSets), so that the game loads it. " +
@@ -812,6 +825,14 @@ internal class McpTools(
             throw ToolFailure("Could not open $path")
         }
         return "Opened ${doc.path}"
+    }
+
+    /** Opens any file the editor has a tab for: a layout, an `.imageset`, a `.styles`, a texture or a font. */
+    private fun openFile(args: JsonObject): String {
+        val path = args.string("path") ?: throw ToolFailure("path is required")
+        if (!java.io.File(path).isFile) throw ToolFailure("No such file: $path")
+        state.openAny(path)
+        return "Opened $path"
     }
 
     private fun createLayout(args: JsonObject): String {
@@ -1863,6 +1884,11 @@ internal class McpTools(
                         "images" to ("array" to "List of {name, source}: the name of the image and the full path of its picture"),
                         "folder" to ("string" to "A folder whose pictures are all added, named after their files"),
                         "name" to ("string" to "Name of the set as layouts write it (set:NAME), the file name by default"),
+                        "mask" to
+                            (
+                                "boolean" to
+                                    "Turn every picture into a grey mask of the same brightness (the transparency stays), false by default"
+                            ),
                         "padding" to ("integer" to "Pixels between the pictures, 2 by default"),
                         "max_size" to ("integer" to "Biggest side of the atlas, 4096 by default"),
                         "overwrite" to ("boolean" to "Replace an existing imageset, false by default"),
@@ -1894,6 +1920,12 @@ internal class McpTools(
                         "mod" to ("string" to "Folder of the mod; the mod of the open layout by default"),
                         "apply" to ("boolean" to "Write config.cpp, true by default"),
                     ),
+                ),
+                tool(
+                    "open_file",
+                    "Opens a file in its own tab of the editor: a .layout, an .imageset, a .styles, a texture (.edds, .png) or a font (.fnt). The person watching sees it. For a layout you work on use open_layout.",
+                    mapOf("path" to ("string" to "Full path of the file")),
+                    listOf("path"),
                 ),
                 tool(
                     "list_fonts",

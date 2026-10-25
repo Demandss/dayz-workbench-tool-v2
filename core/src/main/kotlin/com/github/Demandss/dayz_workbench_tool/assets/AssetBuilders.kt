@@ -71,6 +71,40 @@ object ImageSetBuilder {
         return Packed(atlas, defs)
     }
 
+    /**
+     * The picture as a mask: every pixel becomes a grey of the same brightness, the transparency stays. A widget that shows it
+     * is tinted by its `color` (white takes the colour fully, black stays black), so one picture serves every colour.
+     */
+    fun toMask(image: BufferedImage): BufferedImage {
+        val out = BufferedImage(image.width, image.height, BufferedImage.TYPE_INT_ARGB)
+        for (y in 0 until image.height) {
+            for (x in 0 until image.width) {
+                val argb = image.getRGB(x, y)
+                val grey = (0.299 * ((argb shr 16) and 0xFF) + 0.587 * ((argb shr 8) and 0xFF) + 0.114 * (argb and 0xFF)).toInt()
+                out.setRGB(x, y, (argb and 0xFF000000.toInt()) or (grey shl 16) or (grey shl 8) or grey)
+            }
+        }
+        return out
+    }
+
+    /** True when a visible pixel of the picture has a colour (its channels differ by more than [tolerance]). */
+    fun hasColor(
+        image: BufferedImage,
+        tolerance: Int = 12,
+    ): Boolean {
+        for (y in 0 until image.height) {
+            for (x in 0 until image.width) {
+                val argb = image.getRGB(x, y)
+                if ((argb ushr 24) < 16) continue
+                val r = (argb shr 16) and 0xFF
+                val g = (argb shr 8) and 0xFF
+                val b = argb and 0xFF
+                if (maxOf(r, g, b) - minOf(r, g, b) > tolerance) return true
+            }
+        }
+        return false
+    }
+
     /** The imageset of a packed atlas; [texturePath] is the path of the `.edds` as the game reads it, from the mod folder. */
     fun imageSet(
         name: String,

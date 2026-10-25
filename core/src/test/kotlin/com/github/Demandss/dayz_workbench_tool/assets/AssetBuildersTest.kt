@@ -58,6 +58,21 @@ class AssetBuildersTest {
     }
 
     @Test
+    fun maskKeepsTheShapeAndDropsTheColour() {
+        val red = BufferedImage(2, 1, BufferedImage.TYPE_INT_ARGB)
+        red.setRGB(0, 0, 0xFFFF0000.toInt())
+        red.setRGB(1, 0, 0x00FF0000)
+        assertTrue(ImageSetBuilder.hasColor(red))
+        val mask = ImageSetBuilder.toMask(red)
+        assertEquals(false, ImageSetBuilder.hasColor(mask))
+        assertEquals(0xFF, mask.getRGB(0, 0) ushr 24)
+        assertEquals(0, mask.getRGB(1, 0) ushr 24)
+        val white = BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB)
+        white.setRGB(0, 0, 0xFFFFFFFF.toInt())
+        assertEquals(0xFFFFFFFF.toInt(), ImageSetBuilder.toMask(white).getRGB(0, 0))
+    }
+
+    @Test
     fun colourNumbersAreArgb() {
         assertEquals("4294967295", StyleBuilder.colorNumber("1 1 1 1"))
         assertEquals("4278190080", StyleBuilder.colorNumber("#000000"))
