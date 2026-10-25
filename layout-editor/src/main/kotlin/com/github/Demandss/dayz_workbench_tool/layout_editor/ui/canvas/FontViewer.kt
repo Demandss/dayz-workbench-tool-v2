@@ -34,6 +34,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
@@ -46,6 +47,7 @@ import com.github.demandss.dayz_workbench_tool.layout.WidgetType
 import com.github.demandss.dayz_workbench_tool.layout_editor.EditorWidgetNode
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.LayoutEditorState
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.TextureDocument
+import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.ColorPickerPopup
 import com.github.demandss.dayz_workbench_tool.ui.theme.DarkenedBorder
 import com.github.demandss.dayz_workbench_tool.ui.theme.ElementsBackground
 import com.github.demandss.dayz_workbench_tool.ui.theme.FrameBackground
@@ -162,7 +164,7 @@ fun FontViewer(
         Column(Modifier.weight(1f).fillMaxHeight()) {
             // The controls, in a row over the preview as in the Workbench; a bitmap font does not have what is greyed out
             Row(
-                Modifier.fillMaxWidth().background(ElementsBackground).padding(horizontal = 8.dp, vertical = 4.dp),
+                Modifier.fillMaxWidth().background(FrameBackground).padding(horizontal = 8.dp, vertical = 4.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
@@ -201,6 +203,7 @@ fun FontViewer(
                 SmallField(offsetX, sdf) { offsetX = it }
                 SmallField(offsetY, sdf) { offsetY = it }
             }
+            Box(Modifier.fillMaxWidth().height(1.dp).background(DarkenedBorder))
             Canvas(
                 Modifier
                     .weight(1f)
@@ -268,12 +271,13 @@ fun FontViewer(
                 }
             }
         }
+        Box(Modifier.width(1.dp).fillMaxHeight().background(DarkenedBorder))
         // The text to show and the facts about the file
         Column(
             Modifier
                 .width(300.dp)
                 .fillMaxHeight()
-                .background(ElementsBackground)
+                .background(FrameBackground)
                 .padding(8.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
@@ -365,8 +369,28 @@ private fun ColorBox(
     enabled: Boolean = true,
     onChange: (String) -> Unit,
 ) {
+    var picking by remember { mutableStateOf(false) }
+    val anchorHeight = with(LocalDensity.current) { 22.dp.roundToPx() }
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-        Box(Modifier.size(16.dp).background(if (enabled) hexColor(hex, Color.Black) else DarkenedBorder).border(1.dp, Color(0xFF3A3C40)))
+        Box {
+            Box(
+                Modifier
+                    .size(22.dp)
+                    .background(Color(0xFF2B2B30))
+                    .background(if (enabled) hexColor(hex, Color.Black) else DarkenedBorder)
+                    .border(1.dp, Color(0xFF3A3C40))
+                    .clickable(remember { MutableInteractionSource() }, null, enabled = enabled) { picking = true },
+            )
+            if (picking) {
+                // The same picker as for the colour of a widget: a square, the hue, the opacity, the hex value and the presets
+                ColorPickerPopup(
+                    initial = hexColor(hex, Color.Black),
+                    anchorHeightPx = anchorHeight,
+                    onDismiss = { picking = false },
+                    onCommit = { onChange(colorToHex(it)) },
+                )
+            }
+        }
         BasicTextField(
             value = hex,
             onValueChange = { if (enabled) onChange(it.filter { c -> c.isLetterOrDigit() }.take(8).uppercase()) },
@@ -382,6 +406,14 @@ private fun ColorBox(
                     .padding(horizontal = 3.dp, vertical = 3.dp),
         )
     }
+}
+
+private fun colorToHex(c: Color): String {
+    val r = (c.red * 255f + 0.5f).toInt()
+    val g = (c.green * 255f + 0.5f).toInt()
+    val b = (c.blue * 255f + 0.5f).toInt()
+    val a = (c.alpha * 255f + 0.5f).toInt()
+    return if (a == 255) "%02X%02X%02X".format(r, g, b) else "%02X%02X%02X%02X".format(a, r, g, b)
 }
 
 @Composable

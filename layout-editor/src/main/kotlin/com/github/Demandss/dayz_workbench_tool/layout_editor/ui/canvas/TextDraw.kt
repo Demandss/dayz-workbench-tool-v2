@@ -398,8 +398,9 @@ private fun DrawScope.drawSdfText(
                     if (look.italic) {
                         // Italics lean the letters by a fifth of their height around the baseline
                         val lean = Matrix()
-                        lean[0, 1] = -0.2f
-                        lean[0, 3] = 0.2f * baseline
+                        // x' = x - 0.2 * (y - baseline): the shear is values[4], the shift values[12] of the column major matrix
+                        lean[1, 0] = -0.2f
+                        lean[3, 0] = 0.2f * baseline
                         withTransform({ transform(lean) }) { put() }
                     } else {
                         put()
