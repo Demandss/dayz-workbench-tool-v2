@@ -76,6 +76,7 @@ import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.Rulers
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.SelectionBar
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.ShortcutsDialog
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.StatusBar
+import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.StringPickerDialog
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.ToastHost
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.ViewportChips
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.styles.StylesEditor
@@ -479,6 +480,7 @@ fun LayoutEditorWindow(
 
                 BulkEditDialog(state)
                 FontImportDialog(state)
+                StringPickerDialog(state)
                 IconPickerWindow(state)
                 PreferencesWindow(state)
                 ConfirmDialog(state)

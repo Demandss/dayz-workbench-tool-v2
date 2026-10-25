@@ -64,6 +64,7 @@ import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.selection
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.setOnSelected
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.toFileColor
 import com.github.demandss.dayz_workbench_tool.layout_editor.updateNode
+import com.github.demandss.dayz_workbench_tool.stringtable.StringtableRegistry
 import com.github.demandss.dayz_workbench_tool.ui.components.Tip
 import com.github.demandss.dayz_workbench_tool.ui.icons.AppIcon
 import com.github.demandss.dayz_workbench_tool.ui.icons.AppIconView
@@ -368,7 +369,7 @@ fun PropertiesContent(
             SchemaSections(node.node.type, node.node.originalClassName, props, commit, fontOptions(state, doc?.path, props["font"]), {
                 state.fontImportOpen =
                     true
-            })
+            }, { onPick -> state.stringPicker = onPick })
             val schema = schemaKeys(node.node.type, node.node.originalClassName)
             val extra = props.filter { it.key !in WIDGET_KEYS && it.key !in IMAGE_KEYS && it.key !in schema }
             if (extra.isNotEmpty()) RawSection(extra, commit)
@@ -777,12 +778,13 @@ private fun SchemaSections(
     commit: (String, String) -> Unit,
     fonts: List<Pair<String, String>> = emptyList(),
     importFont: () -> Unit = {},
+    pickString: (((String) -> Unit)) -> Unit = {},
 ) {
     for ((index, section) in schemaFor(type, originalClassName).withIndex()) {
         // The group of the focus keys is rare to touch, so it starts closed unless the file sets one of them
         var expanded by remember(section.title) { mutableStateOf(section.title != "Focus" || section.specs.any { it.key in props }) }
         SectionHeader(section.title, expanded) { expanded = !expanded }
-        if (expanded) for (spec in section.specs) SchemaRow(importFont, spec, props, commit, fonts)
+        if (expanded) for (spec in section.specs) SchemaRow(importFont, spec, props, commit, fonts, pickString)
     }
 }
 
@@ -794,6 +796,7 @@ private fun SchemaRow(
     props: Map<String, String>,
     commit: (String, String) -> Unit,
     fonts: List<Pair<String, String>> = emptyList(),
+    pickString: (((String) -> Unit)) -> Unit = {},
 ) {
     val raw = props[spec.key]
     val hint = tr(spec.hint) + if (spec.default.isNotEmpty()) "\n" + tr("По умолчанию: {0}", spec.default) else ""
@@ -833,6 +836,10 @@ private fun SchemaRow(
                     StringField(current, Modifier.weight(1f)) {
                         commit(spec.key, if (it.isEmpty()) "" else "\"$it\"")
                     }
+                    // The text of a widget may be a key of a string table: the button lists the keys of the game and of the mods
+                    if (spec.key == "text") {
+                        SmallButton("#") { pickString { key -> commit(spec.key, "\"#$key\"") } }
+                    }
                 }
             }
 
@@ -848,6 +855,7 @@ private fun SchemaRow(
         }
         if (raw != null) SmallButton("×") { commit(spec.key, "") }
     }
+    if (spec.key == "text") StringPreview(raw?.trim()?.removeSurrounding("\"").orEmpty())
 }
 
 @Composable
@@ -1529,7 +1537,7 @@ private fun ColumnScope.MultiProperties(
             SchemaSections(sameType.first, sameType.second, props, commit, fontOptions(state, layoutPath, props["font"]), {
                 state.fontImportOpen =
                     true
-            })
+            }, { onPick -> state.stringPicker = onPick })
         }
         val schema = sameType?.let { schemaKeys(it.first, it.second) }.orEmpty()
         val extra = props.filter { it.key !in WIDGET_KEYS && it.key !in IMAGE_KEYS && it.key !in schema }
@@ -1567,5 +1575,23 @@ private fun MultiTransform(state: LayoutEditorState) {
             fontSize = 10.sp,
             lineHeight = 13.sp,
         )
+    }
+}
+
+/** Under the text of a widget that is a `#key`: what the key says in the language of the editor, or that it is not found. */
+@Composable
+private fun StringPreview(text: String) {
+    if (!text.startsWith("#") || text.length < 2) return
+    val key = text.substring(1)
+    val entry = StringtableRegistry.find(key)
+    val shown = StringtableRegistry.translate(key)
+    val line =
+        when {
+            entry == null -> tr("Ключ не найден в таблицах строк: текст останется как есть")
+            shown == null -> tr("Для языка редактора в таблице нет текста")
+            else -> shown
+        }
+    Row(Modifier.fillMaxWidth().padding(start = LABEL_W, end = 4.dp, bottom = 3.dp)) {
+        Text(line, color = if (shown != null) TextForeground else GhostlyText, fontSize = 10.sp, maxLines = 2)
     }
 }

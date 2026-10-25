@@ -4,6 +4,7 @@ import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.asComposeImageBitmap
 import androidx.compose.ui.graphics.toAwtImage
 import com.github.demandss.dayz_workbench_tool.font.FontImporter
+import com.github.demandss.dayz_workbench_tool.i18n.I18n
 import com.github.demandss.dayz_workbench_tool.layout.LayoutParser
 import com.github.demandss.dayz_workbench_tool.layout.LayoutSerializer
 import com.github.demandss.dayz_workbench_tool.layout.WidgetNode
@@ -24,8 +25,11 @@ import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.layoutTre
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.measureText
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.sanitizeWidgetName
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.screenRect
+import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.filterStrings
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.knownPropertyKeys
 import com.github.demandss.dayz_workbench_tool.layout_editor.updateNode
+import com.github.demandss.dayz_workbench_tool.stringtable.StringtableRegistry
+import com.github.demandss.dayz_workbench_tool.stringtable.textIn
 import com.github.demandss.dayz_workbench_tool.texture.EddsCodec
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
@@ -136,6 +140,7 @@ internal class McpTools(
             "list_styles" -> listStyles(args)
             "list_imagesets" -> state.imageSetNames(state.activeFile?.path).joinToString("\n")
             "list_fonts" -> listFonts(args)
+            "list_strings" -> listStrings(args)
             "convert_texture" -> convertTexture(args)
             "convert_font" -> convertFont(args)
             else -> throw ToolFailure("Unknown tool: $name")
@@ -355,6 +360,44 @@ internal class McpTools(
         return buildJsonObject {
             put("total", icons.size)
             put("icons", JsonArray(icons.take(limit).map { (set, image) -> JsonPrimitive("set:$set image:$image") }))
+        }.toString()
+    }
+
+    /** The keys of the string tables of the game and of the connected mods that fit a search, with the text in the editor language. */
+    private fun listStrings(args: JsonObject): String {
+        val query = args.string("query").orEmpty()
+        val source = args.string("source")?.takeIf { it.isNotBlank() && it != "all" } ?: "*"
+        val limit = (args.int("limit") ?: 50).coerceIn(1, 500)
+        val found = filterStrings(StringtableRegistry.entries, source, query)
+        val language = I18n.language
+        return buildJsonObject {
+            put("total", found.size)
+            put("language", language.code)
+            put(
+                "sources",
+                JsonArray(
+                    StringtableRegistry.entries
+                        .map { it.origin }
+                        .distinct()
+                        .map { JsonPrimitive(it) },
+                ),
+            )
+            put(
+                "strings",
+                JsonArray(
+                    found.take(limit).map { e ->
+                        buildJsonObject {
+                            put("key", e.key)
+                            put("text", e.textIn(language) ?: e.texts["english"].orEmpty())
+                            put("source", e.origin)
+                        }
+                    },
+                ),
+            )
+            put(
+                "note",
+                "Put #KEY into the text property. The editor draws the text of the key in its own language; a key not found stays as it is.",
+            )
         }.toString()
     }
 
@@ -1463,6 +1506,15 @@ internal class McpTools(
                         "width" to ("integer" to "Width of the box in pixels for wrapping"),
                     ),
                     listOf("text", "size"),
+                ),
+                tool(
+                    "list_strings",
+                    "The keys of the string tables (stringtable.csv) of the game and of the connected mods, with their text in the language of the editor. A text widget shows a #KEY as that text. source is game for the vanilla table, a mod folder name, or all.",
+                    mapOf(
+                        "query" to ("string" to "Words that are in the key or in the text"),
+                        "source" to ("string" to "game, a mod folder name or all"),
+                        "limit" to ("integer" to "How many to return, 50 by default"),
+                    ),
                 ),
                 tool(
                     "list_fonts",

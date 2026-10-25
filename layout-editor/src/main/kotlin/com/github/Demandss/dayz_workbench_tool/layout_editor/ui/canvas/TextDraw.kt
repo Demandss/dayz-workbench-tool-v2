@@ -25,15 +25,22 @@ import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.TextUnitType
 import com.github.demandss.dayz_workbench_tool.layout.WidgetType
 import com.github.demandss.dayz_workbench_tool.layout_editor.EditorWidgetNode
+import com.github.demandss.dayz_workbench_tool.stringtable.StringtableRegistry
 import kotlin.math.roundToInt
 
-/** The text a text widget shows: the `text` property without quotes and without the `#` of a string table key. */
-internal fun EditorWidgetNode.shownText(): String =
-    prop("text")
-        ?.trim()
-        ?.trim('"')
-        ?.removePrefix("#")
-        .orEmpty()
+/**
+ * The text a text widget shows: the `text` property without quotes. A `#key` is looked up in the string tables and shown in the
+ * language of the interface; a key that is not found, or a language that has no text for it, shows as before, without the `#`.
+ */
+internal fun EditorWidgetNode.shownText(): String {
+    val raw =
+        prop("text")
+            ?.trim()
+            ?.trim('"')
+            .orEmpty()
+    if (raw.startsWith("#")) StringtableRegistry.translate(raw.substring(1))?.let { return it }
+    return raw.removePrefix("#")
+}
 
 private fun EditorWidgetNode.flagProp(name: String): Boolean =
     prop(name)?.let { it != "0" && !it.equals("false", ignoreCase = true) } ?: false

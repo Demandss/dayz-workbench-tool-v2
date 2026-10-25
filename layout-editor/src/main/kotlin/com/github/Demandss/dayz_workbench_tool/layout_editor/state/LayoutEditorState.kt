@@ -77,6 +77,10 @@ import com.github.demandss.dayz_workbench_tool.pbo.fileAt
 import com.github.demandss.dayz_workbench_tool.pbo.inRoot
 import com.github.demandss.dayz_workbench_tool.pbo.readBytesOf
 import com.github.demandss.dayz_workbench_tool.pbo.readTextOf
+import com.github.demandss.dayz_workbench_tool.stringtable.StringtableCatalog
+import com.github.demandss.dayz_workbench_tool.stringtable.StringtableCsv
+import com.github.demandss.dayz_workbench_tool.stringtable.StringtableEntry
+import com.github.demandss.dayz_workbench_tool.stringtable.StringtableRegistry
 import com.github.demandss.dayz_workbench_tool.styles.StyleDef
 import com.github.demandss.dayz_workbench_tool.styles.StyleSheet
 import com.github.demandss.dayz_workbench_tool.styles.StylesFormat
@@ -425,6 +429,33 @@ class LayoutEditorState(
         bitmapSizesCache.clear()
         scanMods()
         scanScriptClasses()
+        scanStringtables()
+    }
+
+    /** The picker of string table keys is open: what it puts into the text of a widget. */
+    var stringPicker by mutableStateOf<((String) -> Unit)?>(null)
+
+    /** Reads the string tables of the game and of the connected mods in the background and gives them to the layout drawing. */
+    fun scanStringtables() {
+        val mods = connectedMods().map(::File).filter { it.isDirectory }
+        val game = gameFolder
+        scope.launch(Dispatchers.IO) {
+            val all = mutableListOf<StringtableEntry>()
+            // The vanilla table is in dta/languagecore.pbo; a copy of it on the work drive is the same table
+            val pbo = File(game, "dta/languagecore.pbo").takeIf { game.isNotBlank() && it.isFile }
+            val vanilla =
+                pbo
+                    ?.let { runCatching { PboArchive.open(it)?.read("stringtable.csv") }.getOrNull() }
+                    ?.let { runCatching { StringtableCsv.parse(String(it, Charsets.UTF_8), "game") }.getOrNull() }
+                    .orEmpty()
+            all += vanilla
+            for (mod in mods) {
+                val isVanillaCopy = mod.name.equals("languagecore", ignoreCase = true)
+                if (isVanillaCopy && vanilla.isNotEmpty()) continue
+                all += StringtableCatalog.scan(mod, if (isVanillaCopy) "game" else mod.name)
+            }
+            withContext(Dispatchers.Main) { StringtableRegistry.set(all) }
+        }
     }
 
     /** The classes a widget can name in `scriptclass`: those of the game, of the connected mods and of the catalogue of the editor. */
@@ -2536,6 +2567,7 @@ class LayoutEditorState(
         loadPreferences()
         scanMods()
         scanScriptClasses()
+        scanStringtables()
     }
 }
 

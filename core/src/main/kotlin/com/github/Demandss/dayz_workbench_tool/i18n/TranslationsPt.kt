@@ -33,6 +33,7 @@ internal val translationsPt: Map<String, String> =
         "В лайауте есть, класс его не читает" to "Existe no layout, a classe não o lê",
         "В файле стоит голый center. Такой виджет остаётся у начального края. Нужен center_ref." to
             "O arquivo tem um center simples. Esse widget fica na borda inicial. Use center_ref.",
+        "Ваниль (игра)" to "Vanilla (jogo)",
         "Версия: {0}" to "Versão: {0}",
         "Весь layout" to "Todo o layout",
         "Взять" to "Pegar",
@@ -95,6 +96,8 @@ internal val translationsPt: Map<String, String> =
         "Вписать в окно" to "Ajustar à janela",
         "Вписать текстуру в окно" to "Ajustar a textura à janela",
         "Все виджеты файла" to "Todos os widgets do arquivo",
+        "Все источники" to "Todas as fontes",
+        "Вставить" to "Inserir",
         "Вставить свойства" to "Colar propriedades",
         "Вставка ({0})" to "Colar ({0})",
         "Вставка {0}" to "Colar {0}",
@@ -151,6 +154,7 @@ internal val translationsPt: Map<String, String> =
         "Держит пропорции виджета с относительным размером: fixwidth берёт ширину из высоты, fixheight наоборот" to
             "Mantém as proporções de um widget de tamanho relativo: fixwidth tira a largura da altura, fixheight o contrário",
         "Для равных интервалов нужно выбрать три виджета и больше" to "Selecione três widgets ou mais para espaçamento igual",
+        "Для языка редактора в таблице нет текста" to "A tabela não tem texto para o idioma do editor",
         "Добавить группу из девяти областей 30 × 30, как «Add 3x3» в Workbench" to
             "Adicionar um grupo de nove áreas de 30 × 30, como «Add 3x3» no Workbench",
         "Добавить слот: LeftTop, Top, Center…" to "Adicionar um slot: LeftTop, Top, Center…",
@@ -186,6 +190,7 @@ internal val translationsPt: Map<String, String> =
         "Заменить значение свойства" to "Substituir um valor de propriedade",
         "Заменить значение свойства…" to "Substituir um valor de propriedade…",
         "Замечаний нет" to "Sem observações",
+        "Записать ключ в текст виджета как #КЛЮЧ" to "Escrever a chave no texto do widget como #CHAVE",
         "Записать размер текстуры в RefSize" to "Gravar o tamanho da textura em RefSize",
         "Заполнить слоты по именам…" to "Preencher os slots por nomes…",
         "Запоминать размер окна" to "Lembrar o tamanho da janela",
@@ -216,6 +221,7 @@ internal val translationsPt: Map<String, String> =
         "Инструменты ({0})" to "Ferramentas ({0})",
         "Интервалы по вертикали" to "Espaçamento vertical",
         "Интервалы по горизонтали" to "Espaçamento horizontal",
+        "Источник строк" to "Origem dos textos",
         "Исходник {0} в буфере ({1})" to "O código de {0} está na área de transferência ({1})",
         "Исходник класса {0} не найден среди скриптов игры и подключённых модов" to
             "O código da classe {0} não foi encontrado entre os scripts do jogo e dos mods conectados",
@@ -235,6 +241,7 @@ internal val translationsPt: Map<String, String> =
         "Кириллица: {0}" to "Cirílico: {0}",
         "Класс скрипта, привязанный к виджету" to "A classe de script associada ao widget",
         "Клик: выбрать другой класс" to "Clique: escolher outra classe",
+        "Ключ не найден в таблицах строк: текст останется как есть" to "A chave não está nas tabelas de textos: o texto fica como está",
         "Код доступа скопирован: {0}" to "Código de acesso copiado: {0}",
         "Команда…" to "Comando…",
         "Конвертировать в EDDS" to "Converter para EDDS",
@@ -270,6 +277,7 @@ internal val translationsPt: Map<String, String> =
         "Наибольшее значение ползунка" to "O maior valor do controle deslizante",
         "Найдено: {0}" to "Encontrado: {0}",
         "Найдено: {0} из {1}" to "Encontrado: {0} de {1}",
+        "Найдено: {0}. Текст показан на языке редактора: {1}." to "Encontrados: {0}. O texto é mostrado no idioma do editor: {1}.",
         "Настройки" to "Configurações",
         "Настройки (Ctrl+,)" to "Configurações (Ctrl+,)",
         "Настройки: MCP и отображение" to "Configurações: MCP e exibição",
@@ -363,6 +371,7 @@ internal val translationsPt: Map<String, String> =
         "Подпись, пока ничего не выбрано" to "O rótulo enquanto nada está selecionado",
         "Поиск виджета…" to "Procurar um widget…",
         "Поиск по имени…" to "Procurar por nome…",
+        "Поиск по ключу и тексту" to "Pesquisar por chave e texto",
         "Поиск по названию иконки или набора…" to "Procurar pelo nome de um ícone ou conjunto…",
         "Поиск по названию или источнику" to "Procurar por nome ou origem",
         "Поиск стиля…" to "Procurar um estilo…",
@@ -487,6 +496,9 @@ internal val translationsPt: Map<String, String> =
         "Стиль из .styles: рисует фон, рамку и состояния виджета. Список — стили игры для этого типа виджета" to
             "Um estilo de um arquivo .styles: desenha o fundo, a borda e os estados do widget. A lista contém os estilos do jogo para este tipo de widget",
         "Стиль: {0} · {1}" to "Estilo: {0} · {1}",
+        "Строки из stringtable" to "Textos da stringtable",
+        "Таблицы строк не найдены: укажите папку игры в настройках и подключите моды." to
+            "Nenhuma tabela de textos encontrada: indique a pasta do jogo nas configurações e conecte os mods.",
         "Текст в поле при показе" to "O texto do campo ao ser exibido",
         "Текстура imageset" to "Textura do imageset",
         "Текстура {0} × {1}" to "Textura {0} × {1}",
