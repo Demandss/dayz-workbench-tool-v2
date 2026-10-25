@@ -542,6 +542,8 @@ internal class McpTools(
         val file = java.io.File(path)
         if (file.exists() && args.bool("overwrite") != true) throw ToolFailure("$path exists: open_layout opens it, or pass overwrite=true")
         file.parentFile?.mkdirs()
+        // The watcher of the editor must not take this write for a change from outside (it offered a reload that dropped the widgets)
+        state.markOwnWrite(path)
         val root = args.string("root_type")?.let { typeOf(it) } ?: WidgetType.FRAME
         val rootName = sanitizeWidgetName(args.string("root_name") ?: "Root")
         val width = args.int("width") ?: 1920

@@ -599,12 +599,26 @@ class LayoutEditorState(
         }
     }
 
+    /** Tells the watcher that the editor wrote [path] itself (a layout the MCP made), so that it is not reported as changed from outside. */
+    fun markOwnWrite(path: String) {
+        ownWrites[runCatching { File(path).canonicalPath }.getOrDefault(path)] = System.currentTimeMillis()
+    }
+
+    /**
+     * Loads a layout from the disk again. What was open stays one step of the history, so that Ctrl+Z brings it back: a reload
+     * thrown at edits that were not saved must not lose them.
+     */
     fun reloadFile(path: String) {
         val idx = openFiles.indexOfFirst { it.path == path }
         if (idx < 0) return
         runCatching {
             val root = LayoutParser.parse(readTextOf(fileAt(path))).toEditorNode()
-            openFiles[idx] = LayoutDocument(path = path, root = root)
+            val old = openFiles[idx]
+            old.undoStack.addLast(old.root)
+            old.undoLabels.addLast("Reload from disk")
+            old.redoStack.clear()
+            old.redoLabels.clear()
+            openFiles[idx] = old.copy(root = root, isModified = false)
         }
         filesChangedOnDisk.remove(path)
     }
@@ -2547,7 +2561,7 @@ class LayoutEditorState(
                         runCatching {
                             dir.resolve(ev.context()).toFile().canonicalPath
                         }.getOrNull() ?: continue
-                    val own = ownWrites[fullPath]?.let { System.currentTimeMillis() - it < 2000 } == true
+                    val own = ownWrites[fullPath]?.let { System.currentTimeMillis() - it < 5000 } == true
                     if (own) continue
                     withContext(Dispatchers.Main) {
                         if (openFiles.any { it.path == fullPath } &&
