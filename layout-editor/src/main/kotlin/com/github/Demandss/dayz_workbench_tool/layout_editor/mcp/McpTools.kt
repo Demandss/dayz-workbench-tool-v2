@@ -142,6 +142,9 @@ internal class McpTools(
             "list_imagesets" -> state.imageSetNames(state.activeFile?.path).joinToString("\n")
             "list_fonts" -> listFonts(args)
             "list_strings" -> listStrings(args)
+            "create_imageset" -> createImageset(args)
+            "create_style" -> createStyle(args)
+            "register_assets" -> registerAssets(args)
             "convert_texture" -> convertTexture(args)
             "convert_font" -> convertFont(args)
             else -> throw ToolFailure("Unknown tool: $name")
@@ -399,6 +402,280 @@ internal class McpTools(
                 "note",
                 "Put #KEY into the text property. The editor draws the text of the key in its own language; a key not found stays as it is.",
             )
+        }.toString()
+    }
+
+    /** A name that a script and an imageset can use: Latin letters, digits and underscore. */
+    private fun assetName(text: String): String =
+        text
+            .trim()
+            .replace(Regex("[^A-Za-z0-9_]"), "_")
+            .trim('_')
+            .ifEmpty { "image" }
+
+    private fun readPicture(file: java.io.File): java.awt.image.BufferedImage =
+        if (file.extension.equals("edds", ignoreCase = true)) {
+            EddsCodec.decode(file).toBufferedImage()
+        } else {
+            javax.imageio.ImageIO.read(file) ?: throw ToolFailure("Not a picture: ${file.path}")
+        }
+
+    /**
+     * Makes an imageset from pictures: they are packed into one atlas (`<name>.edds`) and described in `<name>.imageset`, which
+     * lies next to it. The answer lists every image as `set:NAME image:IMAGE`, ready for the image0 of an ImageWidget.
+     */
+    private fun createImageset(args: JsonObject): String {
+        val output = java.io.File(args.string("output") ?: throw ToolFailure("output is required: the full path of the .imageset"))
+        if (!output.name.endsWith(".imageset", ignoreCase = true)) throw ToolFailure("output must end with .imageset")
+        if (output.exists() && args.bool("overwrite") != true) throw ToolFailure("${output.path} exists: pass overwrite=true to replace it")
+        val sources = mutableListOf<Pair<String, java.io.File>>()
+        (args["images"] as? JsonArray)?.forEachIndexed { i, raw ->
+            val spec = raw as? JsonObject ?: throw ToolFailure("images[$i] is not an object")
+            val source = java.io.File(spec.string("source") ?: throw ToolFailure("images[$i].source is required"))
+            sources += assetName(spec.string("name") ?: source.nameWithoutExtension) to source
+        }
+        args.string("folder")?.let { folder ->
+            val dir = java.io.File(folder)
+            if (!dir.isDirectory) throw ToolFailure("No such folder: $folder")
+            dir
+                .listFiles { f -> f.isFile && f.extension.lowercase() in setOf("png", "jpg", "jpeg", "bmp", "gif", "edds") }
+                .orEmpty()
+                .sortedBy { it.name.lowercase() }
+                .forEach { sources += assetName(it.nameWithoutExtension) to it }
+        }
+        if (sources.isEmpty()) throw ToolFailure("Give images (a list of {name, source}) or a folder with pictures")
+        val pictures =
+            sources.map { (name, file) ->
+                if (!file.isFile) throw ToolFailure("No such file: ${file.path}")
+                name to readPicture(file)
+            }
+        val packed =
+            try {
+                com.github.demandss.dayz_workbench_tool.assets.ImageSetBuilder.pack(
+                    pictures,
+                    (args.int("padding") ?: 2).coerceIn(0, 32),
+                    (args.int("max_size") ?: 4096).coerceIn(64, 8192),
+                )
+            } catch (e: IllegalArgumentException) {
+                throw ToolFailure(e.message.orEmpty())
+            }
+        val setName = assetName(args.string("name") ?: output.nameWithoutExtension)
+        val atlasFile = java.io.File(output.parentFile, output.nameWithoutExtension + ".edds")
+        output.parentFile?.mkdirs()
+        atlasFile.writeBytes(EddsCodec.encode(packed.atlas, true))
+        // The path the game reads: from the folder that holds the mod folder
+        val texturePath = state.fontPathFor(output.parentFile ?: java.io.File("."), output.nameWithoutExtension) + ".edds"
+        val set =
+            com.github.demandss.dayz_workbench_tool.assets.ImageSetBuilder
+                .imageSet(setName, texturePath, packed)
+        output.writeText(
+            com.github.demandss.dayz_workbench_tool.imageset.ImageSetFormat
+                .serialize(set),
+            Charsets.UTF_8,
+        )
+        state.refreshAssets(output.path)
+        return buildJsonObject {
+            put("imageset", output.path)
+            put("atlas", atlasFile.path)
+            put("atlas_size", "${packed.atlas.width}x${packed.atlas.height}")
+            put("texture_path", texturePath)
+            put("set", setName)
+            put(
+                "images",
+                JsonArray(
+                    packed.images.map { i ->
+                        buildJsonObject {
+                            put("name", i.name)
+                            put("rect", "${i.x} ${i.y} ${i.width} ${i.height}")
+                            put("image0", "set:$setName image:${i.name}")
+                        }
+                    },
+                ),
+            )
+            put(
+                "note",
+                "Next: register_assets writes the imageset into config.cpp (CfgMods defs imageSets), so that the game loads it. " +
+                    "An ImageWidget with transparent pixels needs mode blend and \"src alpha\" 1.",
+            )
+        }.toString()
+    }
+
+    /**
+     * Makes a style of a widget type, or adds it to an existing `.styles` file. The slots are images of an imageset: [fill] for
+     * all nine, [slots] by slot name, [states] for a state of its own (a string is one image for the whole state).
+     */
+    private fun createStyle(args: JsonObject): String {
+        val file = java.io.File(args.string("file") ?: throw ToolFailure("file is required: the full path of the .styles"))
+        if (!file.name.endsWith(".styles", ignoreCase = true)) throw ToolFailure("file must end with .styles")
+        val widget = (args.string("widget") ?: "ButtonWidget").removeSuffix("Class")
+        val name = assetName(args.string("name") ?: throw ToolFailure("name is required"))
+        val imageSet = args.string("imageset") ?: throw ToolFailure("imageset is required: the name of the imageset the images are from")
+        val builder = com.github.demandss.dayz_workbench_tool.assets.StyleBuilder
+
+        fun slotMap(element: JsonElement?): Map<String, String> =
+            when (element) {
+                is JsonPrimitive -> {
+                    builder.SLOTS.associateWith { element.content }
+                }
+
+                is JsonObject -> {
+                    element.entries.associate { (slot, image) ->
+                        val key =
+                            builder.SLOTS.firstOrNull { it.equals(slot, true) } ?: throw ToolFailure("Unknown slot $slot: ${builder.SLOTS}")
+                        key to ((image as? JsonPrimitive)?.content ?: throw ToolFailure("The image of $slot must be a name"))
+                    }
+                }
+
+                else -> {
+                    emptyMap()
+                }
+            }
+        val normal = slotMap(args["fill"]) + slotMap(args["slots"])
+        val perState = LinkedHashMap<String, Map<String, String>>()
+        if (normal.isNotEmpty()) perState["Normal"] = normal
+        (args["states"] as? JsonObject)?.forEach { (state, value) ->
+            val stateName =
+                com.github.demandss.dayz_workbench_tool.assets.StyleBuilder
+                    .defaultStates("ButtonWidget")
+                    .firstOrNull { it.equals(state, true) } ?: state
+            // A state without its own slots keeps the ones of Normal for the nine it does not name
+            perState[stateName] = normal + slotMap(value)
+        }
+        if (perState.isEmpty()) throw ToolFailure("Give fill (one image for all slots), slots or states")
+        val used = perState.values.flatMap { it.values }.toSet()
+        // The imageset is looked for in the mod of the style first (a new one is not in the editor's index yet), then in the editor
+        val inMod =
+            state
+                .modRoot(file.path)
+                ?.walkTopDown()
+                ?.onEnter { !it.name.startsWith(".") }
+                ?.filter { it.isFile && it.extension.equals("imageset", true) }
+                ?.mapNotNull { f ->
+                    runCatching {
+                        com.github.demandss.dayz_workbench_tool.imageset.ImageSetFormat
+                            .parse(f.readText(Charsets.UTF_8))
+                    }.getOrNull()
+                }?.firstOrNull { it.name == imageSet }
+        val known = (inMod ?: state.imageSetOf(imageSet, state.activeFile?.path))?.all?.map { it.name }?.toSet()
+        val warnings = mutableListOf<String>()
+        if (known == null) {
+            warnings += "Imageset $imageSet is not known to the editor (create_imageset makes one): the style is written all the same"
+        } else {
+            val missing = used.filter { it !in known }
+            if (missing.isNotEmpty()) {
+                throw ToolFailure(
+                    "Imageset $imageSet has no images ${missing.joinToString()}; it has ${known.take(30).joinToString()}",
+                )
+            }
+        }
+        val color =
+            try {
+                builder.colorNumber(args.string("color") ?: "4294967295")
+            } catch (e: IllegalArgumentException) {
+                throw ToolFailure(e.message.orEmpty())
+            }
+        val sheet =
+            if (file.isFile) {
+                com.github.demandss.dayz_workbench_tool.styles.StylesFormat.parse(
+                    file.readText(Charsets.UTF_8),
+                )
+            } else {
+                null
+            }
+        if (file.isFile && sheet == null) throw ToolFailure("${file.path} is not a .styles file")
+        val existing = sheet?.stylesFor(widget)?.any { it.name == name } == true
+        if (existing &&
+            args.bool("replace") != true
+        ) {
+            throw ToolFailure("Style $name of $widget is in ${file.name}: pass replace=true to replace it")
+        }
+        val style = builder.style(name, imageSet, perState, widget, args.string("font").orEmpty(), color)
+        val merged = builder.withStyle(sheet, widget, style)
+        file.parentFile?.mkdirs()
+        file.writeText(
+            com.github.demandss.dayz_workbench_tool.styles.StylesFormat
+                .serialize(merged),
+            Charsets.UTF_8,
+        )
+        state.refreshAssets(file.path)
+        return withWarnings(
+            buildJsonObject {
+                put("file", file.path)
+                put("widget", widget)
+                put("style", name)
+                put("states", JsonArray(style.states.map { JsonPrimitive(it.name) }))
+                put("use", "style $name")
+                put("note", "Register the file with register_assets so that the game loads it (CfgMods defs widgetStyles).")
+            },
+            warnings,
+        )
+    }
+
+    /**
+     * Writes every `.imageset` and `.styles` file of a mod into its `config.cpp` (`CfgMods > defs > imageSets` and `widgetStyles`).
+     * With apply false only the lines to put there are returned.
+     */
+    private fun registerAssets(args: JsonObject): String {
+        val mod =
+            args.string("mod")?.let { java.io.File(it) }
+                ?: state.activeFile?.path?.let { state.modRoot(it) }
+                ?: throw ToolFailure("mod is required: the folder of the mod (or open a layout of it)")
+        if (!mod.isDirectory) throw ToolFailure("No such folder: ${mod.path}")
+        val config =
+            mod.listFiles { f -> f.isFile && f.name.equals("config.cpp", ignoreCase = true) }?.firstOrNull()
+                ?: throw ToolFailure("${mod.path} has no config.cpp")
+        val sets = mutableListOf<String>()
+        val styles = mutableListOf<String>()
+        mod
+            .walkTopDown()
+            .onEnter { !it.name.startsWith(".") }
+            .filter { it.isFile }
+            .forEach { f ->
+                // The path the game reads: the mod folder first, forward slashes
+                val relative = mod.name + "/" + f.relativeTo(mod).path.replace('\\', '/')
+                when (f.extension.lowercase()) {
+                    "imageset" -> sets += relative
+                    "styles" -> styles += relative
+                }
+            }
+        val allSets = sets.toList()
+        val allStyles = styles.toList()
+        val patcher = com.github.demandss.dayz_workbench_tool.assets.ConfigPatcher
+        var text = config.readText(Charsets.UTF_8)
+        val added = mutableListOf<String>()
+        var failed = false
+        // A config without any CfgMods gets a whole one for this mod
+        if (patcher.hasNoMods(text) && (sets.isNotEmpty() || styles.isNotEmpty())) {
+            val eol = if ("\r\n" in text) "\r\n" else "\n"
+            text = text.trimEnd() + eol + patcher.newMods(mod.name, sets, styles, eol)
+            added += sets + styles
+            sets.clear()
+            styles.clear()
+        }
+        for ((kind, paths) in listOf("imageSets" to sets, "widgetStyles" to styles)) {
+            if (paths.isEmpty()) continue
+            val outcome = patcher.addFiles(text, kind, paths)
+            if (outcome == null) {
+                failed = true
+            } else {
+                text = outcome.text
+                added += outcome.added
+            }
+        }
+        val apply = args.bool("apply") != false && !failed
+        if (apply && added.isNotEmpty()) config.writeText(text, Charsets.UTF_8)
+        return buildJsonObject {
+            put("config", config.path)
+            put("applied", apply && added.isNotEmpty())
+            put("added", JsonArray(added.map { JsonPrimitive(it) }))
+            put("imagesets", JsonArray(allSets.map { JsonPrimitive(it) }))
+            put("styles", JsonArray(allStyles.map { JsonPrimitive(it) }))
+            if (failed) {
+                put(
+                    "note",
+                    "config.cpp has no class defs inside CfgMods: add the lists by hand (class imageSets / widgetStyles with files[] = {...})",
+                )
+            }
         }.toString()
     }
 
@@ -1572,6 +1849,50 @@ internal class McpTools(
                         "query" to ("string" to "Words that are in the key or in the text"),
                         "source" to ("string" to "game, a mod folder name or all"),
                         "limit" to ("integer" to "How many to return, 50 by default"),
+                    ),
+                ),
+                tool(
+                    "create_imageset",
+                    "Makes an imageset from pictures: packs png, jpg or edds files into one atlas (<name>.edds, sides a power of two) and writes <name>.imageset next to it with the path of the atlas from the mod folder. The answer lists every image as set:NAME image:IMAGE for image0. The editor finds the new set at once. Register it in config.cpp with register_assets.",
+                    mapOf(
+                        "output" to
+                            (
+                                "string" to
+                                    "Full path of the .imageset to write, inside the mod (e.g. K:\\MF_Mods\\MyMod\\assets\\gui\\icons.imageset)"
+                            ),
+                        "images" to ("array" to "List of {name, source}: the name of the image and the full path of its picture"),
+                        "folder" to ("string" to "A folder whose pictures are all added, named after their files"),
+                        "name" to ("string" to "Name of the set as layouts write it (set:NAME), the file name by default"),
+                        "padding" to ("integer" to "Pixels between the pictures, 2 by default"),
+                        "max_size" to ("integer" to "Biggest side of the atlas, 4096 by default"),
+                        "overwrite" to ("boolean" to "Replace an existing imageset, false by default"),
+                    ),
+                    listOf("output"),
+                ),
+                tool(
+                    "create_style",
+                    "Makes a widget style (style NAME in a layout) in a .styles file, or adds it to an existing one (other styles stay). A style is nine slots (LeftTop, Top, RightTop, Right, RightBottom, Bottom, LeftBottom, Left, Center) of images from an imageset, for each state (a button has Normal, Highlight, Pushed, Disabled, Focus, other widgets Normal, Disabled). fill is one image for all slots (a flat colour: an image of one white pixel, tinted by color), slots names the images by slot, states overrides a state; states without slots use the ones of Normal. Register the file with register_assets.",
+                    mapOf(
+                        "file" to ("string" to "Full path of the .styles file (created when missing)"),
+                        "widget" to ("string" to "Widget type, ButtonWidget by default (PanelWidget, TextWidget, EditBoxWidget ...)"),
+                        "name" to ("string" to "Name of the style"),
+                        "imageset" to ("string" to "Name of the imageset the images are from (create_imageset, list_imagesets)"),
+                        "fill" to ("string" to "One image for all nine slots"),
+                        "slots" to ("object" to "Slot name to image name; with fill they replace single slots"),
+                        "states" to ("object" to "State name to a slots object or one image name"),
+                        "color" to
+                            ("string" to "Tint of the style: r g b a from 0 to 1, #RRGGBB, #AARRGGBB or the ARGB number; white by default"),
+                        "font" to ("string" to "Font of the style, none by default"),
+                        "replace" to ("boolean" to "Replace a style of the same name, false by default"),
+                    ),
+                    listOf("file", "name", "imageset"),
+                ),
+                tool(
+                    "register_assets",
+                    "Writes the .imageset and .styles files of a mod into its config.cpp (CfgMods > defs > imageSets and widgetStyles), without repeating what is there. Needed so that the game loads them. apply=false only returns what would be added.",
+                    mapOf(
+                        "mod" to ("string" to "Folder of the mod; the mod of the open layout by default"),
+                        "apply" to ("boolean" to "Write config.cpp, true by default"),
                     ),
                 ),
                 tool(

@@ -420,6 +420,19 @@ class LayoutEditorState(
         return found
     }
 
+    /** The folder of the mod that holds [path], or null. */
+    fun modRoot(path: String): File? = modRootOf(path)
+
+    /** Looks again at the imagesets, styles and fonts of the mods, after a tool wrote one. */
+    fun refreshAssets(path: String? = null) {
+        // The mod of a file a tool wrote is connected, so that its imagesets and styles are scanned
+        path?.let(::connectModOf)
+        resourceRootsCache.clear()
+        bitmapSizesCache.clear()
+        forgetFonts()
+        scanMods()
+    }
+
     /** Connects the mod that holds [path], if it is not connected yet. */
     private fun connectModOf(path: String) {
         val mod = modRootOf(path)?.path ?: return
