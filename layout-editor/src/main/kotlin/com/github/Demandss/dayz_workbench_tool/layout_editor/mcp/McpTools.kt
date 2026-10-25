@@ -124,6 +124,7 @@ internal class McpTools(
             "get_widget" -> widgetJson(requireNode(args), withRect = true).toString()
             "find_widgets" -> findWidgets(args)
             "set_properties" -> setProperties(args)
+            "set_properties_many" -> setPropertiesMany(args)
             "add_widget" -> addWidget(args)
             "add_widgets" -> addWidgets(args)
             "copy_widget" -> copyWidget(args)
@@ -684,6 +685,51 @@ internal class McpTools(
         return withWarnings(
             widgetJson(after, withRect = true),
             warningsFor(after, given.keys) + unquotedWarnings(texts) + fontWarnings(texts) + styleWarnings(after) + numberWarnings(texts),
+        )
+    }
+
+    /** The same properties for many widgets in one step of the history: the widgets are given by names, by a regular expression or both. */
+    private fun setPropertiesMany(args: JsonObject): String {
+        val doc = requireDoc()
+        val values = args["properties"] as? JsonObject ?: throw ToolFailure("properties must be an object of name: value")
+        val names = (args["names"] as? JsonArray)?.map { (it as JsonPrimitive).content }?.toSet().orEmpty()
+        val regex =
+            args.string("name_regex")?.let { text ->
+                runCatching { Regex(text) }.getOrElse { throw ToolFailure("name_regex is not a regular expression: ${it.message}") }
+            }
+        if (names.isEmpty() && regex == null) throw ToolFailure("Give names (a list) or name_regex")
+        val matched = mutableListOf<EditorWidgetNode>()
+
+        fun visit(n: EditorWidgetNode) {
+            if (n.node.name in names || regex?.containsMatchIn(n.node.name) == true) matched += n
+            n.children.forEach(::visit)
+        }
+        visit(doc.root)
+        if (matched.isEmpty()) throw ToolFailure("No widget has such a name")
+        val cleaned = values.entries.associate { (key, value) -> cleanKey(key) to value }
+        edit("MCP: ${cleaned.keys.joinToString(", ")} on ${matched.size} widgets") { root ->
+            var out = root
+            for (m in matched) {
+                out =
+                    out.updateNode(m.id) { n ->
+                        val props = LinkedHashMap(n.node.properties)
+                        for ((key, value) in cleaned) {
+                            if (value is JsonNull) props.remove(key) else props[key] = (value as? JsonPrimitive)?.content.orEmpty()
+                        }
+                        n.copy(node = n.node.copy(properties = props))
+                    }
+            }
+            out
+        }
+        val given = cleaned.filterValues { it !is JsonNull }
+        val texts = given.mapValues { (_, v) -> (v as? JsonPrimitive)?.content }
+        val first = requireNode(buildJsonObject { put("id", matched.first().id.toString()) })
+        return withWarnings(
+            buildJsonObject {
+                put("changed", matched.size)
+                put("widgets", JsonArray(matched.take(40).map { JsonPrimitive(it.node.name) }))
+            },
+            warningsFor(first, given.keys) + unquotedWarnings(texts) + fontWarnings(texts) + styleWarnings(first) + numberWarnings(texts),
         )
     }
 
@@ -1326,6 +1372,16 @@ internal class McpTools(
                     "set_properties",
                     "Sets properties of a widget (undoable). A value of null removes the property. Values are written as they stand in the .layout file, with quotes for text, e.g. image0 = \"set:Name image:Img\". A name with a space is given without quotes (text color); the file writer quotes it. A name the editor does not know is still written, with a warning in the answer.",
                     WIDGET_REF + mapOf("properties" to ("object" to "Property name to value")),
+                    listOf("properties"),
+                ),
+                tool(
+                    "set_properties_many",
+                    "Sets the same properties on many widgets in one undoable step: the widgets are given by a list of names, by name_regex (a regular expression found anywhere in the name, e.g. \"^ListRow\\d_Bg$\") or both. A value of null removes the property. Use it for the states of repeated elements instead of one set_properties call for each.",
+                    mapOf(
+                        "names" to ("array" to "Names of the widgets"),
+                        "name_regex" to ("string" to "Regular expression for the names"),
+                        "properties" to ("object" to "Property name to value, as in set_properties"),
+                    ),
                     listOf("properties"),
                 ),
                 tool(
