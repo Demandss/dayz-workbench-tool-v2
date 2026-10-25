@@ -448,21 +448,9 @@ internal class McpTools(
                 throw ToolFailure(e.message.orEmpty())
             }
         state.forgetFonts()
-        // The path a layout writes: from the folder that holds the mod folder (the work drive) when the files are under it
-        val drive = state.workDrivePath.takeIf { it.isNotBlank() }?.let { runCatching { java.io.File(it).canonicalFile }.getOrNull() }
-        val relative =
-            drive
-                ?.let { d ->
-                    runCatching {
-                        outDir.canonicalFile
-                            .relativeTo(d)
-                            .path
-                            .replace('\\', '/')
-                    }.getOrNull()
-                }?.takeIf { !it.startsWith("..") }
-        val prefix = relative?.let { if (it.isEmpty()) "" else "$it/" }
+        val fontPath = state.fontPathFor(outDir, name)
         return buildJsonObject {
-            put("font", if (prefix != null) "$prefix$name" else name)
+            put("font", fontPath)
             put("files", JsonArray(made.map { JsonPrimitive("${outDir.path}/${it.name}.fnt") }))
             put("sizes", JsonArray(made.map { JsonPrimitive(it.size) }))
             put("glyphs", made.first().glyphs)

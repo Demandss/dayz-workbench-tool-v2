@@ -683,6 +683,9 @@ class LayoutEditorState(
 
     // Find and replace dialog, and the strip that shows the layout at several resolutions at once
     var bulkDialog by mutableStateOf<BulkMode?>(null)
+
+    /** The dialog that makes game fonts from a font file. */
+    var fontImportOpen by mutableStateOf(false)
     var compareResolutions by mutableStateOf(false)
 
     fun applyBulk(
@@ -2041,6 +2044,38 @@ class LayoutEditorState(
         val bare = current.trim().trim('"')
         val sorted = out.sortedBy { it.second.lowercase() }
         return if (bare.isEmpty() || sorted.any { it.first.equals(bare, true) }) sorted else listOf(bare to bare) + sorted
+    }
+
+    /** The folder a new font goes to by default: `gui/fonts` of the mod of the open layout, or of the work drive. */
+    fun defaultFontFolder(): String {
+        val mod = activeFile?.path?.let { modRootOf(it) }
+        return when {
+            mod != null -> File(mod, "gui/fonts").path
+            workDrivePath.isNotBlank() -> File(workDrivePath, "gui/fonts").path
+            else -> ""
+        }
+    }
+
+    /** What to write into `font` for the font [name] made in [dir]: the path from the folder that holds the mod folder. */
+    fun fontPathFor(
+        dir: File,
+        name: String,
+    ): String {
+        val folder = runCatching { dir.canonicalFile }.getOrDefault(dir)
+        val mod = modRootOf(File(folder, "x").path)
+        val base = mod?.parentFile ?: workDrivePath.takeIf { it.isNotBlank() }?.let { runCatching { File(it).canonicalFile }.getOrNull() }
+        val relative =
+            base
+                ?.let {
+                    runCatching {
+                        folder
+                            .relativeTo(
+                                it,
+                            ).path
+                            .replace('\\', '/')
+                    }.getOrNull()
+                }?.takeIf { !it.startsWith("..") }
+        return if (relative.isNullOrEmpty()) name else "$relative/$name"
     }
 
     /** Forget the fonts found so far, after a font was made or a mod was connected. */

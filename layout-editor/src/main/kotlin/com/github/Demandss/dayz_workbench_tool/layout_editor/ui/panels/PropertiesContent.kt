@@ -365,7 +365,10 @@ fun PropertiesContent(
                 ScriptClassPicker(state, node, props["scriptclass"]?.trim()?.trim('"').orEmpty()) { commit("scriptclass", it) }
             }
             if (node.node.type in IMAGE_TYPES) ImageWidgetSection(props, commit, state.workDrivePath, state, node, doc?.path)
-            SchemaSections(node.node.type, node.node.originalClassName, props, commit, fontOptions(state, doc?.path, props["font"]))
+            SchemaSections(node.node.type, node.node.originalClassName, props, commit, fontOptions(state, doc?.path, props["font"]), {
+                state.fontImportOpen =
+                    true
+            })
             val schema = schemaKeys(node.node.type, node.node.originalClassName)
             val extra = props.filter { it.key !in WIDGET_KEYS && it.key !in IMAGE_KEYS && it.key !in schema }
             if (extra.isNotEmpty()) RawSection(extra, commit)
@@ -773,18 +776,20 @@ private fun SchemaSections(
     props: Map<String, String>,
     commit: (String, String) -> Unit,
     fonts: List<Pair<String, String>> = emptyList(),
+    importFont: () -> Unit = {},
 ) {
     for ((index, section) in schemaFor(type, originalClassName).withIndex()) {
         // The group of the focus keys is rare to touch, so it starts closed unless the file sets one of them
         var expanded by remember(section.title) { mutableStateOf(section.title != "Focus" || section.specs.any { it.key in props }) }
         SectionHeader(section.title, expanded) { expanded = !expanded }
-        if (expanded) for (spec in section.specs) SchemaRow(spec, props, commit, fonts)
+        if (expanded) for (spec in section.specs) SchemaRow(importFont, spec, props, commit, fonts)
     }
 }
 
 /** A row of a property of the widget class: set in the file or not, with a button that takes it out of the file again. */
 @Composable
 private fun SchemaRow(
+    importFont: () -> Unit,
     spec: PropSpec,
     props: Map<String, String>,
     commit: (String, String) -> Unit,
@@ -823,6 +828,7 @@ private fun SchemaRow(
                         Modifier.weight(1f),
                         tooltip = tr("Шрифт текста"),
                     ) { commit(spec.key, if (it.isEmpty()) "" else "\"$it\"") }
+                    SmallButton("+") { importFont() }
                 } else {
                     StringField(current, Modifier.weight(1f)) {
                         commit(spec.key, if (it.isEmpty()) "" else "\"$it\"")
@@ -1517,7 +1523,14 @@ private fun ColumnScope.MultiProperties(
         }
         if (types.all { it in IMAGE_TYPES }) ImageWidgetSection(props, commit, state.workDrivePath, state, nodes.first(), layoutPath)
         val sameType = nodes.map { it.node.type to it.node.originalClassName }.distinct().singleOrNull()
-        if (sameType != null) SchemaSections(sameType.first, sameType.second, props, commit, fontOptions(state, layoutPath, props["font"]))
+        if (sameType !=
+            null
+        ) {
+            SchemaSections(sameType.first, sameType.second, props, commit, fontOptions(state, layoutPath, props["font"]), {
+                state.fontImportOpen =
+                    true
+            })
+        }
         val schema = sameType?.let { schemaKeys(it.first, it.second) }.orEmpty()
         val extra = props.filter { it.key !in WIDGET_KEYS && it.key !in IMAGE_KEYS && it.key !in schema }
         if (extra.isNotEmpty()) RawSection(extra, commit)

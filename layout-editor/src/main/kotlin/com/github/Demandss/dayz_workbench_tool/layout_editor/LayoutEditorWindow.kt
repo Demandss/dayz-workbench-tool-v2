@@ -59,6 +59,7 @@ import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.ConfirmDi
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.EmptyState
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.FileTreePanel
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.FlatDialog
+import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.FontImportDialog
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.FpsOverlay
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.HierarchyPanel
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.HistoryPanel
@@ -474,6 +475,7 @@ fun LayoutEditorWindow(
                 }
 
                 BulkEditDialog(state)
+                FontImportDialog(state)
                 IconPickerWindow(state)
                 PreferencesWindow(state)
                 ConfirmDialog(state)
