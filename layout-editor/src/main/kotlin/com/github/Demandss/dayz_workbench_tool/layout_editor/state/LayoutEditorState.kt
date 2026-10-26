@@ -915,12 +915,25 @@ class LayoutEditorState(
         }
         val file = runCatching { File(path).canonicalFile }.getOrDefault(File(path))
         val drive = workDrivePath.takeIf { it.isNotBlank() }?.let { runCatching { File(it).canonicalFile }.getOrNull() }
-        if (drive != null && file.path.startsWith(drive.path + File.separator, ignoreCase = true)) {
-            return file.path.substring(drive.path.length + 1).replace(File.separatorChar, '/')
-        }
+        val onDrive = drive?.let { relativeInside(it, file) }
+        if (onDrive != null) return onDrive
         val dir = modRootOf(file.path)
         if (dir != null) return dir.name + "/" + file.path.substring(dir.path.length + 1).replace(File.separatorChar, '/')
         return file.name
+    }
+
+    /**
+     * The path of [file] below [root] with slashes, or null when [file] is not inside [root] or is [root] itself. Compared by path
+     * elements: a root that is a drive (`P:\`) already ends with a separator, and `P:\DayZ_extra` is not inside `P:\DayZ`.
+     */
+    private fun relativeInside(
+        root: File,
+        file: File,
+    ): String? {
+        val base = root.toPath()
+        val target = file.toPath()
+        if (target == base || !target.startsWith(base)) return null
+        return base.relativize(target).joinToString("/")
     }
 
     /** `MyMod_` for a layout of the mod `MyMod_Client`: what the script classes of the mod start with; empty when the mod is unknown. */
