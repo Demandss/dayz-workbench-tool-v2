@@ -1,15 +1,22 @@
 package com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas
 
+import com.github.demandss.dayz_workbench_tool.i18n.str
 import com.github.demandss.dayz_workbench_tool.layout.WidgetType
 import com.github.demandss.dayz_workbench_tool.layout_editor.EditorWidgetNode
+import com.github.demandss.dayz_workbench_tool.resources.*
+import org.jetbrains.compose.resources.StringResource
 
 /** The kinds of Enforce Script class the editor can write for a layout. */
 enum class TemplateKind(
-    val title: String,
+    private val titleResource: StringResource,
 ) {
-    MENU("Меню (UIScriptedMenu)"),
-    COMPONENT("Компонент (ScriptedWidgetEventHandler)"),
-    WIDGETS("Только переменные и поиск виджетов"),
+    MENU(Res.string.template_menu),
+    COMPONENT(Res.string.template_component),
+    WIDGETS(Res.string.template_widgets),
+    ;
+
+    /** The name of the kind in the language of the interface. */
+    val title: String get() = str(titleResource)
 }
 
 private val IDENTIFIER = Regex("[A-Za-z_][A-Za-z0-9_]*")

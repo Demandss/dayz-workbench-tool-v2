@@ -8,20 +8,51 @@ import kotlin.test.Test
 import kotlin.test.assertTrue
 
 class ModResourcesTest {
-    private val source = File("K:/gui")
+    // A style sheet and an imageset of a few lines, written for the test: it reads nothing from the disk of the person who runs it
+    private val styles =
+        """
+        <WidgetStyles>
+            <Widget Name="ButtonWidget">
+                <Style Name="Default" Font="" ImageSet="my_set" Color="4294967295">
+                    <State Name="Normal">
+                        <Item Name="Center" Image="ButtonCenter" />
+                    </State>
+                </Style>
+            </Widget>
+        </WidgetStyles>
+        """.trimIndent()
+
+    private val imageSet =
+        """
+        ImageSetClass {
+         Name "my_set"
+         RefSize 64 64
+         Textures {
+          ImageSetTextureClass {
+           mpix 0
+           path "gui/my_set.edds"
+          }
+         }
+         Images {
+          ImageSetDefClass ButtonCenter {
+           Name "ButtonCenter"
+           Pos 0 0
+           Size 32 32
+           Flags 0
+          }
+         }
+        }
+        """.trimIndent()
 
     @Test
     fun stylesAndImageSetsOfAConnectedModAreFound() {
-        val styles = File(source, "looknfeel/dayzwidgets.styles")
-        val sets = File(source, "imagesets").listFiles { f -> f.extension == "imageset" }.orEmpty()
-        if (!styles.isFile || sets.isEmpty()) return
         val mod =
             kotlin.io.path
                 .createTempDirectory("mod")
                 .toFile()
         File(mod, "gui").mkdirs()
-        styles.copyTo(File(mod, "gui/my.styles"))
-        sets.first().copyTo(File(mod, "gui/my.imageset"))
+        File(mod, "gui/my.styles").writeText(styles)
+        File(mod, "gui/my.imageset").writeText(imageSet)
         val state = LayoutEditorState("", CoroutineScope(SupervisorJob() + Dispatchers.Default), "", listOf(mod.path))
         var found = false
         repeat(50) {

@@ -52,6 +52,7 @@ import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.MIXED
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.convertUnit
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.documentColors
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.formatNumber
+import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.formatShort
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.layoutTree
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.mergedProperties
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.moveSelectionTo
@@ -477,7 +478,7 @@ private fun AlignText(
     val shown =
         when (value) {
             null, "", "left", "top" -> "— (${value?.ifEmpty { null } ?: if (key == "halign") "left" else "top"})"
-            "center" -> "center (голый)"
+            "center" -> stringResource(Res.string.alignment_center_bare)
             else -> value
         }
     Row {
@@ -961,7 +962,7 @@ private fun SliderRow(
     onCommit: (String) -> Unit,
 ) {
     val current = raw?.toFloatOrNull()?.coerceIn(min, max) ?: min
-    var text by remember(raw) { mutableStateOf(raw ?: fmtF(min)) }
+    var text by remember(raw) { mutableStateOf(raw ?: formatShort(min)) }
     Row(
         Modifier.fillMaxWidth().height(ROW_H).padding(horizontal = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -971,8 +972,8 @@ private fun SliderRow(
         Slider(
             value = current,
             onValueChange = { v ->
-                text = fmtF(v)
-                onCommit(fmtF(v))
+                text = formatShort(v)
+                onCommit(formatShort(v))
             },
             valueRange = min..max,
             modifier = Modifier.weight(1f).height(ROW_H),
@@ -1171,7 +1172,7 @@ private fun NumberField(
 
     fun step(delta: Float) {
         val v = text.toFloatOrNull() ?: 0f
-        val result = fmtF(v + delta)
+        val result = formatShort(v + delta)
         text = result
         onCommit(result)
     }
@@ -1420,11 +1421,6 @@ private fun FloatInput(
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-
-private fun fmtF(f: Float): String {
-    val l = f.toLong()
-    return if (f == l.toFloat()) "$l" else "%.4g".format(f)
-}
 
 /** The styles that can be chosen for the selected widget: the vanilla ones of its type. */
 private class StyleChoice(

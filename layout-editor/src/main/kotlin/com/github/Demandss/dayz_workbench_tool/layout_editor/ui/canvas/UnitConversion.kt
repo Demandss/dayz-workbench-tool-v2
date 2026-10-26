@@ -15,6 +15,15 @@ internal fun convertUnit(
         else -> value / parentSize
     }
 
+/**
+ * A number for a field that a person edits and that is written back into a layout: four significant digits, a whole number
+ * without a decimal part. With a dot whatever the language of the interface is: a comma would not be read as a number.
+ */
+internal fun formatShort(value: Float): String {
+    val whole = value.toLong()
+    return if (value == whole.toFloat()) "$whole" else "%.4g".format(java.util.Locale.ROOT, value)
+}
+
 /** A number as it is written in a layout: up to six decimals, no trailing zeros, no `-0`. */
 internal fun formatNumber(value: Float): String {
     // In double, because a float this large has no room for six decimals and would print 722.499939 for 722.5

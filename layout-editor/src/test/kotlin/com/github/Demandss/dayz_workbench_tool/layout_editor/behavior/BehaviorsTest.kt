@@ -33,10 +33,10 @@ class BehaviorsTest {
 
     @Test
     fun `a class of a mod is found by its plain name`() {
-        assertEquals("HoverColor", Behaviors.find("MF_CLS_HoverColorHandler")?.name)
-        assertEquals("PressScale", Behaviors.find("MF_CLS_PressScale")?.name)
+        assertEquals("HoverColor", Behaviors.find("MyMod_HoverColorHandler")?.name)
+        assertEquals("PressScale", Behaviors.find("MyMod_PressScale")?.name)
         assertEquals("HoverScale", Behaviors.find("hoverscale")?.name)
-        assertNull(Behaviors.find("MF_CLS_SearchTextInput"))
+        assertNull(Behaviors.find("MyMod_SearchTextInput"))
     }
 
     @Test
@@ -50,7 +50,7 @@ class BehaviorsTest {
 
     @Test
     fun `old parameter names of a mod class still work`() {
-        val button = widget("Btn", "MF_CLS_PressScale", mapOf("PressScale" to "0.9"))
+        val button = widget("Btn", "MyMod_PressScale", mapOf("PressScale" to "0.9"))
         val effect = previewEffects(button, emptySet(), setOf(button.id))[button.id]
         assertEquals(0.9f, effect?.scale)
     }

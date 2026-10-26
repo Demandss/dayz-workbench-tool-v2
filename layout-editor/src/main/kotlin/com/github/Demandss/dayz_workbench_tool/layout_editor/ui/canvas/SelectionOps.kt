@@ -1,11 +1,13 @@
 package com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas
 
 import androidx.compose.ui.geometry.Rect
+import com.github.demandss.dayz_workbench_tool.i18n.str
 import com.github.demandss.dayz_workbench_tool.layout_editor.EditorWidgetNode
 import com.github.demandss.dayz_workbench_tool.layout_editor.findNode
 import com.github.demandss.dayz_workbench_tool.layout_editor.pathTo
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.LayoutEditorState
 import com.github.demandss.dayz_workbench_tool.layout_editor.updateNode
+import com.github.demandss.dayz_workbench_tool.resources.*
 import java.util.UUID
 
 /** How a click changes the selection: it replaces it, adds or removes one widget (Ctrl), or takes a range (Shift). */
@@ -182,7 +184,7 @@ internal fun LayoutEditorState.moveSelectionTo(
     val dx = if (x != null) x - bounds.left else 0f
     val dy = if (y != null) y - bounds.top else 0f
     if (dx == 0f && dy == 0f) return
-    pushUndo(activeFileIndex, root, "Сдвиг выбранных")
+    pushUndo(activeFileIndex, root, str(Res.string.undo_move_selection))
     updateActiveRoot(movedSelection(root, ids, layout, screenRect(this), dx, dy))
 }
 
@@ -193,7 +195,7 @@ internal fun LayoutEditorState.scaleSelectionTo(
 ) {
     val (root, layout) = selectionLayout() ?: return
     val ids = selectedIds.filter { it != root.id && it !in lockedIds }
-    pushUndo(activeFileIndex, root, "Размер выбранных")
+    pushUndo(activeFileIndex, root, str(Res.string.undo_size_selection))
     updateActiveRoot(scaledSelection(root, ids, layout, screenRect(this), width, height))
 }
 

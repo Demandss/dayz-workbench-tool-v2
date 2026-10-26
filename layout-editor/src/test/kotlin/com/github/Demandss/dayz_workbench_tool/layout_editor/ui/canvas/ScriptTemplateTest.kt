@@ -28,13 +28,13 @@ class ScriptTemplateTest {
 
     @Test
     fun menuHasMembersLookupAndEvents() {
-        val text = scriptTemplate(root, "Mod/GUI/x.layout", "MF_X", TemplateKind.MENU)
-        assertTrue("class MF_X : UIScriptedMenu" in text)
+        val text = scriptTemplate(root, "Mod/GUI/x.layout", "MyMenu", TemplateKind.MENU)
+        assertTrue("class MyMenu : UIScriptedMenu" in text)
         assertTrue("LAYOUT_PATH = \"Mod/GUI/x.layout\"" in text)
         assertTrue("ref Widget m_Header;" in text)
         assertTrue("m_CloseBtn = ButtonWidget.Cast(layoutRoot.FindAnyWidget(\"CloseBtn\"));" in text)
         assertTrue("override bool OnClick" in text && "override bool OnChange" in text)
-        assertTrue("MF_X_MENU_ID" in text || "MF_X" in text)
+        assertTrue("MyMenu_MENU_ID" in text || "MyMenu" in text)
     }
 
     @Test

@@ -39,10 +39,10 @@ class ScriptSourceTest {
     @Test
     fun `the export has the script, the fragment of a spawner and the lines of the layout`() {
         val select = BehaviorCatalogue.find("SelectGroup")!!
-        val text = behaviorExportText(select, "MF_CLS_SelectGroup", mapOf("Items" to "A|B"), "MF_CLS_Client")
-        assertTrue("class MF_CLS_SelectGroup" in text)
-        assertTrue("MF_CLS_Client/GUI/layout/Behaviors/MF_CLS_SelectGroup.layout" in text)
-        assertTrue("scriptclass \"MF_CLS_SelectGroup\"" in text)
+        val text = behaviorExportText(select, "MyMod_SelectGroup", mapOf("Items" to "A|B"), "MyMod_Client")
+        assertTrue("class MyMod_SelectGroup" in text)
+        assertTrue("MyMod_Client/GUI/layout/Behaviors/MyMod_SelectGroup.layout" in text)
+        assertTrue("scriptclass \"MyMod_SelectGroup\"" in text)
         assertTrue("Items \"A|B\"" in text)
         val fragment = text.substringAfter("=====\n// Uses only").substringAfter("\n\n").substringBefore("\n// =====")
         assertEquals(4, LayoutParser.parse(fragment).children.size)

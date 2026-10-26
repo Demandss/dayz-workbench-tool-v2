@@ -21,7 +21,7 @@ internal class BehaviorEntry(
 
 /** Every script class the editor knows, in the order the menu shows them. */
 internal object BehaviorCatalogue {
-    private val groups =
+    private fun groups() =
         linkedMapOf(
             str(Res.string.hover_and_press) to
                 listOf(
@@ -33,17 +33,18 @@ internal object BehaviorCatalogue {
                     "HoverImage",
                     "HoverText",
                 ),
-            "Анимации" to listOf("Blink", "FadeIn", "Shake", "ProgressTween", "CountUp"),
-            "Выбор и ввод" to listOf("SelectGroup", "Collapse", "NumberStepper", "EditFilter", "DragMove"),
+            str(Res.string.behavior_group_animations) to listOf("Blink", "FadeIn", "Shake", "ProgressTween", "CountUp"),
+            str(Res.string.behavior_group_input) to listOf("SelectGroup", "Collapse", "NumberStepper", "EditFilter", "DragMove"),
         )
 
-    val entries: List<BehaviorEntry> =
-        groups.flatMap { (group, names) ->
-            names.mapNotNull { name ->
-                Behaviors.all.firstOrNull { it.name == name }?.let { BehaviorEntry(name, group, it.summary, it.params, null) }
-                    ?: Spawners.all.firstOrNull { it.name == name }?.let { BehaviorEntry(name, group, it.summary, it.params, it) }
+    val entries: List<BehaviorEntry>
+        get() =
+            groups().flatMap { (group, names) ->
+                names.mapNotNull { name ->
+                    Behaviors.all.firstOrNull { it.name == name }?.let { BehaviorEntry(name, group, it.summary, it.params, null) }
+                        ?: Spawners.all.firstOrNull { it.name == name }?.let { BehaviorEntry(name, group, it.summary, it.params, it) }
+                }
             }
-        }
 
     fun find(name: String): BehaviorEntry? = entries.firstOrNull { it.name == name }
 }

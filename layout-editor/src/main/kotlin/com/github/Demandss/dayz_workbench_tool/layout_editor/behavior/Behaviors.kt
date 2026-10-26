@@ -209,7 +209,7 @@ internal object Behaviors {
         }
     }
 
-    /** The behaviour a `scriptclass` value stands for: its own name, or that of a class of a mod such as `MF_CLS_HoverColorHandler`. */
+    /** The behaviour a `scriptclass` value stands for: its own name, or that of a class of a mod such as `MyMod_HoverColorHandler`. */
     fun find(scriptClass: String): WidgetBehavior? {
         val plain = scriptClass.substringAfterLast('_').removeSuffix("Handler")
         return all.firstOrNull { it.name.equals(scriptClass, ignoreCase = true) }

@@ -1,8 +1,11 @@
 package com.github.demandss.dayz_workbench_tool.layout_editor.behavior
 
+import com.github.demandss.dayz_workbench_tool.i18n.str
 import com.github.demandss.dayz_workbench_tool.layout_editor.EditorWidgetNode
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.LayoutEditorState
 import com.github.demandss.dayz_workbench_tool.layout_editor.updateNode
+import com.github.demandss.dayz_workbench_tool.resources.*
+import org.jetbrains.compose.resources.StringResource
 import java.util.UUID
 
 /** A field of `ScriptParamsClass` that a script class reads: a `reference` field of the class or of one above it. */
@@ -22,7 +25,7 @@ internal class ScriptParam(
     /** The line for the tooltip: type, default and what the field is for. */
     fun hint(): String =
         listOfNotNull(
-            "$type${if (default.isNotEmpty()) ", по умолчанию $default" else ""}",
+            if (default.isNotEmpty()) str(Res.string.script_param_default, type, default) else type,
             description.takeIf { it.isNotEmpty() },
         ).joinToString(System.lineSeparator())
 }
@@ -31,38 +34,38 @@ internal object ScriptParams {
     private val reference = Regex("""^[ \t]*reference[ \t]+(\w+)[ \t]+([^;\r\n]+);[ \t]*(?://[ \t]*(.*))?""")
 
     // What the fields of the classes of the game that the editor plays are for, by class and field
-    private val about =
+    private val about: Map<String, StringResource> =
         mapOf(
-            "SizeToChild.m_ChildName" to "Имя вложенного виджета, под размер которого подгоняется этот",
-            "SizeToChild.m_HorizontalOffset" to "Сколько пикселей добавить к ширине вложенного виджета",
-            "SizeToChild.m_VerticalOffset" to "Сколько пикселей добавить к высоте вложенного виджета",
-            "SizeToChild.m_ResizeHorizontal" to "1: менять ширину",
-            "SizeToChild.m_ResizeVertical" to "1: менять высоту",
-            "SizeToParent.m_ResizeHorizontal" to "1: ширина становится долей родителя",
-            "SizeToParent.m_ResizeVertical" to "1: высота становится долей родителя",
-            "AutoHeightSpacer.AlignChilds" to "1: выстроить детей рядами, иначе только измерить, где они стоят",
-            "AutoHeightSpacer.MinHeight" to "Наименьшая высота виджета, пиксели",
-            "AutoHeightSpacer.MaxHeight" to "Наибольшая высота, пиксели; 0 без ограничения",
-            "AutoHeightSpacer.Gap" to "Промежуток между детьми, пиксели",
-            "AutoHeightSpacer.Top" to "Отступ первого ряда сверху, пиксели",
-            "HorizontalSpacer.Border" to "Отступ от краёв, пиксели",
-            "HorizontalSpacer.Gap" to "Промежуток между ячейками, пиксели",
-            "VerticalSpacer.border" to "Отступ от краёв, пиксели",
-            "VerticalSpacer.gap" to "Промежуток между ячейками, пиксели",
-            "HorizontalSpacerWithFixedAspect.coef" to "Во сколько ширин ячейки отодвигать остальных детей от первого",
-            "RightGap.gap" to "На сколько пикселей уже родителя",
-            "Tabber.SelectedTab" to "Номер вкладки, открытой в начале, с нуля",
-            "MainMenuButtonEffect.speed" to "Скорость анимации в игре",
-            "MainMenuButtonEffect.amount" to "Сдвиг текста: amount * 4 пикселя",
-            "EmbededButtonScript.Caption" to "Текст кнопки внутри виджета",
-            "RadialProgressBar.speed" to "Скорость анимации в игре",
-            "RadialProgressBar.start_rotation" to "Угол, с которого начинается полоса",
-            "HoverEffect.speed" to "Скорость анимации",
-            "HoverEffect.amount" to "На какую долю размера увеличивается виджет",
-            "Bouncer.amount" to "Размах покачивания, доля размера",
-            "Bouncer.speed" to "Скорость, циклов в секунду",
-            "Rotator.speed" to "Скорость вращения, циклов в секунду",
-            "ScrollBarContainer.Invert" to "1: прокрутка в обратную сторону",
+            "SizeToChild.m_ChildName" to Res.string.param_about_sizetochild_m_childname,
+            "SizeToChild.m_HorizontalOffset" to Res.string.param_about_sizetochild_m_horizontaloffset,
+            "SizeToChild.m_VerticalOffset" to Res.string.param_about_sizetochild_m_verticaloffset,
+            "SizeToChild.m_ResizeHorizontal" to Res.string.param_about_sizetochild_m_resizehorizontal,
+            "SizeToChild.m_ResizeVertical" to Res.string.param_about_sizetochild_m_resizevertical,
+            "SizeToParent.m_ResizeHorizontal" to Res.string.param_about_sizetoparent_m_resizehorizontal,
+            "SizeToParent.m_ResizeVertical" to Res.string.param_about_sizetoparent_m_resizevertical,
+            "AutoHeightSpacer.AlignChilds" to Res.string.param_about_autoheightspacer_alignchilds,
+            "AutoHeightSpacer.MinHeight" to Res.string.param_about_autoheightspacer_minheight,
+            "AutoHeightSpacer.MaxHeight" to Res.string.param_about_autoheightspacer_maxheight,
+            "AutoHeightSpacer.Gap" to Res.string.param_about_autoheightspacer_gap,
+            "AutoHeightSpacer.Top" to Res.string.param_about_autoheightspacer_top,
+            "HorizontalSpacer.Border" to Res.string.param_about_horizontalspacer_border,
+            "HorizontalSpacer.Gap" to Res.string.param_about_horizontalspacer_gap,
+            "VerticalSpacer.border" to Res.string.param_about_horizontalspacer_border,
+            "VerticalSpacer.gap" to Res.string.param_about_horizontalspacer_gap,
+            "HorizontalSpacerWithFixedAspect.coef" to Res.string.param_about_horizontalspacerwithfixedaspect_coef,
+            "RightGap.gap" to Res.string.param_about_rightgap_gap,
+            "Tabber.SelectedTab" to Res.string.param_about_tabber_selectedtab,
+            "MainMenuButtonEffect.speed" to Res.string.param_about_mainmenubuttoneffect_speed,
+            "MainMenuButtonEffect.amount" to Res.string.param_about_mainmenubuttoneffect_amount,
+            "EmbededButtonScript.Caption" to Res.string.param_about_embededbuttonscript_caption,
+            "RadialProgressBar.speed" to Res.string.param_about_mainmenubuttoneffect_speed,
+            "RadialProgressBar.start_rotation" to Res.string.param_about_radialprogressbar_start_rotation,
+            "HoverEffect.speed" to Res.string.param_about_hovereffect_speed,
+            "HoverEffect.amount" to Res.string.param_about_hovereffect_amount,
+            "Bouncer.amount" to Res.string.param_about_bouncer_amount,
+            "Bouncer.speed" to Res.string.param_about_bouncer_speed,
+            "Rotator.speed" to Res.string.param_about_rotator_speed,
+            "ScrollBarContainer.Invert" to Res.string.param_about_scrollbarcontainer_invert,
         )
 
     /** The `reference` fields declared in [classText] (the text of one class), with the comment next to each as its description. */
@@ -87,7 +90,7 @@ internal object ScriptParams {
                 .split(',')
                 .map { it.trim() }
                 .filter { it.isNotEmpty() }) {
-                out += ScriptParam(name, type, about["$owner.$name"] ?: comment, owner = owner)
+                out += ScriptParam(name, type, about["$owner.$name"]?.let { str(it) } ?: comment, owner = owner)
             }
         }
         return out

@@ -1,5 +1,6 @@
 package com.github.demandss.dayz_workbench_tool.layout_editor.behavior
 
+import com.github.demandss.dayz_workbench_tool.layout_editor.installedGame
 import java.io.File
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -52,11 +53,7 @@ class ScriptParamsTest {
 
     @Test
     fun `the parameters of the vanilla classes come from their source and from the classes they extend`() {
-        val game =
-            listOf("F:/steam/steamapps/common/DayZ", "C:/Program Files (x86)/Steam/steamapps/common/DayZ").firstOrNull {
-                File(it, "dta/scripts.pbo").isFile
-            }
-        if (game == null) return
+        val game = installedGame()
         val declarations = ScriptClassIndex.readGame(game).distinctBy { it.name }.associateBy { it.name }
 
         fun names(cls: String) = ScriptParams.collect(cls, declarations, game).map { it.name }.toSet()

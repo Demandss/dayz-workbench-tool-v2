@@ -26,14 +26,18 @@ private const val MIN_SLOTS = 3
  * Finds the sets of images in an imageset that are named after the slots of a style, such as `FrameLeftTop`, `FrameTop`,
  * `FrameCenter`. Every common prefix with at least three slots is a set; the images of a group are looked at on their own, with
  * the group name as the prefix, so that a group of plain `Left`, `Top`, `Center` images works too.
- * [groups] maps a group name to the names of its images.
+ * [groups] maps a group name to the names of its images; [groupLabel] writes the name of a group as the set shows it, in the
+ * language of the interface.
  */
 fun findSlotSets(
     imageNames: List<String>,
     groups: Map<String, List<String>> = emptyMap(),
+    groupLabel: (String) -> String = { "Group $it" },
 ): List<SlotSet> {
     val out = ArrayList<SlotSet>()
     val seen = HashSet<Map<String, String>>()
+    // The text a group label starts with, in the language of the interface
+    val groupPrefix = groupLabel("")
 
     fun add(
         label: String,
@@ -56,7 +60,7 @@ fun findSlotSets(
             // A group is named once; the prefix is added only when it says something the group name does not
             val shown =
                 if (label.isEmpty() || prefix.isEmpty() ||
-                    prefix == label.removePrefix("Группа ")
+                    prefix == label.removePrefix(groupPrefix)
                 ) {
                     label.ifEmpty { prefix }
                 } else {
@@ -66,7 +70,7 @@ fun findSlotSets(
         }
     }
 
-    for ((group, names) in groups) add("Группа $group", names) { it }
+    for ((group, names) in groups) add(groupLabel(group), names) { it }
     add("", imageNames) { it.takeIf { prefix -> prefix.isNotEmpty() } }
     return out
 }

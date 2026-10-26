@@ -82,7 +82,7 @@ private fun leftText(state: LayoutEditorState): String {
         val image = texture.source ?: return texture.fileName
         return "${image.width} × ${image.height} · ${texture.format.ifEmpty { "—" }}"
     }
-    val doc = state.activeFile ?: return "Нет открытых файлов"
+    val doc = state.activeFile ?: return str(Res.string.no_open_files)
     return when (state.selectedIds.size) {
         0 -> {
             str(Res.string.nothing_selected_2)

@@ -20,6 +20,21 @@ class UnitConversionTest {
     }
 
     @Test
+    fun `a number is written with a dot whatever the language of the interface is`() {
+        val before = java.util.Locale.getDefault()
+        try {
+            // The interface sets this locale: in Russian the decimal separator is a comma, which a layout cannot read
+            java.util.Locale.setDefault(java.util.Locale.forLanguageTag("ru"))
+            assertEquals("0.3333", formatShort(1f / 3f))
+            assertEquals("20", formatShort(20f))
+            assertEquals("-12", formatShort(-12f))
+            assertEquals("0.123456", formatNumber(0.123456f))
+        } finally {
+            java.util.Locale.setDefault(before)
+        }
+    }
+
+    @Test
     fun `numbers are written short`() {
         assertEquals("20", formatNumber(20f))
         assertEquals("0.123456", formatNumber(0.123456f))

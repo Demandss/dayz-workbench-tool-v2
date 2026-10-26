@@ -1,9 +1,11 @@
 package com.github.demandss.dayz_workbench_tool.layout_editor.state
 
+import com.github.demandss.dayz_workbench_tool.i18n.str
 import com.github.demandss.dayz_workbench_tool.imageset.ImageDef
 import com.github.demandss.dayz_workbench_tool.imageset.ImageGroup
 import com.github.demandss.dayz_workbench_tool.imageset.ImageSet
 import com.github.demandss.dayz_workbench_tool.imageset.ImageSetTexture
+import com.github.demandss.dayz_workbench_tool.resources.*
 
 /** An image of the set with a stable [id] for the selection and the group it is in, or null outside groups. */
 data class ImageEntry(
@@ -182,19 +184,20 @@ fun checkImageSet(
     for (e in all) {
         val d = e.def
         if (d.width <= 0 || d.height <= 0) {
-            out += ImageProblem(ImageProblemKind.EMPTY, "«${d.name}»: размер ${d.width} × ${d.height}", listOf(e.id))
+            out += ImageProblem(ImageProblemKind.EMPTY, str(Res.string.imageset_problem_empty, d.name, d.width, d.height), listOf(e.id))
         }
         if (d.x < 0 || d.y < 0 || d.right > model.refWidth || d.bottom > model.refHeight) {
             out +=
                 ImageProblem(
                     ImageProblemKind.OUT_OF_BOUNDS,
-                    "«${d.name}» выходит за RefSize ${model.refWidth} × ${model.refHeight}",
+                    str(Res.string.imageset_problem_out_of_bounds, d.name, model.refWidth, model.refHeight),
                     listOf(e.id),
                 )
         }
     }
     all.groupBy { it.def.name }.filterValues { it.size > 1 }.forEach { (name, same) ->
-        out += ImageProblem(ImageProblemKind.DUPLICATE_NAME, "Имя «$name» встречается ${same.size} раза", same.map { it.id })
+        out +=
+            ImageProblem(ImageProblemKind.DUPLICATE_NAME, str(Res.string.imageset_problem_duplicate, name, same.size), same.map { it.id })
     }
     // Sweep along x: a region is only compared with the ones that start before it ends
     val byX = all.sortedBy { it.def.x }
@@ -205,7 +208,12 @@ fun checkImageSet(
             val b = byX[j].def
             if (b.x >= a.right) break
             if (b.width > 0 && b.height > 0 && a.y < b.bottom && b.y < a.bottom) {
-                out += ImageProblem(ImageProblemKind.OVERLAP, "«${a.name}» и «${b.name}» пересекаются", listOf(byX[i].id, byX[j].id))
+                out +=
+                    ImageProblem(
+                        ImageProblemKind.OVERLAP,
+                        str(Res.string.imageset_problem_overlap, a.name, b.name),
+                        listOf(byX[i].id, byX[j].id),
+                    )
             }
         }
     }
@@ -216,7 +224,7 @@ fun checkImageSet(
             out +=
                 ImageProblem(
                     ImageProblemKind.REF_SIZE,
-                    "RefSize ${model.refWidth} × ${model.refHeight} и текстура $textureWidth × $textureHeight имеют разные пропорции",
+                    str(Res.string.imageset_problem_ref_ratio, model.refWidth, model.refHeight, textureWidth, textureHeight),
                     emptyList(),
                 )
         }

@@ -21,51 +21,53 @@ import com.github.demandss.dayz_workbench_tool.ui.theme.GhostlyText
 import com.github.demandss.dayz_workbench_tool.ui.theme.TextForeground
 import org.jetbrains.compose.resources.stringResource
 
-private val SHORTCUTS: List<Pair<String, List<Pair<String, String>>>> =
+/** The keys and what they do, in the language of the interface. */
+@Composable
+private fun shortcuts(): List<Pair<String, List<Pair<String, String>>>> =
     listOf(
-        str(Res.string.general) to
+        stringResource(Res.string.general) to
             listOf(
-                "Ctrl+Shift+P" to "Палитра команд",
-                "Ctrl+P" to "Открыть файл по имени",
-                "Ctrl+," to "Настройки",
-                "Ctrl+F" to "Найти виджет (в layout) или картинку (в ImageSet)",
-                "Ctrl+B" to "Скрыть или показать браузер файлов",
-                "Ctrl+Tab / Ctrl+Shift+Tab" to "Следующая / предыдущая вкладка",
-                "Ctrl+1…9" to "Перейти на вкладку по номеру (9 — последняя)",
-                "Ctrl+S" to "Сохранить",
-                "Ctrl+Z / Ctrl+Y / Ctrl+Shift+Z" to "Отменить / повторить",
-                "Ctrl+W" to "Закрыть вкладку",
-                "F3" to "Счётчик FPS",
+                "Ctrl+Shift+P" to stringResource(Res.string.sc_command_palette),
+                "Ctrl+P" to stringResource(Res.string.sc_open_file_by_name),
+                "Ctrl+," to stringResource(Res.string.settings),
+                "Ctrl+F" to stringResource(Res.string.sc_find_widget_or_image),
+                "Ctrl+B" to stringResource(Res.string.sc_toggle_file_browser),
+                "Ctrl+Tab / Ctrl+Shift+Tab" to stringResource(Res.string.sc_next_previous_tab),
+                "Ctrl+1…9" to stringResource(Res.string.sc_go_to_tab_by_number),
+                "Ctrl+S" to stringResource(Res.string.save),
+                "Ctrl+Z / Ctrl+Y / Ctrl+Shift+Z" to stringResource(Res.string.sc_undo_redo),
+                "Ctrl+W" to stringResource(Res.string.sc_close_tab),
+                "F3" to stringResource(Res.string.sc_fps_counter),
                 "F5" to "Live Preview",
-                "F7" to "Подписи виджетов",
-                "F6" to "Цвета как в Workbench 1.30",
-                "F1" to "Эта справка",
+                "F7" to stringResource(Res.string.sc_widget_labels),
+                "F6" to stringResource(Res.string.sc_workbench_colors),
+                "F1" to stringResource(Res.string.sc_this_help),
             ),
         "Layout" to
             listOf(
-                "Delete" to "Удалить выбранное",
-                "Стрелки (Shift — крупнее)" to "Сдвинуть выбранное",
-                "F2" to "Переименовать",
-                "Ctrl+C / X / V" to "Копировать, вырезать, вставить",
-                "Ctrl+D" to "Дублировать",
-                "Ctrl+Alt+C / Ctrl+Alt+V" to "Копировать и вставить оформление",
-                "Ctrl+G / Ctrl+Shift+G" to "Сгруппировать / разгруппировать",
-                "Shift+A" to "Обернуть в WrapSpacer",
-                "] / [" to "На слой вперёд / назад",
-                "Ctrl+] / Ctrl+[" to "На передний / задний план",
-                "Shift+1 / Shift+2" to "Вписать в окно / приблизить к выбранному",
-                "Ctrl+= / Ctrl+- / Ctrl+0" to "Приблизить / отдалить / вписать",
+                "Delete" to stringResource(Res.string.delete_the_selection),
+                stringResource(Res.string.sc_keys_arrows_large) to stringResource(Res.string.sc_move_selected),
+                "F2" to stringResource(Res.string.rename),
+                "Ctrl+C / X / V" to stringResource(Res.string.sc_copy_cut_paste),
+                "Ctrl+D" to stringResource(Res.string.sc_duplicate),
+                "Ctrl+Alt+C / Ctrl+Alt+V" to stringResource(Res.string.sc_copy_paste_style),
+                "Ctrl+G / Ctrl+Shift+G" to stringResource(Res.string.sc_group_ungroup),
+                "Shift+A" to stringResource(Res.string.sc_wrap_in_wrapspacer),
+                "] / [" to stringResource(Res.string.sc_layer_forward_back),
+                "Ctrl+] / Ctrl+[" to stringResource(Res.string.sc_to_front_back),
+                "Shift+1 / Shift+2" to stringResource(Res.string.sc_fit_or_zoom_selected),
+                "Ctrl+= / Ctrl+- / Ctrl+0" to stringResource(Res.string.sc_zoom_in_out_fit),
             ),
         "ImageSet" to
             listOf(
-                "Delete" to "Удалить область",
-                "Стрелки (Shift — на 8 px)" to "Сдвинуть область",
-                "Ctrl+D / Ctrl+A" to "Дублировать / выделить всё",
-                "F2" to "Переименовать",
-                "Shift+1 / Shift+2" to "Вписать в окно / к выбранному",
-                "Ctrl+= / Ctrl+- / Ctrl+0" to "Приблизить / отдалить / вписать",
-                "Пробел + перетаскивание" to "Двигать холст",
-                "Ctrl + перетаскивание" to "Нарисовать новую область",
+                "Delete" to stringResource(Res.string.sc_delete_region),
+                stringResource(Res.string.sc_keys_arrows_8px) to stringResource(Res.string.sc_move_region),
+                "Ctrl+D / Ctrl+A" to stringResource(Res.string.sc_duplicate_select_all),
+                "F2" to stringResource(Res.string.rename),
+                "Shift+1 / Shift+2" to stringResource(Res.string.sc_fit_or_selected),
+                "Ctrl+= / Ctrl+- / Ctrl+0" to stringResource(Res.string.sc_zoom_in_out_fit),
+                stringResource(Res.string.sc_keys_space_drag) to stringResource(Res.string.sc_move_canvas),
+                stringResource(Res.string.sc_keys_ctrl_drag) to stringResource(Res.string.sc_draw_new_region),
             ),
     )
 
@@ -83,7 +85,7 @@ fun ShortcutsDialog(state: LayoutEditorState) {
         },
     ) {
         Column(Modifier.heightIn(max = 460.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-            for ((section, rows) in SHORTCUTS) {
+            for ((section, rows) in shortcuts()) {
                 Text(section.uppercase(), color = GhostlyText, fontSize = 10.sp, modifier = Modifier.padding(top = 8.dp, bottom = 2.dp))
                 for ((keys, what) in rows) {
                     Row {

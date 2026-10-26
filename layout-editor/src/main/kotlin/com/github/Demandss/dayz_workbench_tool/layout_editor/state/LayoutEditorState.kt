@@ -53,6 +53,7 @@ import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.appearanc
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.bulkReplace
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.clipboardText
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.distributed
+import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.formatShort
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.layoutTree
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.measureText
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.movedBy
@@ -896,7 +897,7 @@ class LayoutEditorState(
         return file.name
     }
 
-    /** `MF_CLS_` for a layout of the mod `MF_CLS_Client`: what the script classes of the mod start with; empty when the mod is unknown. */
+    /** `MyMod_` for a layout of the mod `MyMod_Client`: what the script classes of the mod start with; empty when the mod is unknown. */
     fun modClassPrefix(path: String): String {
         val parts =
             (modRootOf(path)?.name ?: "")
@@ -911,7 +912,7 @@ class LayoutEditorState(
         return if (parts.isEmpty()) "" else parts.joinToString("_") + "_"
     }
 
-    /** `MF_CLS_` and the name of the layout in Pascal case: the class name offered for a layout of the mod `MF_CLS_Client`. */
+    /** `MyMod_` and the name of the layout in Pascal case: the class name offered for a layout of the mod `MyMod_Client`. */
     fun defaultScriptClassName(path: String): String {
         val prefix = modClassPrefix(path)
         val base =
@@ -1116,7 +1117,8 @@ class LayoutEditorState(
         val layout = layoutTree(doc.root, screenRect(this))
         val moved = ids.fold(doc.root) { acc, id -> acc.movedBy(id, dx, dy, layout.parentRects[id] ?: screenRect(this)) }
         val now = System.currentTimeMillis()
-        if (doc.undoLabels.lastOrNull() != "Сдвиг" || now - lastNudgeAt > 800) pushUndo(idx, doc.root, "Сдвиг")
+        val nudge = str(Res.string.undo_nudge)
+        if (doc.undoLabels.lastOrNull() != nudge || now - lastNudgeAt > 800) pushUndo(idx, doc.root, nudge)
         lastNudgeAt = now
         updateActiveRoot(moved)
     }
@@ -1368,7 +1370,7 @@ class LayoutEditorState(
                         name = cleanName,
                         properties =
                             linkedMapOf(
-                                "position" to if (usePixel) "${fmt(worldPos!!.x)} ${fmt(worldPos.y)}" else "0 0",
+                                "position" to if (usePixel) "${formatShort(worldPos!!.x)} ${formatShort(worldPos.y)}" else "0 0",
                                 "size" to if (usePixel) "100 50" else "0.1 0.1",
                                 "hexactpos" to if (usePixel) "1" else "0",
                                 "vexactpos" to if (usePixel) "1" else "0",
@@ -1400,7 +1402,7 @@ class LayoutEditorState(
         if (doc.root.id == nodeId) return
         val movingNode = doc.root.findNode(nodeId) ?: return
         if (movingNode.containsId(newParentId)) return
-        pushUndo(idx, doc.root, str(Res.string.move_x, movingNode.node.name.ifEmpty { "виджета" }))
+        pushUndo(idx, doc.root, str(Res.string.move_x, movingNode.node.name.ifEmpty { str(Res.string.fallback_widget_name) }))
         val stripped = doc.root.removeNode(nodeId)
         val newRoot =
             stripped.updateNode(newParentId) { n ->
@@ -2653,11 +2655,6 @@ class LayoutEditorState(
 
     fun close() {
         runCatching { watchService.close() }
-    }
-
-    private fun fmt(f: Float): String {
-        val l = f.toLong()
-        return if (f == l.toFloat()) "$l" else "%.4g".format(f)
     }
 
     private fun watchDirectory(dir: Path) {

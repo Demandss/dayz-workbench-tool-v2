@@ -1,5 +1,6 @@
 package com.github.demandss.dayz_workbench_tool.layout_editor.behavior
 
+import com.github.demandss.dayz_workbench_tool.layout_editor.installedGame
 import java.io.File
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -86,7 +87,7 @@ class ScriptClassIndexTest {
     fun `a class is marked as custom, vanilla or from a mod by where it comes from`() {
         val list =
             ScriptClassIndex.build(
-                ScriptClassIndex.parse("class Own { void OnWidgetScriptInit(Widget w) { } }", "MF_CLS_Client", "x.c") +
+                ScriptClassIndex.parse("class Own { void OnWidgetScriptInit(Widget w) { } }", "MyMod", "x.c") +
                     ScriptClassIndex.parse("class Base { void OnWidgetScriptInit(Widget w) { } }", GAME_SOURCE, "pbo:a.c"),
             )
         assertEquals(ScriptKind.CUSTOM, list.first { it.name == "HoverScale" }.kind())
@@ -116,19 +117,15 @@ class ScriptClassIndexTest {
         val vanilla =
             ScriptClassInfo("SizeToChild", GAME_SOURCE, "ScriptedWidgetEventHandler", "pbo:scripts/3_game/gui/containers/sizetochild.c")
         val vanillaTip = ScriptClassIndex.tooltip(vanilla)
-        assertTrue("Live Preview" in vanillaTip && GAME_SOURCE in vanillaTip && "sizetochild.c" in vanillaTip)
+        assertTrue("Live Preview" in vanillaTip && sourceTitle(GAME_SOURCE) in vanillaTip && "sizetochild.c" in vanillaTip)
         assertTrue(ScriptKind.VANILLA.meaning in vanillaTip)
-        val modTip = ScriptClassIndex.tooltip(ScriptClassInfo("MF_Thing", "MF_CLS_Client", "SpacerBase", "K:/m/Thing.c"))
-        assertTrue("SpacerBase" in modTip && "MF_CLS_Client" in modTip && ScriptKind.MOD.meaning in modTip)
+        val modTip = ScriptClassIndex.tooltip(ScriptClassInfo("MyThing", "MyMod", "SpacerBase", "mods/Thing.c"))
+        assertTrue("SpacerBase" in modTip && "MyMod" in modTip && ScriptKind.MOD.meaning in modTip)
     }
 
     @Test
     fun `the scripts of the game give the helper classes of the vanilla layouts and none of the menus`() {
-        val game =
-            listOf("F:/steam/steamapps/common/DayZ", "C:/Program Files (x86)/Steam/steamapps/common/DayZ").firstOrNull {
-                File(it, "dta/scripts.pbo").isFile
-            }
-        if (game == null) return
+        val game = installedGame()
         val list = ScriptClassIndex.build(ScriptClassIndex.readGame(game))
         val names = list.map { it.name }.toSet()
         // The classes the vanilla layouts name in `scriptclass`, with and without ScriptedWidgetEventHandler above them

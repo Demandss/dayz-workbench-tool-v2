@@ -47,6 +47,7 @@ import com.github.demandss.dayz_workbench_tool.layout_editor.behavior.ScriptClas
 import com.github.demandss.dayz_workbench_tool.layout_editor.behavior.ScriptKind
 import com.github.demandss.dayz_workbench_tool.layout_editor.behavior.exportScriptClass
 import com.github.demandss.dayz_workbench_tool.layout_editor.behavior.kind
+import com.github.demandss.dayz_workbench_tool.layout_editor.behavior.sourceTitle
 import com.github.demandss.dayz_workbench_tool.layout_editor.behavior.useBehavior
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.LayoutEditorState
 import com.github.demandss.dayz_workbench_tool.resources.*
@@ -168,7 +169,7 @@ private fun ScriptClassPopup(
                 for (c in shown) {
                     if (c.source != group) {
                         group = c.source
-                        add(Line.Caption(c.source))
+                        add(Line.Caption(sourceTitle(c.source)))
                     }
                     add(Line.Item(c))
                 }

@@ -652,8 +652,11 @@ private fun StylePreview(
         val note =
             when {
                 textual -> {
-                    "Пример текста: цвет стиля ${styleColorHex(style.color)}, шрифт ${style.font.ifEmpty { "по умолчанию" }} " +
-                        "(в превью системный шрифт, у Workbench свой)"
+                    stringResource(
+                        Res.string.styles_sample_note,
+                        styleColorHex(style.color),
+                        style.font.ifEmpty { stringResource(Res.string.font_by_default) },
+                    )
                 }
 
                 skin == null -> {
@@ -687,7 +690,10 @@ private fun slotSetsOf(
     nearPath: String,
 ): List<SlotSet> {
     val set = state.imageSetOf(setName, nearPath) ?: return emptyList()
-    return findSlotSets(set.all.map { it.name }, set.groups.associate { g -> g.name to g.images.map { it.name } })
+    return findSlotSets(
+        set.all.map { it.name },
+        set.groups.associate { g -> g.name to g.images.map { it.name } },
+    ) { str(Res.string.slot_group_x, it) }
 }
 
 /** What the picker needs to know: the slot, its image now, and what to do with an image or a set of images chosen. */
