@@ -1422,7 +1422,7 @@ class LayoutEditorState(
                         name = cleanName,
                         properties =
                             linkedMapOf(
-                                "position" to if (usePixel) "${formatShort(worldPos!!.x)} ${formatShort(worldPos.y)}" else "0 0",
+                                "position" to if (usePixel) "${formatShort(worldPos.x)} ${formatShort(worldPos.y)}" else "0 0",
                                 "size" to if (usePixel) "100 50" else "0.1 0.1",
                                 "hexactpos" to if (usePixel) "1" else "0",
                                 "vexactpos" to if (usePixel) "1" else "0",

@@ -56,7 +56,7 @@ class McpGuideTest {
             val (tool, argument) = key.split(".")
             val definition = tools.firstOrNull { it["name"]!!.jsonPrimitive.content == tool }
             assertTrue(definition != null, "$key: there is no tool $tool")
-            val properties = definition!!["inputSchema"]!!.jsonObject["properties"]!!.jsonObject
+            val properties = definition["inputSchema"]!!.jsonObject["properties"]!!.jsonObject
             assertTrue(argument in properties.keys, "$key: $tool takes no $argument")
         }
     }

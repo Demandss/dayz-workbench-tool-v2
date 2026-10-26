@@ -969,7 +969,7 @@ fun LayoutCanvas(
                                         }
 
                                         resizeHandle != null -> {
-                                            val handle = resizeHandle!!
+                                            val handle = resizeHandle
                                             val start = resizeStart!!
                                             if (!resizePushed && (pos - resizeStartScreen).getDistance() >= DRAG_THRESHOLD) {
                                                 resizeRoot?.let { state.pushUndo(state.activeFileIndex, it, str(Res.string.resize)) }

@@ -577,13 +577,13 @@ private suspend fun androidx.compose.ui.input.pointer.PointerInputScope.imageSet
                             var rect =
                                 resizedRect(
                                     resizeBase,
-                                    resizeHandle!!,
+                                    resizeHandle,
                                     delta,
                                     keepAspect = event.keyboardModifiers.isShiftPressed,
                                     fromCentre = event.keyboardModifiers.isAltPressed,
                                 )
                             if (!event.keyboardModifiers.isCtrlPressed) {
-                                val (snapped, guides) = snapResized(rect, resizeHandle!!, resizeCandidates, 5f / view.zoom)
+                                val (snapped, guides) = snapResized(rect, resizeHandle, resizeCandidates, 5f / view.zoom)
                                 rect = snapped
                                 view.guides = guides
                             }
@@ -622,7 +622,7 @@ private suspend fun androidx.compose.ui.input.pointer.PointerInputScope.imageSet
                         }
 
                         drawStart != null -> {
-                            val s = drawStart!!
+                            val s = drawStart
                             setDrawing(
                                 Rect(
                                     min(s.x, w.x).roundToInt().toFloat(),
@@ -635,7 +635,7 @@ private suspend fun androidx.compose.ui.input.pointer.PointerInputScope.imageSet
                         }
 
                         boxStart != null -> {
-                            val s = boxStart!!
+                            val s = boxStart
                             setBox(Rect(min(s.x, w.x), min(s.y, w.y), max(s.x, w.x), max(s.y, w.y)))
                             change.consume()
                         }
