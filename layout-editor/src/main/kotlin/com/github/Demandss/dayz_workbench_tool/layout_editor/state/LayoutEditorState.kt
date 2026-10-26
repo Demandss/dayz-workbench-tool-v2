@@ -989,10 +989,23 @@ class LayoutEditorState(
     fun reorderSelected(how: Reorder) {
         val idx = activeFileIndex
         val doc = openFiles.getOrNull(idx) ?: return
-        val ids = selectedIds.filter { it != doc.root.id }
-        if (ids.isEmpty()) return
-        // Going forward the one nearest the end goes first, going back the first one, so that they do not step over each other
-        val ordered = if (how == Reorder.FORWARD || how == Reorder.FRONT) ids.reversed() else ids
+        val selected = selectedIds.filter { it != doc.root.id }.toSet()
+        if (selected.isEmpty()) return
+        // The selection is in the order of the clicks; the drawing order is the order of the document
+        val inDocument = mutableListOf<UUID>()
+
+        fun collect(node: EditorWidgetNode) {
+            if (node.id in selected) inDocument.add(node.id)
+            node.children.forEach(::collect)
+        }
+        collect(doc.root)
+        // Forward and to the front start with the one nearest the end, backward starts with the first; to the front and to the
+        // back they are placed one after another, so that they keep their order among themselves
+        val ordered =
+            when (how) {
+                Reorder.FORWARD, Reorder.BACK -> inDocument.reversed()
+                Reorder.BACKWARD, Reorder.FRONT -> inDocument
+            }
         var root = doc.root
         var changed = false
         for (id in ordered) {
