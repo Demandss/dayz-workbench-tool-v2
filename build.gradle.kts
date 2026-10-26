@@ -18,11 +18,12 @@ group = "com.github.demandss"
 version = "1.0.0"
 
 
-val ktlintCheckAll by tasks.registering {
-    group = "verification"
-    description = "Run ktlint checks across all subprojects"
-    dependsOn(subprojects.map { ":${it.name}:ktlintCheck" })
-}
+val ktlintCheckAll =
+    tasks.register("ktlintCheckAll") {
+        group = "verification"
+        description = "Run ktlint checks across all subprojects"
+        dependsOn(subprojects.map { ":${it.name}:ktlintCheck" })
+    }
 
 subprojects {
     apply(plugin = "org.jlleitschuh.gradle.ktlint")
