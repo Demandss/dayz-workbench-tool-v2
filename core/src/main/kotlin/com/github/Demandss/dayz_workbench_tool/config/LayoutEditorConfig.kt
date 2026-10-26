@@ -9,6 +9,8 @@ data class LayoutEditorConfig(
     // The preferences window
     val mcpEnabled: Boolean = true,
     val mcpPort: Int = 39871,
+    // What a client of the MCP server sends as its token: made once, so that a configured client keeps working after a restart
+    val mcpToken: String = "",
     val workbenchColors: Boolean = false,
     val showGrid: Boolean = false,
     val snapToGrid: Boolean = false,

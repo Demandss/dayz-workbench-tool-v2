@@ -497,6 +497,9 @@ class LayoutEditorState(
     /** The folder of the mod that holds [path], or null. */
     fun modRoot(path: String): File? = modRootOf(path)
 
+    /** The folders of the connected mods: the listed ones and those of the layouts that were opened. */
+    fun modFolderPaths(): List<String> = connectedMods()
+
     /** Where the MCP tools may write: the work drive and the folders of the connected mods. */
     fun writableRoots(): List<File> =
         (listOf(workDrivePath) + connectedMods())

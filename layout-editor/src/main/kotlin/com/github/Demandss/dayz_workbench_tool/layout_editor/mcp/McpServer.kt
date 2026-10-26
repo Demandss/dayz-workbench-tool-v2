@@ -6,7 +6,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.Snapshot
 import com.github.demandss.dayz_workbench_tool.config.ConfigManager
+import com.github.demandss.dayz_workbench_tool.config.LayoutEditorConfig
+import com.github.demandss.dayz_workbench_tool.i18n.str
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.LayoutEditorState
+import com.github.demandss.dayz_workbench_tool.resources.*
 import com.sun.net.httpserver.HttpExchange
 import com.sun.net.httpserver.HttpServer
 import kotlinx.serialization.json.Json
@@ -25,6 +28,7 @@ import java.net.InetAddress
 import java.net.InetSocketAddress
 import java.security.MessageDigest
 import java.security.SecureRandom
+import java.util.Properties
 import java.util.concurrent.Executors
 
 /**
@@ -51,8 +55,9 @@ object McpHost {
         private set
 
     /**
-     * What a request has to carry in `Authorization: Bearer <token>`. It is made again at every start of the server and written
-     * to the discovery file, which only the user can read, so a program that merely knows the port cannot drive the editor.
+     * What a request has to carry in `Authorization: Bearer <token>`. It is made once and kept with the settings of the editor, so
+     * that a client that was given it keeps working after a restart; [regenerateToken] makes a new one. It is also written to the
+     * discovery file, which only the user can read, so a program that merely knows the port cannot drive the editor.
      */
     var token: String? by mutableStateOf(null)
         private set
@@ -111,11 +116,34 @@ object McpHost {
             created.start()
             server = created
             url = "http://127.0.0.1:$port/mcp"
-            token = newToken()
+            token = storedToken()
+            boundPort = port
             writeDiscoveryFile(port, token.orEmpty())
             return
         }
-        lastError = "Порты $first–${first + PORT_TRIES - 1} заняты"
+        lastError = str(Res.string.mcp_ports_busy, first, first + PORT_TRIES - 1)
+    }
+
+    private var boundPort = 0
+
+    /** The token kept in the settings of the editor; one is made and kept when there is none. */
+    private fun storedToken(): String {
+        val config = runCatching { ConfigManager.LayoutEditor.load() }.getOrDefault(LayoutEditorConfig())
+        if (config.mcpToken.length >= 32) return config.mcpToken
+        val fresh = newToken()
+        runCatching { ConfigManager.LayoutEditor.save(config.copy(mcpToken = fresh)) }
+        return fresh
+    }
+
+    /** Makes a new token and keeps it; the clients that had the old one have to be given the new one. */
+    @Synchronized
+    fun regenerateToken() {
+        val fresh = newToken()
+        runCatching { ConfigManager.LayoutEditor.save(ConfigManager.LayoutEditor.load().copy(mcpToken = fresh)) }
+        if (server != null) {
+            token = fresh
+            writeDiscoveryFile(boundPort, fresh)
+        }
     }
 
     private fun newToken(): String {
@@ -285,7 +313,7 @@ object McpHost {
                             "serverInfo",
                             buildJsonObject {
                                 put("name", "dayz-layout-editor")
-                                put("version", "1.0.0")
+                                put("version", serverVersion)
                             },
                         )
                         put("instructions", McpGuide.instructions)
@@ -310,24 +338,11 @@ object McpHost {
                 }
 
                 "tools/call" -> {
-                    val current = tools ?: return error(id, -32000, "The layout editor window is not open")
+                    val current = tools ?: return answer(id, toolError(WINDOW_CLOSED))
                     val name = params["name"]?.jsonPrimitive?.contentOrNull ?: return error(id, -32602, "Missing tool name")
                     // A tool that throws is an error of that tool (isError), not a dropped connection
                     runCatching { current.call(name, params["arguments"] as? JsonObject ?: buildJsonObject { }) }.getOrElse {
-                        buildJsonObject {
-                            put("isError", true)
-                            put(
-                                "content",
-                                JsonArray(
-                                    listOf(
-                                        buildJsonObject {
-                                            put("type", "text")
-                                            put("text", "${it.javaClass.simpleName}: ${it.message.orEmpty()}")
-                                        },
-                                    ),
-                                ),
-                            )
-                        }
+                        toolError("${it.javaClass.simpleName}: ${it.message.orEmpty()}")
                     }
                 }
 
@@ -335,12 +350,50 @@ object McpHost {
                     return error(id, -32601, "Method not found: $method")
                 }
             }
-        return buildJsonObject {
+        return answer(id, result)
+    }
+
+    private fun answer(
+        id: JsonElement,
+        result: JsonElement,
+    ): JsonObject =
+        buildJsonObject {
             put("jsonrpc", "2.0")
             put("id", id)
             put("result", result)
         }
-    }
+
+    /** The result of a tool that failed: the assistant reads the text and can act on it. */
+    private fun toolError(text: String): JsonObject =
+        buildJsonObject {
+            put("isError", true)
+            put(
+                "content",
+                JsonArray(
+                    listOf(
+                        buildJsonObject {
+                            put("type", "text")
+                            put("text", text)
+                        },
+                    ),
+                ),
+            )
+        }
+
+    private const val WINDOW_CLOSED =
+        "The layout editor window is not open. Ask the person to open it with the Layout Editor button of the DayZ Workbench Tool, then try again."
+
+    /** The version of the program, from the build (app-version.properties); "dev" when the build did not fill it in. */
+    internal val serverVersion: String =
+        runCatching {
+            McpHost::class.java
+                .getResourceAsStream(
+                    "/app-version.properties",
+                )?.use { Properties().apply { load(it) }.getProperty("version") }
+        }.getOrNull()
+            ?.trim()
+            ?.takeIf { it.isNotEmpty() && !it.startsWith("$") }
+            ?: "dev"
 
     private val SUPPORTED_VERSIONS = listOf("2025-06-18", "2025-03-26", "2024-11-05")
 }
@@ -357,5 +410,5 @@ internal fun LayoutEditorState.copyMcpAddress(address: String) {
         .getDefaultToolkit()
         .systemClipboard
         .setContents(java.awt.datatransfer.StringSelection(address), null)
-    notify("Адрес MCP скопирован: $address", com.github.demandss.dayz_workbench_tool.layout_editor.state.ToastKind.SUCCESS)
+    notify(str(Res.string.mcp_address_copied, address), com.github.demandss.dayz_workbench_tool.layout_editor.state.ToastKind.SUCCESS)
 }

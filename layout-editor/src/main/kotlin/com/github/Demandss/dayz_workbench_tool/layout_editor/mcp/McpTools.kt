@@ -83,7 +83,7 @@ internal class McpTools(
             failed = true
             return textResult("${e.javaClass.simpleName}: ${e.message}", isError = true)
         } finally {
-            McpHost.log("$name  ${System.currentTimeMillis() - started} ms${if (failed) "  ошибка" else ""}")
+            McpHost.log("$name  ${System.currentTimeMillis() - started} ms${if (failed) "  failed" else ""}")
         }
     }
 
@@ -114,6 +114,7 @@ internal class McpTools(
     ): String =
         when (name) {
             "editor_status" -> status().toString()
+            "list_layouts" -> listLayouts(args)
             "open_layout" -> openLayout(args)
             "create_layout" -> createLayout(args)
             "close_layout" -> closeLayout(args)
@@ -191,7 +192,44 @@ internal class McpTools(
             put("zoom", state.zoom.toDouble())
             put("resolution", state.selectedResolution.label)
             put("work_drive", state.workDrivePath)
+            put("game_folder", state.gameFolderPath())
+            put("mod_folders", JsonArray(state.modFolderPaths().map { JsonPrimitive(it) }))
         }
+
+    private fun listLayouts(args: JsonObject): String {
+        val query =
+            args
+                .string("query")
+                ?.trim()
+                ?.lowercase()
+                .orEmpty()
+        val limit = (args.int("limit") ?: 100).coerceIn(1, 500)
+        val roots =
+            args.string("folder")?.let { listOf(writable(it)) }
+                ?: state.modFolderPaths().map { java.io.File(it) }.filter { it.isDirectory }.ifEmpty {
+                    throw ToolFailure(
+                        "No mod is connected: pass folder (the folder of a mod, inside the work drive) or connect the mods in the settings of the app",
+                    )
+                }
+        val found =
+            roots
+                .asSequence()
+                .flatMap { root ->
+                    root
+                        .walkTopDown()
+                        .maxDepth(12)
+                        .onEnter { !it.name.startsWith(".") && !it.name.equals("build", ignoreCase = true) }
+                        .filter { it.isFile && it.extension.equals("layout", ignoreCase = true) }
+                        .map { it.path }
+                }.filter { query.isEmpty() || it.lowercase().contains(query) }
+                .take(limit + 1)
+                .toList()
+        return buildJsonObject {
+            put("count", minOf(found.size, limit))
+            put("truncated", found.size > limit)
+            put("layouts", JsonArray(found.take(limit).map { JsonPrimitive(it) }))
+        }.toString()
+    }
 
     private fun resolveNode(
         doc: com.github.demandss.dayz_workbench_tool.layout_editor.state.LayoutDocument,
@@ -1650,7 +1688,29 @@ internal class McpTools(
                 put("name", name)
                 put("description", description)
                 put("inputSchema", schema(properties, required))
+                // A client can let the tools that only look run without asking each time
+                put("annotations", buildJsonObject { put("readOnlyHint", name in READ_ONLY_TOOLS) })
             }
+
+        /** The tools that change nothing in the editor, on disk or in the view. */
+        private val READ_ONLY_TOOLS =
+            setOf(
+                "editor_status",
+                "list_layouts",
+                "get_tree",
+                "get_widget",
+                "find_widgets",
+                "get_layout_text",
+                "get_script_template",
+                "get_problems",
+                "screenshot",
+                "list_icons",
+                "list_styles",
+                "list_imagesets",
+                "list_strings",
+                "list_fonts",
+                "measure_text",
+            )
 
         private val WIDGET_REF =
             mapOf(
@@ -1661,7 +1721,19 @@ internal class McpTools(
 
         fun definitions(): List<JsonObject> =
             listOf(
-                tool("editor_status", "Open layouts, the selection, the view flags, the zoom and the resolution."),
+                tool(
+                    "editor_status",
+                    "Open layouts, the selection, the view flags, the zoom and the resolution, and where things are: work_drive, game_folder and mod_folders.",
+                ),
+                tool(
+                    "list_layouts",
+                    "Lists the .layout files of the connected mods (mod_folders of editor_status), or of a folder inside the work drive or a mod.",
+                    mapOf(
+                        "query" to ("string" to "Words to look for in the path, e.g. inventory"),
+                        "folder" to ("string" to "A folder to look in instead of the connected mods"),
+                        "limit" to ("integer" to "At most this many, 100 by default"),
+                    ),
+                ),
                 tool(
                     "open_layout",
                     "Opens a .layout file in the editor and makes it the active one.",
