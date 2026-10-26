@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.github.demandss.dayz_workbench_tool.i18n.str
 import com.github.demandss.dayz_workbench_tool.model.ModSide
+import com.github.demandss.dayz_workbench_tool.model.ModType
 import com.github.demandss.dayz_workbench_tool.model.Modification
 import com.github.demandss.dayz_workbench_tool.resources.*
 import com.github.demandss.dayz_workbench_tool.state.AppState
@@ -37,7 +38,28 @@ import org.jetbrains.compose.resources.stringResource
 import java.awt.Desktop
 import java.io.File
 
-private enum class ModFilter { ALL, CLIENT, SERVER }
+/** A line of the filter menu: a tick when the filter is set, its name, and how many mods it stands for. */
+@Composable
+private fun FilterMenuItem(
+    text: String,
+    count: Int,
+    checked: Boolean,
+    onClick: () -> Unit,
+) {
+    DropdownMenuItem(
+        text = {
+            Row(modifier = Modifier.widthIn(min = 150.dp), verticalAlignment = Alignment.CenterVertically) {
+                Box(modifier = Modifier.width(14.dp)) {
+                    if (checked) Text("✓", color = TextForeground, fontSize = 10.sp)
+                }
+                Text(text, color = TextForeground, fontSize = 10.sp, modifier = Modifier.weight(1f))
+                Text(count.toString(), color = GhostlyText, fontSize = 10.sp)
+            }
+        },
+        onClick = onClick,
+        modifier = Modifier.background(FrameBackground).height(26.dp),
+    )
+}
 
 private data class PendingAction(
     val title: String,
@@ -48,9 +70,9 @@ private data class PendingAction(
 @Composable
 fun ModsScreen(state: AppState) {
     val scope = rememberCoroutineScope()
-    var filter by remember { mutableStateOf(ModFilter.ALL) }
+    var filters by remember { mutableStateOf(ModFilters()) }
     var search by remember { mutableStateOf("") }
-    var filterMenuOpen by remember { mutableStateOf(false) }
+    var filtersMenuOpen by remember { mutableStateOf(false) }
 
     var selectedMods by remember { mutableStateOf(emptySet<Modification>()) }
     var selectionAnchor by remember { mutableStateOf<Modification?>(null) }
@@ -70,18 +92,11 @@ fun ModsScreen(state: AppState) {
     }
 
     val visibleMods =
-        remember(state.mods.toList(), filter, search) {
-            state.mods
-                .filter {
-                    when (filter) {
-                        ModFilter.ALL -> true
-                        ModFilter.CLIENT -> it.side == ModSide.CLIENT
-                        ModFilter.SERVER -> it.side == ModSide.SERVER
-                    }
-                }.filter { search.isBlank() || it.name.contains(search, ignoreCase = true) }
+        remember(state.mods.toList(), filters, search, missingPaths) {
+            filterMods(state.mods.toList(), filters, search, missingPaths)
         }
 
-    LaunchedEffect(filter, search) {
+    LaunchedEffect(filters, search) {
         selectedMods = emptySet()
         selectionAnchor = null
     }
@@ -141,36 +156,30 @@ fun ModsScreen(state: AppState) {
             }
             Spacer(Modifier.weight(1f))
 
-            Box {
-                val filterSource = remember { MutableInteractionSource() }
-                val isFilterPressed by filterSource.collectIsPressedAsState()
+            // Drops every filter and the search, and says how many mods are shown
+            if (filters.isActive || search.isNotEmpty()) {
+                val resetSource = remember { MutableInteractionSource() }
+                val isResetPressed by resetSource.collectIsPressedAsState()
                 Box(
                     modifier =
                         Modifier
                             .fillMaxHeight()
-                            .background(if (isFilterPressed || filterMenuOpen) SelectColor else FrameBackground)
-                            .clickable(interactionSource = filterSource, indication = null) { filterMenuOpen = true }
-                            .padding(horizontal = 8.dp),
+                            .background(if (isResetPressed) SelectColor else FrameBackground)
+                            .clickable(interactionSource = resetSource, indication = null) {
+                                filters = ModFilters()
+                                search = ""
+                            }.padding(horizontal = 8.dp),
                     contentAlignment = Alignment.Center,
                 ) {
-                    Text(stringResource(Res.string.filter_x, filter.name), color = TextForeground, fontSize = 10.sp)
+                    Text(stringResource(Res.string.reset), color = TextForeground, fontSize = 10.sp)
                 }
-                DropdownMenu(
-                    expanded = filterMenuOpen,
-                    onDismissRequest = { filterMenuOpen = false },
-                    modifier = Modifier.background(FrameBackground).border(1.dp, DarkenedBorder),
-                ) {
-                    ModFilter.entries.forEach { f ->
-                        DropdownMenuItem(
-                            text = { Text(f.name, color = TextForeground, fontSize = 10.sp) },
-                            onClick = {
-                                filter = f
-                                filterMenuOpen = false
-                            },
-                            modifier = Modifier.background(FrameBackground).height(28.dp),
-                        )
-                    }
-                }
+            }
+            Box(modifier = Modifier.fillMaxHeight().padding(horizontal = 8.dp), contentAlignment = Alignment.Center) {
+                Text(
+                    stringResource(Res.string.mods_shown_x_x, visibleMods.size, state.mods.size),
+                    color = GhostlyText,
+                    fontSize = 10.sp,
+                )
             }
         }
         HorizontalDivider(color = DarkenedBorder)
@@ -202,6 +211,69 @@ fun ModsScreen(state: AppState) {
                     }
                 },
             )
+            Spacer(Modifier.width(4.dp))
+
+            // One button instead of a row of switches: it is lit and counts the filters while some are set
+            Box {
+                val filtersSource = remember { MutableInteractionSource() }
+                val isFiltersPressed by filtersSource.collectIsPressedAsState()
+                val lit = filters.isActive || filtersMenuOpen
+                Box(
+                    modifier =
+                        Modifier
+                            .fillMaxHeight()
+                            .border(1.dp, if (lit) SelectColor else SubSelectColor)
+                            .background(if (isFiltersPressed || lit) SelectColor else FrameBackground)
+                            .clickable(interactionSource = filtersSource, indication = null) { filtersMenuOpen = true }
+                            .padding(horizontal = 8.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    val title = stringResource(Res.string.filters)
+                    Text(if (filters.isActive) "$title · ${filters.activeCount}" else title, color = TextForeground, fontSize = 10.sp)
+                }
+                DropdownMenu(
+                    expanded = filtersMenuOpen,
+                    onDismissRequest = { filtersMenuOpen = false },
+                    modifier = Modifier.background(FrameBackground).border(1.dp, DarkenedBorder),
+                ) {
+                    // The menu stays open, so that several filters can be set one after another; the numbers are of the whole list
+                    val all = state.mods
+                    FilterMenuItem(
+                        stringResource(Res.string.filter_client),
+                        all.count { it.side == ModSide.CLIENT },
+                        filters.side == ModSide.CLIENT,
+                    ) { filters = filters.toggleSide(ModSide.CLIENT) }
+                    FilterMenuItem(
+                        stringResource(Res.string.filter_server),
+                        all.count { it.side == ModSide.SERVER },
+                        filters.side == ModSide.SERVER,
+                    ) { filters = filters.toggleSide(ModSide.SERVER) }
+                    HorizontalDivider(color = DarkenedBorder)
+                    FilterMenuItem(stringResource(Res.string.enabled), all.count { it.enabled }, filters.enabled == true) {
+                        filters = filters.toggleEnabled(true)
+                    }
+                    FilterMenuItem(stringResource(Res.string.disabled), all.count { !it.enabled }, filters.enabled == false) {
+                        filters = filters.toggleEnabled(false)
+                    }
+                    HorizontalDivider(color = DarkenedBorder)
+                    FilterMenuItem(
+                        stringResource(Res.string.filter_workshop),
+                        all.count { it.type == ModType.WORKSHOP },
+                        filters.type == ModType.WORKSHOP,
+                    ) { filters = filters.toggleType(ModType.WORKSHOP) }
+                    FilterMenuItem(
+                        stringResource(Res.string.local),
+                        all.count { it.type == ModType.LOCAL },
+                        filters.type == ModType.LOCAL,
+                    ) { filters = filters.toggleType(ModType.LOCAL) }
+                    HorizontalDivider(color = DarkenedBorder)
+                    FilterMenuItem(
+                        stringResource(Res.string.filter_missing),
+                        all.count { it.path in missingPaths },
+                        filters.onlyMissing,
+                    ) { filters = filters.toggleMissing() }
+                }
+            }
         }
         HorizontalDivider(color = DarkenedBorder)
 

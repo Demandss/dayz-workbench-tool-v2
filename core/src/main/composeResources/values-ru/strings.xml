@@ -609,7 +609,12 @@
     <string name="font_file">Файл шрифта</string>
     <string name="file_x_kb">Файл: %1$s КБ</string>
     <string name="files_are_named_name_size_for_example">файлы называются имя + размер, например Roboto22.fnt</string>
-    <string name="filter_x">Фильтр: %1$s</string>
+    <string name="filters">Фильтры</string>
+    <string name="filter_client">Клиент</string>
+    <string name="filter_server">Сервер</string>
+    <string name="filter_workshop">Мастерская</string>
+    <string name="filter_missing">Не найдены</string>
+    <string name="mods_shown_x_x">%1$d из %2$d</string>
     <string name="filter">Фильтр…</string>
     <string name="frame_background">Фон окна</string>
     <string name="elements_background">Фон элементов</string>

@@ -609,7 +609,12 @@
     <string name="font_file">Font file</string>
     <string name="file_x_kb">File: %1$s KB</string>
     <string name="files_are_named_name_size_for_example">files are named name + size, for example Roboto22.fnt</string>
-    <string name="filter_x">Filter: %1$s</string>
+    <string name="filters">Filters</string>
+    <string name="filter_client">Client</string>
+    <string name="filter_server">Server</string>
+    <string name="filter_workshop">Workshop</string>
+    <string name="filter_missing">Missing</string>
+    <string name="mods_shown_x_x">%1$d of %2$d</string>
     <string name="filter">Filter…</string>
     <string name="frame_background">Frame Background</string>
     <string name="elements_background">Elements Background</string>
