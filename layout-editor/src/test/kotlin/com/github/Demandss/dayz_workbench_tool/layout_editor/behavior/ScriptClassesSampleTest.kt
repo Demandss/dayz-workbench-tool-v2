@@ -6,7 +6,6 @@ import com.github.demandss.dayz_workbench_tool.layout.WidgetNode
 import com.github.demandss.dayz_workbench_tool.layout_editor.EditorWidgetNode
 import com.github.demandss.dayz_workbench_tool.layout_editor.toEditorNode
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.layoutTree
-import java.io.File
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -14,10 +13,11 @@ import kotlin.test.assertTrue
 
 /** The sample layout with every script class: it must read, name every class and show what the classes do. */
 class ScriptClassesSampleTest {
-    private val file =
-        listOf("samples/script-classes.layout", "layout-editor/samples/script-classes.layout").map(::File).firstOrNull { it.isFile }
+    private val text =
+        checkNotNull(javaClass.getResource("/samples/script-classes.layout")) { "The sample is not in the test resources" }
+            .readText()
 
-    private fun root(): EditorWidgetNode = LayoutParser.parse(file!!.readText()).toEditorNode()
+    private fun root(): EditorWidgetNode = LayoutParser.parse(text).toEditorNode()
 
     private fun all(node: WidgetNode): List<WidgetNode> = listOf(node) + node.children.flatMap { all(it) }
 
@@ -29,8 +29,7 @@ class ScriptClassesSampleTest {
 
     @Test
     fun `the sample names every custom class and every vanilla class of the preview`() {
-        if (file == null) return
-        val used = all(LayoutParser.parse(file.readText())).mapNotNull { it.properties["scriptclass"]?.trim('"') }.toSet()
+        val used = all(LayoutParser.parse(text)).mapNotNull { it.properties["scriptclass"]?.trim('"') }.toSet()
         val custom = BehaviorCatalogue.entries.map { it.name }
         assertEquals(emptyList(), custom.filter { it !in used })
         val vanilla =
@@ -57,8 +56,7 @@ class ScriptClassesSampleTest {
 
     @Test
     fun `widget names are unique, so that every class finds its own widgets`() {
-        if (file == null) return
-        val names = all(LayoutParser.parse(file.readText())).map { it.name }
+        val names = all(LayoutParser.parse(text)).map { it.name }
         assertEquals(
             emptyList(),
             names
@@ -71,7 +69,6 @@ class ScriptClassesSampleTest {
 
     @Test
     fun `the classes of the game change the layout in Live Preview`() {
-        if (file == null) return
         val tree = root()
         val layout = VanillaScripts.layout(tree) { layoutTree(it, screen) }
 
@@ -94,7 +91,6 @@ class ScriptClassesSampleTest {
 
     @Test
     fun `the tabs start with the first panel and the main menu button text is white`() {
-        if (file == null) return
         val tree = root()
         val effects = previewEffects(tree, emptySet(), emptySet())
         val panels = listOf(0, 1, 2).map { effects[tree.named("Panel${it}_v_Tabber").id]?.visible }
@@ -107,7 +103,6 @@ class ScriptClassesSampleTest {
 
     @Test
     fun `the cells of both halves stay inside their panels`() {
-        if (file == null) return
         val tree = root()
         val layout = VanillaScripts.layout(tree) { layoutTree(it, screen) }
         for (name in listOf("PanelCustom", "PanelVanilla")) {
