@@ -60,7 +60,7 @@ The window can copy a ready prompt with the address and the connection command.
 
 ## Build from source
 
-You need JDK 21. Gradle downloads the rest.
+You need JDK 25. Gradle downloads the rest.
 
 ```
 ./gradlew :app:run                  # the main program

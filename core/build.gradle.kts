@@ -6,7 +6,7 @@ plugins {
 }
 
 kotlin {
-    jvmToolchain(21)
+    jvmToolchain(25)
 }
 
 repositories {
@@ -37,7 +37,11 @@ compose.resources {
 
 tasks.test {
     useJUnitPlatform()
-    jvmArgs("-XX:ErrorFile=logs/hs_err_pid%p.log", "-XX:ReplayDataFile=logs/replay_pid%p.log")
+    jvmArgs(
+        "-XX:ErrorFile=logs/hs_err_pid%p.log",
+        "-XX:ReplayDataFile=logs/replay_pid%p.log",
+        "--enable-native-access=ALL-UNNAMED",
+    )
 }
 
 // Library module — disable the run task added by the compose plugin

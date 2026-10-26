@@ -28,7 +28,7 @@ layout-editor/   the .layout editor; opened from the app as a second window, and
 ./gradlew :app:packagePortable :app:packageReleaseMsi
 ```
 
-JDK 21 (toolchain). The version of the programs is `version = "..."` in the root `build.gradle.kts`; the release workflow writes the release version there.
+JDK 25 (toolchain). The version of the programs is `version = "..."` in the root `build.gradle.kts`; the release workflow writes the release version there.
 
 ## Settings
 

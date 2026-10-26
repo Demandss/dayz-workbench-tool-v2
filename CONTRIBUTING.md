@@ -10,7 +10,7 @@ Thank you for your interest. This is a small project, so the rules are short.
 
 ## Setup
 
-You need Windows and JDK 21. See [Build from source](README.md#build-from-source) for the commands.
+You need Windows and JDK 25. See [Build from source](README.md#build-from-source) for the commands.
 
 ## Rules for a change
 
