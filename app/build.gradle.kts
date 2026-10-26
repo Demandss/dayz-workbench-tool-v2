@@ -35,6 +35,9 @@ compose.desktop {
     application {
         mainClass = "com.github.demandss.dayz_workbench_tool.MainKt"
 
+        // Crash dumps go to logs/ (ignored by git) instead of the working directory
+        jvmArgs += listOf("-XX:ErrorFile=logs/hs_err_pid%p.log", "-XX:ReplayDataFile=logs/replay_pid%p.log")
+
         javaHome =
             javaToolchains
                 .launcherFor { languageVersion.set(JavaLanguageVersion.of(21)) }

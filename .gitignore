@@ -40,3 +40,8 @@ bin/
 
 ### Mac OS ###
 .DS_Store
+
+### JVM crash dumps and logs ###
+logs/
+hs_err_pid*
+replay_pid*
