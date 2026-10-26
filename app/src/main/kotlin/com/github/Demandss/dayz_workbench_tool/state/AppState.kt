@@ -37,17 +37,24 @@ class AppState {
     }
 
     fun navigate(screen: Screen) {
-        // The next visit to the settings starts on the first tab again, not on the one the editor asked for
-        if (screen != Screen.SETTINGS) settingsTab = 0
+        // The next visit to the settings starts on the first page again, not on the one the editor asked for
+        if (screen != Screen.SETTINGS) {
+            settingsGroup = 0
+            settingsSection = ""
+        }
         currentScreen = screen
     }
 
-    /** The tab of the settings window: 0 Global, 3 Layout Editor (the editor asks for it, also while the window is open). */
-    var settingsTab by mutableStateOf(0)
+    /** The open group of the settings window: 0 Global, 1 App, 2 Layout Editor (the editor asks for it, also while the window is open). */
+    var settingsGroup by mutableStateOf(0)
 
-    /** Brings the settings window of the app to the Layout Editor tab. */
+    /** The id of the open section of that group; empty opens the first. */
+    var settingsSection by mutableStateOf("")
+
+    /** Brings the settings window of the app to the Layout Editor group. */
     fun openLayoutEditorSettings() {
-        settingsTab = 3
+        settingsGroup = 2
+        settingsSection = ""
         navigate(Screen.SETTINGS)
     }
 

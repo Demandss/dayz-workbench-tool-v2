@@ -35,14 +35,19 @@ import com.github.demandss.dayz_workbench_tool.i18n.I18n
 import com.github.demandss.dayz_workbench_tool.i18n.Language
 import com.github.demandss.dayz_workbench_tool.i18n.str
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.DropdownField
-import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.LayoutEditorSettingsForm
+import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.layoutEditorSettingsSections
 import com.github.demandss.dayz_workbench_tool.resources.*
 import com.github.demandss.dayz_workbench_tool.state.AppState
 import com.github.demandss.dayz_workbench_tool.state.Screen
+import com.github.demandss.dayz_workbench_tool.ui.components.CheckRow
 import com.github.demandss.dayz_workbench_tool.ui.components.ColorPickerDialog
 import com.github.demandss.dayz_workbench_tool.ui.components.DarkButton
-import com.github.demandss.dayz_workbench_tool.ui.components.DarkTabRow
 import com.github.demandss.dayz_workbench_tool.ui.components.PoweredByFooter
+import com.github.demandss.dayz_workbench_tool.ui.components.SettingItem
+import com.github.demandss.dayz_workbench_tool.ui.components.SettingRow
+import com.github.demandss.dayz_workbench_tool.ui.components.SettingsGroup
+import com.github.demandss.dayz_workbench_tool.ui.components.SettingsPages
+import com.github.demandss.dayz_workbench_tool.ui.components.SettingsSection
 import com.github.demandss.dayz_workbench_tool.ui.theme.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -57,7 +62,6 @@ fun SettingsScreen(state: AppState) {
     // A local copy of the settings of the layout editor, stored by Save like the rest
     val editorBase = remember { ConfigManager.LayoutEditor.load() }
     var localEditor by remember { mutableStateOf(editorBase) }
-    val selectedTab = state.settingsTab
 
     Column(modifier = Modifier.fillMaxSize()) {
         // Header: ← Back | Save | Reset
@@ -85,27 +89,14 @@ fun SettingsScreen(state: AppState) {
         }
         HorizontalDivider(color = DarkenedBorder)
 
-        DarkTabRow(
-            tabs =
-                listOf(
-                    stringResource(Res.string.general),
-                    stringResource(Res.string.advanced),
-                    stringResource(Res.string.theme),
-                    "Layout Editor",
-                ),
-            selectedIndex = selectedTab,
-            onTabSelected = { state.settingsTab = it },
+        SettingsPages(
+            groups = settingsGroups(localConfig, { localConfig = it }, localEditor, { localEditor = it }),
+            group = state.settingsGroup,
+            onGroup = { state.settingsGroup = it },
+            section = state.settingsSection,
+            onSection = { state.settingsSection = it },
+            modifier = Modifier.weight(1f),
         )
-        HorizontalDivider(color = DarkenedBorder)
-
-        Box(modifier = Modifier.weight(1f)) {
-            when (selectedTab) {
-                0 -> GlobalTab(localConfig) { localConfig = it }
-                1 -> AdvancedTab(localConfig) { localConfig = it }
-                2 -> ThemeTab(localConfig) { localConfig = it }
-                3 -> LayoutEditorTab(localEditor) { localEditor = it }
-            }
-        }
 
         PoweredByFooter()
     }
@@ -132,101 +123,179 @@ private fun SettingsMenuButton(
 }
 
 @Composable
-private fun GlobalTab(
+private fun settingsGroups(
+    config: AppConfig,
+    onConfig: (AppConfig) -> Unit,
+    editor: LayoutEditorConfig,
+    onEditor: (LayoutEditorConfig) -> Unit,
+): List<SettingsGroup> =
+    listOf(
+        SettingsGroup(stringResource(Res.string.settings_global), globalSections(config, onConfig)),
+        SettingsGroup(stringResource(Res.string.settings_app), appSections(config, onConfig)),
+        SettingsGroup("Layout Editor", layoutEditorSettingsSections(editor, onEditor)),
+    )
+
+/** What both programs use: the language, the theme and the folders of the game and of the work drive. */
+@Composable
+private fun globalSections(
     config: AppConfig,
     onChange: (AppConfig) -> Unit,
-) {
-    Column(
-        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(5.dp),
-        verticalArrangement = Arrangement.spacedBy(5.dp),
-    ) {
-        SettingRow(stringResource(Res.string.game_folder)) {
-            PathField(value = config.gamePath, isFile = false) { onChange(config.copy(gamePath = it)) }
-        }
-        SettingRow(stringResource(Res.string.work_drive)) {
-            PathField(value = config.workDrivePath, isFile = false) { onChange(config.copy(workDrivePath = it)) }
-        }
-        SettingRow(stringResource(Res.string.workbench_folder)) {
-            PathField(value = config.workbenchPath, isFile = false) { onChange(config.copy(workbenchPath = it)) }
-        }
-        SettingRow(stringResource(Res.string.scripts_path)) {
-            PathField(value = config.scriptsPath, isFile = false) { onChange(config.copy(scriptsPath = it)) }
-        }
-        SettingRow(stringResource(Res.string.workbench_plugin_mod)) {
-            PathField(value = config.workbenchPluginPath, isFile = false) { onChange(config.copy(workbenchPluginPath = it)) }
-        }
-        SettingRow(stringResource(Res.string.language)) {
-            val system = Language.ofSystem()
-            DropdownField(
-                config.language ?: I18n.SYSTEM,
-                listOf(I18n.SYSTEM) + Language.entries.map { it.code },
-                { code ->
-                    if (code ==
-                        I18n.SYSTEM
-                    ) {
-                        str(Res.string.same_as_the_system_x, system.nativeName)
-                    } else {
-                        Language.byCode(code)?.nativeName ?: code
-                    }
-                },
-            ) { onChange(config.copy(language = it)) }
-        }
-        CheckRow(stringResource(Res.string.lock_window_size), config.lockWindowSize) { onChange(config.copy(lockWindowSize = it)) }
-        CheckRow(stringResource(Res.string.adaptive_scaling), config.adaptiveScale) { onChange(config.copy(adaptiveScale = it)) }
-        SettingRow(stringResource(Res.string.window_size)) {
-            DarkButton(
-                text = stringResource(Res.string.reset_to_default_400_400),
-                onClick = { onChange(config.copy(windowWidth = 400f, windowHeight = 400f)) },
-                modifier = Modifier.weight(1f),
-            )
-        }
-    }
+): List<SettingsSection> {
+    val language = stringResource(Res.string.language)
+    val theme = stringResource(Res.string.theme)
+    val game = stringResource(Res.string.game_folder)
+    val workDrive = stringResource(Res.string.work_drive)
+    val system = Language.ofSystem()
+    val sameAsSystem = stringResource(Res.string.same_as_the_system_x, system.nativeName)
+    return listOf(
+        SettingsSection(
+            id = "interface",
+            title = stringResource(Res.string.section_interface),
+            items =
+                listOf(
+                    SettingItem(Res.string.language) {
+                        SettingRow(language) {
+                            DropdownField(
+                                config.language ?: I18n.SYSTEM,
+                                listOf(I18n.SYSTEM) + Language.entries.map { it.code },
+                                { code -> if (code == I18n.SYSTEM) sameAsSystem else Language.byCode(code)?.nativeName ?: code },
+                            ) { onChange(config.copy(language = it)) }
+                        }
+                    },
+                ),
+        ),
+        SettingsSection(
+            id = "theme",
+            title = theme,
+            items =
+                listOf(
+                    SettingItem(Res.string.theme, listOf(Res.string.built_in, Res.string.custom)) {
+                        ThemeTab(config, onChange)
+                    },
+                ),
+        ),
+        SettingsSection(
+            id = "folders",
+            title = stringResource(Res.string.section_folders),
+            items =
+                listOf(
+                    SettingItem(Res.string.game_folder) {
+                        SettingRow(game) { PathField(value = config.gamePath, isFile = false) { onChange(config.copy(gamePath = it)) } }
+                    },
+                    SettingItem(Res.string.work_drive) {
+                        SettingRow(workDrive) {
+                            PathField(value = config.workDrivePath, isFile = false) { onChange(config.copy(workDrivePath = it)) }
+                        }
+                    },
+                ),
+        ),
+    )
 }
 
+/** The launcher itself: Workbench, the game, the processes to close and the window. */
 @Composable
-private fun AdvancedTab(
+private fun appSections(
     config: AppConfig,
     onChange: (AppConfig) -> Unit,
-) {
-    Column(
-        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(5.dp),
-        verticalArrangement = Arrangement.spacedBy(5.dp),
-    ) {
-        AdvancedRow(stringResource(Res.string.client_args), config.clientArgs, stringResource(Res.string.exe_args)) {
-            onChange(config.copy(clientArgs = it))
-        }
-        AdvancedRow(stringResource(Res.string.sandbox_args), config.sandboxArgs, stringResource(Res.string.exe_args)) {
-            onChange(config.copy(sandboxArgs = it))
-        }
-        AdvancedRow(stringResource(Res.string.server_args), config.serverArgs, stringResource(Res.string.exe_args)) {
-            onChange(config.copy(serverArgs = it))
-        }
-        AdvancedRow(stringResource(Res.string.workbench_args), config.workbenchArgs, stringResource(Res.string.exe_args)) {
-            onChange(config.copy(workbenchArgs = it))
-        }
-        CheckRow(stringResource(Res.string.auto_skip_workbench_assert_dialogs), config.skipWorkbenchAsserts) {
-            onChange(config.copy(skipWorkbenchAsserts = it))
-        }
-        KillListRow(config.autoKillTasks) { onChange(config.copy(autoKillTasks = it)) }
-        ScriptListRow(config.customWorkbenchScripts) { onChange(config.copy(customWorkbenchScripts = it)) }
-    }
-}
-
-@Composable
-private fun SettingRow(
-    label: String,
-    field: @Composable RowScope.() -> Unit,
-) {
-    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        Text(
-            text = label,
-            color = TextForeground,
-            fontSize = 12.sp,
-            lineHeight = 14.sp,
-            modifier = Modifier.width(110.dp).padding(start = 5.dp),
-        )
-        field()
-    }
+): List<SettingsSection> {
+    val workbench = stringResource(Res.string.workbench_folder)
+    val scripts = stringResource(Res.string.scripts_path)
+    val plugin = stringResource(Res.string.workbench_plugin_mod)
+    val workbenchArgs = stringResource(Res.string.workbench_args)
+    val asserts = stringResource(Res.string.auto_skip_workbench_assert_dialogs)
+    val workbenchScripts = stringResource(Res.string.workbench_scripts)
+    val clientArgs = stringResource(Res.string.client_args)
+    val sandboxArgs = stringResource(Res.string.sandbox_args)
+    val serverArgs = stringResource(Res.string.server_args)
+    val exeArgs = stringResource(Res.string.exe_args)
+    val killList = stringResource(Res.string.auto_kill_list)
+    val lock = stringResource(Res.string.lock_window_size)
+    val adaptive = stringResource(Res.string.adaptive_scaling)
+    val size = stringResource(Res.string.window_size)
+    return listOf(
+        SettingsSection(
+            id = "workbench",
+            title = "Workbench",
+            items =
+                listOf(
+                    SettingItem(Res.string.workbench_folder) {
+                        SettingRow(workbench) {
+                            PathField(value = config.workbenchPath, isFile = false) { onChange(config.copy(workbenchPath = it)) }
+                        }
+                    },
+                    SettingItem(Res.string.scripts_path) {
+                        SettingRow(scripts) {
+                            PathField(value = config.scriptsPath, isFile = false) { onChange(config.copy(scriptsPath = it)) }
+                        }
+                    },
+                    SettingItem(Res.string.workbench_plugin_mod) {
+                        SettingRow(plugin) {
+                            PathField(
+                                value = config.workbenchPluginPath,
+                                isFile = false,
+                            ) { onChange(config.copy(workbenchPluginPath = it)) }
+                        }
+                    },
+                    SettingItem(Res.string.workbench_args) {
+                        AdvancedRow(workbenchArgs, config.workbenchArgs, exeArgs) { onChange(config.copy(workbenchArgs = it)) }
+                    },
+                    SettingItem(Res.string.auto_skip_workbench_assert_dialogs) {
+                        CheckRow(asserts, config.skipWorkbenchAsserts) { onChange(config.copy(skipWorkbenchAsserts = it)) }
+                    },
+                    SettingItem(Res.string.workbench_scripts) {
+                        ScriptListRow(config.customWorkbenchScripts) { onChange(config.copy(customWorkbenchScripts = it)) }
+                    },
+                ),
+        ),
+        SettingsSection(
+            id = "game",
+            title = stringResource(Res.string.section_game),
+            items =
+                listOf(
+                    SettingItem(Res.string.client_args) {
+                        AdvancedRow(clientArgs, config.clientArgs, exeArgs) { onChange(config.copy(clientArgs = it)) }
+                    },
+                    SettingItem(Res.string.sandbox_args) {
+                        AdvancedRow(sandboxArgs, config.sandboxArgs, exeArgs) { onChange(config.copy(sandboxArgs = it)) }
+                    },
+                    SettingItem(Res.string.server_args) {
+                        AdvancedRow(serverArgs, config.serverArgs, exeArgs) { onChange(config.copy(serverArgs = it)) }
+                    },
+                ),
+        ),
+        SettingsSection(
+            id = "processes",
+            title = stringResource(Res.string.section_processes),
+            items =
+                listOf(
+                    SettingItem(
+                        Res.string.auto_kill_list,
+                    ) { KillListRow(config.autoKillTasks) { onChange(config.copy(autoKillTasks = it)) } },
+                ),
+        ),
+        SettingsSection(
+            id = "window",
+            title = stringResource(Res.string.window),
+            items =
+                listOf(
+                    SettingItem(
+                        Res.string.lock_window_size,
+                    ) { CheckRow(lock, config.lockWindowSize) { onChange(config.copy(lockWindowSize = it)) } },
+                    SettingItem(
+                        Res.string.adaptive_scaling,
+                    ) { CheckRow(adaptive, config.adaptiveScale) { onChange(config.copy(adaptiveScale = it)) } },
+                    SettingItem(Res.string.window_size) {
+                        SettingRow(size) {
+                            DarkButton(
+                                text = stringResource(Res.string.reset_to_default_400_400),
+                                onClick = { onChange(config.copy(windowWidth = 400f, windowHeight = 400f)) },
+                                modifier = Modifier.weight(1f),
+                            )
+                        }
+                    },
+                ),
+        ),
+    )
 }
 
 @Composable
@@ -755,44 +824,6 @@ private fun ProcessPickerDialog(
     }
 }
 
-/** The settings of the layout editor: the same form as in the preferences window of the editor, on a copy that Save stores. */
-@Composable
-private fun LayoutEditorTab(
-    config: LayoutEditorConfig,
-    onChange: (LayoutEditorConfig) -> Unit,
-) {
-    Column(
-        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(12.dp),
-        verticalArrangement = Arrangement.spacedBy(5.dp),
-    ) {
-        LayoutEditorSettingsForm(config, onChange)
-    }
-}
-
-@Composable
-private fun CheckRow(
-    label: String,
-    checked: Boolean,
-    onChange: (Boolean) -> Unit,
-) {
-    SettingRow(label) {
-        Box(
-            modifier =
-                Modifier
-                    .size(16.dp)
-                    .border(1.dp, SubSelectColor)
-                    .background(if (checked) SelectColor else FrameBackground)
-                    .clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null,
-                    ) { onChange(!checked) },
-            contentAlignment = Alignment.Center,
-        ) {
-            if (checked) Text("✓", color = TextForeground, fontSize = 9.sp, lineHeight = 10.sp)
-        }
-    }
-}
-
 @Composable
 private fun ThemeTab(
     config: AppConfig,
@@ -801,7 +832,7 @@ private fun ThemeTab(
     var editingTheme by remember { mutableStateOf<ThemeDefinition?>(null) }
 
     Column(
-        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(5.dp),
+        modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(3.dp),
     ) {
         Text(stringResource(Res.string.built_in), color = GhostlyText, fontSize = 10.sp, modifier = Modifier.padding(start = 4.dp))

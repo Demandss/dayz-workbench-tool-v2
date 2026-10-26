@@ -216,3 +216,13 @@ private fun McpPage(state: LayoutEditorState) {
     }
     Spacer(Modifier.height(4.dp))
 }
+
+@Composable
+private fun Heading(text: String) {
+    Text(text, color = TextForeground, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+}
+
+@Composable
+private fun Caption(text: String) {
+    Text(text.uppercase(), color = GhostlyText, fontSize = 10.sp, modifier = Modifier.padding(top = 8.dp))
+}
