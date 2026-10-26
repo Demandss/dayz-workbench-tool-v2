@@ -685,6 +685,20 @@ class LayoutEditorState(
         saveSession()
     }
 
+    /**
+     * Closes every tab of the file [path] or of a file inside it (a folder), without asking: the file is being renamed or deleted
+     * on the disk, so there is nothing left for the tab to save to.
+     */
+    fun closeTabsUnder(path: java.nio.file.Path) {
+        val root = runCatching { path.toFile().canonicalPath }.getOrDefault(path.toString())
+
+        fun inside(other: String) = other == root || other.startsWith(root + File.separator)
+        for (i in openFiles.indices.reversed()) if (inside(openFiles[i].path)) closeFile(i)
+        for (i in openTextures.indices.reversed()) if (inside(openTextures[i].path)) closeTexture(i)
+        for (i in openImageSets.indices.reversed()) if (inside(openImageSets[i].path)) dropImageSet(i)
+        for (i in openStyles.indices.reversed()) if (inside(openStyles[i].path)) dropStyles(i)
+    }
+
     // When the editor wrote a file itself, so that the watcher does not report it as a change from outside
     private val ownWrites = java.util.concurrent.ConcurrentHashMap<String, Long>()
 

@@ -370,10 +370,18 @@ fun FileTreePanel(
                             initialValue = entry.name,
                             onCommit = { newName ->
                                 renamingPath = null
-                                if (newName.isNotBlank() && newName != entry.name) {
+                                val clean = newName.trim()
+                                if (clean.isNotEmpty() && clean != entry.name) {
+                                    // The same names that a new file may not have: nothing that leads out of the folder
+                                    if (clean.any { it in "\\/:*?\"<>|" } || clean == "." || clean == "..") {
+                                        state.notify(str(Res.string.could_not_rename_x_x, entry.name, clean), ToastKind.ERROR)
+                                        return@InlineNameField
+                                    }
+                                    // The open tabs of the file would keep the old path, and saving them would bring the old file back
+                                    state.closeTabsUnder(entry.path)
                                     scope.launch(Dispatchers.IO) {
                                         runCatching {
-                                            Files.move(entry.path, entry.path.parent.resolve(newName))
+                                            Files.move(entry.path, entry.path.parent.resolve(clean))
                                         }.onFailure {
                                             state.notify(
                                                 str(Res.string.could_not_rename_x_x, entry.name, it.message ?: it.javaClass.simpleName),
@@ -546,6 +554,7 @@ fun FileTreePanel(
                 confirmLabel = stringResource(Res.string.delete),
                 danger = true,
             ) {
+                state.closeTabsUnder(target.path)
                 scope.launch(Dispatchers.IO) {
                     runCatching {
                         if (target.isDir) {
