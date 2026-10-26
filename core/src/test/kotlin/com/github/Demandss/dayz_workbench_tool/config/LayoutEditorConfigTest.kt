@@ -11,7 +11,7 @@ class LayoutEditorConfigTest {
                 windowWidth = 1500,
                 windowHeight = 900,
                 windowMaximized = true,
-                sessions = mapOf("k:/mods" to EditorSession(layouts = listOf("a.layout"))),
+                sessions = mapOf("work/mods" to EditorSession(layouts = listOf("a.layout"))),
             )
         val edited =
             LayoutEditorConfig(
@@ -31,7 +31,7 @@ class LayoutEditorConfigTest {
         assertEquals(1500, merged.windowWidth)
         assertEquals(900, merged.windowHeight)
         assertEquals(true, merged.windowMaximized)
-        assertEquals(listOf("a.layout"), merged.sessions.getValue("k:/mods").layouts)
+        assertEquals(listOf("a.layout"), merged.sessions.getValue("work/mods").layouts)
     }
 
     @Test

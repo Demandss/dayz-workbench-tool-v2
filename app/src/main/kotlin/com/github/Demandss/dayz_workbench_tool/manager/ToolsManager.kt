@@ -10,7 +10,8 @@ import kotlin.io.path.outputStream
 import kotlin.io.path.writeText
 
 object ToolsManager {
-    private val toolsDir: Path = Path(System.getenv("APPDATA")).resolve(".dayzworkbenchtool/tools")
+    /** Where the scripts of the tools are put; a test points it at a folder of its own. */
+    internal var toolsDir: Path = Path(System.getenv("APPDATA")).resolve(".dayzworkbenchtool/tools")
 
     private val toolFiles =
         listOf(
@@ -65,7 +66,7 @@ object ToolsManager {
     private val argRegex = Regex(""""[^"]*"|\S+""")
 
     // Quotes every argument, splits -connect=host:port into -connect/-port and enables Enfusion file patching resolve
-    private fun launchArgs(
+    internal fun launchArgs(
         args: String,
         splitConnect: Boolean,
     ): String {

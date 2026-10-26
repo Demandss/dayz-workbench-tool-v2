@@ -74,16 +74,4 @@ class StyleEditTest {
         assertEquals("4294967295", styleColorFromHex("#ffffffff"))
         assertNull(styleColorFromHex("zz"))
     }
-
-    @Test
-    fun `the vanilla file keeps its text when read and written`() {
-        val file = File("K:/MF_Mods/gui/looknfeel/dayzwidgets.styles")
-        if (!file.isFile) return
-        val text = file.readText().replace("\r\n", "\n")
-        val parsed = StylesFormat.parse(text)!!
-        assertEquals(parsed, StylesFormat.parse(StylesFormat.serialize(parsed)))
-        val again = StylesFormat.serialize(parsed)
-        val differing = text.lines().zip(again.lines()).count { (a, b) -> a.trim() != b.trim() }
-        assertEquals(0, differing, "lines that changed")
-    }
 }

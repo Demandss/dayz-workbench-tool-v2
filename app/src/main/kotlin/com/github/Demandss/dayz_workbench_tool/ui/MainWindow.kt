@@ -342,7 +342,7 @@ private fun SetupField(
 }
 
 @Composable
-private fun MainContent(state: AppState) {
+internal fun MainContent(state: AppState) {
     var toolsOpen by remember { mutableStateOf(false) }
     var showPluginDialog by remember { mutableStateOf(false) }
 

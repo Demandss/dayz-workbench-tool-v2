@@ -185,7 +185,7 @@ private fun SearchResults(
     if (!found) Text(stringResource(Res.string.nothing_found), color = GhostlyText, fontSize = 11.sp, modifier = Modifier.padding(5.dp))
 }
 
-private fun SettingItem.matches(
+internal fun SettingItem.matches(
     text: String,
     index: MutableMap<String, String>,
 ): Boolean {

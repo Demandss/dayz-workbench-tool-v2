@@ -25,6 +25,8 @@ dependencies {
     api("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.1")
 
     testImplementation(kotlin("test"))
+    // The tests of what reads the string resources need the native library of the graphics, like the programs
+    testImplementation(compose.desktop.currentOs)
 }
 
 // The strings of the interface for every module: `Res.string.*` of this package, in src/main/composeResources

@@ -16,8 +16,12 @@ import java.nio.file.Path
 
 enum class Screen { MAIN, SETTINGS, MODS }
 
-class AppState {
-    var config by mutableStateOf(ConfigManager.App.load())
+/** The state of the app. The two config managers are the real ones; a test gives its own, over a folder of its own. */
+class AppState(
+    private val appConfig: ConfigManager<AppConfig> = ConfigManager.App,
+    private val editorConfig: ConfigManager<LayoutEditorConfig> = ConfigManager.LayoutEditor,
+) {
+    var config by mutableStateOf(appConfig.load())
         private set
 
     val mods = mutableStateListOf<Modification>()
@@ -28,9 +32,14 @@ class AppState {
     init {
         // The language was a setting of the editor before: whoever chose one keeps it
         if (config.language == null) {
-            val carried = ConfigManager.LayoutEditor.readRawString("language") ?: I18n.SYSTEM
+            val carried = editorConfig.readRawString("language") ?: I18n.SYSTEM
             config = config.copy(language = carried)
-            ConfigManager.App.save(config)
+            appConfig.save(config)
+        }
+        // A saved language that the interface does not have (there were more of them once) becomes the language of the system
+        if (config.language != I18n.settingOf(config.language)) {
+            config = config.copy(language = I18n.settingOf(config.language))
+            appConfig.save(config)
         }
         I18n.setting = config.language ?: I18n.SYSTEM
         loadModsFromConfig()
@@ -71,7 +80,7 @@ class AppState {
         base: LayoutEditorConfig,
         edited: LayoutEditorConfig,
     ) {
-        ConfigManager.LayoutEditor.save(ConfigManager.LayoutEditor.load().withChanges(base, edited))
+        editorConfig.save(editorConfig.load().withChanges(base, edited))
         layoutEditorSettingsTick++
     }
 
@@ -82,7 +91,7 @@ class AppState {
         }
         config = newConfig
         I18n.setting = newConfig.language ?: I18n.SYSTEM
-        ConfigManager.App.save(newConfig)
+        appConfig.save(newConfig)
         loadModsFromConfig()
         ToolsManager.writeUserSettings(newConfig, mods.toList())
     }
@@ -126,7 +135,7 @@ class AppState {
         val clientEntries = mods.filter { it.side == ModSide.CLIENT }.map { it.toEntry() }
         val serverEntries = mods.filter { it.side == ModSide.SERVER }.map { it.toEntry() }
         config = config.copy(clientMods = clientEntries, serverMods = serverEntries)
-        ConfigManager.App.save(config)
+        appConfig.save(config)
         ToolsManager.writeUserSettings(config, mods.toList())
     }
 

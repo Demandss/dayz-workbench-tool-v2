@@ -4,17 +4,21 @@ import kotlinx.serialization.KSerializer
 import kotlinx.serialization.json.Json
 import kotlin.io.path.*
 
+/**
+ * One settings file: `<baseDir>/<subDir>/settings.json`. [baseDir] is the versioned folder in %APPDATA% unless a test gives its own.
+ */
 class ConfigManager<T>(
     subDir: String,
     private val serializer: KSerializer<T>,
     private val default: () -> T,
+    baseDir: java.nio.file.Path = defaultBaseDir(),
 ) {
     private val json =
         Json {
             prettyPrint = true
             ignoreUnknownKeys = true
         }
-    private val configDir = Path(System.getenv("APPDATA")).resolve(".dayzworkbenchtool/v2/$subDir")
+    private val configDir = baseDir.resolve(subDir)
     private val configFile = configDir.resolve("settings.json")
 
     /** A file next to the settings (`mcp.json` of the layout editor), in the same versioned folder. */
@@ -42,6 +46,9 @@ class ConfigManager<T>(
     }
 
     companion object {
+        /** `%APPDATA%/.dayzworkbenchtool/v2`: where the settings of the programs are. */
+        fun defaultBaseDir(): java.nio.file.Path = Path(System.getenv("APPDATA")).resolve(".dayzworkbenchtool/v2")
+
         val App = ConfigManager("app", AppConfig.serializer(), ::AppConfig)
         val LayoutEditor = ConfigManager("layout-editor", LayoutEditorConfig.serializer(), ::LayoutEditorConfig)
 
