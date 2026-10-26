@@ -33,6 +33,7 @@ import com.github.demandss.dayz_workbench_tool.config.LayoutEditorConfig
 import com.github.demandss.dayz_workbench_tool.config.withSettingsFrom
 import com.github.demandss.dayz_workbench_tool.i18n.I18n
 import com.github.demandss.dayz_workbench_tool.i18n.Language
+import com.github.demandss.dayz_workbench_tool.i18n.tr
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.DropdownField
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.LayoutEditorSettingsForm
 import com.github.demandss.dayz_workbench_tool.state.AppState
@@ -69,13 +70,13 @@ fun SettingsScreen(state: AppState) {
                         drawLine(borderColor, Offset(0f, size.height - 1f), Offset(size.width, size.height - 1f), 1f)
                     },
         ) {
-            SettingsMenuButton("← Back") { state.navigate(Screen.MAIN) }
-            SettingsMenuButton("Save") {
+            SettingsMenuButton(tr("← Назад")) { state.navigate(Screen.MAIN) }
+            SettingsMenuButton(tr("Сохранить")) {
                 state.updateConfig(localConfig)
                 state.saveLayoutEditorSettings(editorBase, localEditor)
                 state.navigate(Screen.MAIN)
             }
-            SettingsMenuButton("Reset") {
+            SettingsMenuButton(tr("Сбросить")) {
                 localConfig = AppConfig()
                 localEditor = editorBase.withSettingsFrom(LayoutEditorConfig())
             }
@@ -83,7 +84,7 @@ fun SettingsScreen(state: AppState) {
         HorizontalDivider(color = DarkenedBorder)
 
         DarkTabRow(
-            tabs = listOf("Global", "Advanced", "Theme", "Layout Editor"),
+            tabs = listOf(tr("Общие"), tr("Дополнительно"), tr("Тема"), "Layout Editor"),
             selectedIndex = selectedTab,
             onTabSelected = { selectedTab = it },
         )
@@ -131,34 +132,42 @@ private fun GlobalTab(
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(5.dp),
         verticalArrangement = Arrangement.spacedBy(5.dp),
     ) {
-        SettingRow("Game folder") {
+        SettingRow(tr("Папка игры")) {
             PathField(value = config.gamePath, isFile = false) { onChange(config.copy(gamePath = it)) }
         }
-        SettingRow("Work drive path") {
+        SettingRow(tr("Рабочий диск")) {
             PathField(value = config.workDrivePath, isFile = false) { onChange(config.copy(workDrivePath = it)) }
         }
-        SettingRow("Workbench folder") {
+        SettingRow(tr("Папка Workbench")) {
             PathField(value = config.workbenchPath, isFile = false) { onChange(config.copy(workbenchPath = it)) }
         }
-        SettingRow("Scripts path") {
+        SettingRow(tr("Путь к скриптам")) {
             PathField(value = config.scriptsPath, isFile = false) { onChange(config.copy(scriptsPath = it)) }
         }
-        SettingRow("Workbench plugin mod") {
+        SettingRow(tr("Мод-плагин Workbench")) {
             PathField(value = config.workbenchPluginPath, isFile = false) { onChange(config.copy(workbenchPluginPath = it)) }
         }
-        SettingRow("Language") {
+        SettingRow(tr("Язык")) {
             val system = Language.ofSystem()
             DropdownField(
                 config.language ?: I18n.SYSTEM,
                 listOf(I18n.SYSTEM) + Language.entries.map { it.code },
-                { code -> if (code == I18n.SYSTEM) "System: ${system.nativeName}" else Language.byCode(code)?.nativeName ?: code },
+                { code ->
+                    if (code ==
+                        I18n.SYSTEM
+                    ) {
+                        tr("Как в системе: {0}", system.nativeName)
+                    } else {
+                        Language.byCode(code)?.nativeName ?: code
+                    }
+                },
             ) { onChange(config.copy(language = it)) }
         }
-        CheckRow("Lock window size", config.lockWindowSize) { onChange(config.copy(lockWindowSize = it)) }
-        CheckRow("Adaptive scaling", config.adaptiveScale) { onChange(config.copy(adaptiveScale = it)) }
-        SettingRow("Window size") {
+        CheckRow(tr("Зафиксировать размер окна"), config.lockWindowSize) { onChange(config.copy(lockWindowSize = it)) }
+        CheckRow(tr("Адаптивный масштаб"), config.adaptiveScale) { onChange(config.copy(adaptiveScale = it)) }
+        SettingRow(tr("Размер окна")) {
             DarkButton(
-                text = "Reset to default (400 × 400)",
+                text = tr("Вернуть по умолчанию (400 × 400)"),
                 onClick = { onChange(config.copy(windowWidth = 400f, windowHeight = 400f)) },
                 modifier = Modifier.weight(1f),
             )
@@ -175,11 +184,11 @@ private fun AdvancedTab(
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(5.dp),
         verticalArrangement = Arrangement.spacedBy(5.dp),
     ) {
-        AdvancedRow("Client args", config.clientArgs, "exe args") { onChange(config.copy(clientArgs = it)) }
-        AdvancedRow("Sandbox args", config.sandboxArgs, "exe args") { onChange(config.copy(sandboxArgs = it)) }
-        AdvancedRow("Server args", config.serverArgs, "exe args") { onChange(config.copy(serverArgs = it)) }
-        AdvancedRow("Workbench args", config.workbenchArgs, "exe args") { onChange(config.copy(workbenchArgs = it)) }
-        CheckRow("Auto-skip Workbench assert dialogs", config.skipWorkbenchAsserts) { onChange(config.copy(skipWorkbenchAsserts = it)) }
+        AdvancedRow(tr("Аргументы клиента"), config.clientArgs, tr("аргументы exe")) { onChange(config.copy(clientArgs = it)) }
+        AdvancedRow(tr("Аргументы песочницы"), config.sandboxArgs, tr("аргументы exe")) { onChange(config.copy(sandboxArgs = it)) }
+        AdvancedRow(tr("Аргументы сервера"), config.serverArgs, tr("аргументы exe")) { onChange(config.copy(serverArgs = it)) }
+        AdvancedRow(tr("Аргументы Workbench"), config.workbenchArgs, tr("аргументы exe")) { onChange(config.copy(workbenchArgs = it)) }
+        CheckRow(tr("Пропускать окна assert в Workbench"), config.skipWorkbenchAsserts) { onChange(config.copy(skipWorkbenchAsserts = it)) }
         KillListRow(config.autoKillTasks) { onChange(config.copy(autoKillTasks = it)) }
         ScriptListRow(config.customWorkbenchScripts) { onChange(config.copy(customWorkbenchScripts = it)) }
     }
@@ -244,7 +253,16 @@ private fun RowScope.PathField(
                                 value.takeIf { it.isNotBlank() }?.let {
                                     if (isFile) File(it).parent else it
                                 }
-                            val picked = if (isFile) pickFile("Select executable", "exe", dir) else pickDirectory("Select directory", dir)
+                            val picked =
+                                if (isFile) {
+                                    pickFile(
+                                        tr("Выберите исполняемый файл"),
+                                        "exe",
+                                        dir,
+                                    )
+                                } else {
+                                    pickDirectory(tr("Выберите папку"), dir)
+                                }
                             picked?.let { onChange(it) }
                         }
                     },
@@ -324,7 +342,7 @@ private fun KillListRow(
 ) {
     var showDialog by remember { mutableStateOf(false) }
 
-    SettingRow("Auto kill list") {
+    SettingRow(tr("Список автозавершения")) {
         Row(modifier = Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
             Box(
                 modifier =
@@ -337,7 +355,7 @@ private fun KillListRow(
                 contentAlignment = Alignment.CenterStart,
             ) {
                 Text(
-                    text = if (tasks.isEmpty()) "No tasks" else tasks.joinToString(", "),
+                    text = if (tasks.isEmpty()) tr("Нет задач") else tasks.joinToString(", "),
                     color = if (tasks.isEmpty()) GhostlyText else TextForeground,
                     fontSize = 11.sp,
                     maxLines = 1,
@@ -393,7 +411,7 @@ private fun KillListDialog(
                     .padding(10.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Text("Auto kill list", color = TextForeground, fontSize = 12.sp)
+            Text(tr("Список автозавершения"), color = TextForeground, fontSize = 12.sp)
 
             Column(
                 modifier =
@@ -407,7 +425,7 @@ private fun KillListDialog(
                 verticalArrangement = Arrangement.spacedBy(3.dp),
             ) {
                 if (localTasks.isEmpty()) {
-                    Text("No tasks added", color = GhostlyText, fontSize = 11.sp, modifier = Modifier.padding(4.dp))
+                    Text(tr("Задачи не добавлены"), color = GhostlyText, fontSize = 11.sp, modifier = Modifier.padding(4.dp))
                 } else {
                     localTasks.forEach { task ->
                         KillTaskItem(name = task, onRemove = { localTasks = localTasks - task })
@@ -416,23 +434,23 @@ private fun KillListDialog(
             }
 
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                DarkButton("+ Browse .exe", modifier = Modifier.weight(1f), onClick = {
+                DarkButton(tr("+ Выбрать .exe"), modifier = Modifier.weight(1f), onClick = {
                     scope.launch {
-                        val picked = pickFile("Select executable", "exe", null)
+                        val picked = pickFile(tr("Выберите исполняемый файл"), "exe", null)
                         picked?.let {
                             val name = File(it).name
                             if (name !in localTasks) localTasks = localTasks + name
                         }
                     }
                 })
-                DarkButton("+ Running", modifier = Modifier.weight(1f), onClick = {
+                DarkButton(tr("+ Запущенные"), modifier = Modifier.weight(1f), onClick = {
                     showProcessPicker = true
                 })
             }
 
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                DarkButton("Save", onClick = { onSave(localTasks) }, modifier = Modifier.weight(1f))
-                DarkButton("Cancel", onClick = onDismiss, modifier = Modifier.weight(1f))
+                DarkButton(tr("Сохранить"), onClick = { onSave(localTasks) }, modifier = Modifier.weight(1f))
+                DarkButton(tr("Отмена"), onClick = onDismiss, modifier = Modifier.weight(1f))
             }
         }
     }
@@ -497,7 +515,7 @@ private fun ScriptListRow(
 ) {
     var showDialog by remember { mutableStateOf(false) }
 
-    SettingRow("Workbench scripts") {
+    SettingRow(tr("Скрипты Workbench")) {
         Row(modifier = Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
             Box(
                 modifier =
@@ -512,7 +530,7 @@ private fun ScriptListRow(
                 Text(
                     text =
                         if (scripts.isEmpty()) {
-                            "Default (workbenchApp.exe)"
+                            tr("По умолчанию (workbenchApp.exe)")
                         } else {
                             scripts.joinToString(", ") { File(it).name }
                         },
@@ -570,9 +588,9 @@ private fun ScriptListDialog(
                     .padding(10.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Text("Workbench scripts", color = TextForeground, fontSize = 12.sp)
+            Text(tr("Скрипты Workbench"), color = TextForeground, fontSize = 12.sp)
             Text(
-                "These launch alongside workbenchApp.exe when Workbench is clicked.",
+                tr("Запускаются вместе с workbenchApp.exe при нажатии Workbench."),
                 color = GhostlyText,
                 fontSize = 10.sp,
                 lineHeight = 14.sp,
@@ -590,7 +608,7 @@ private fun ScriptListDialog(
                 verticalArrangement = Arrangement.spacedBy(3.dp),
             ) {
                 if (localScripts.isEmpty()) {
-                    Text("No scripts added", color = GhostlyText, fontSize = 11.sp, modifier = Modifier.padding(4.dp))
+                    Text(tr("Скрипты не добавлены"), color = GhostlyText, fontSize = 11.sp, modifier = Modifier.padding(4.dp))
                 } else {
                     localScripts.forEach { path ->
                         KillTaskItem(name = File(path).name, onRemove = { localScripts = localScripts - path })
@@ -598,16 +616,16 @@ private fun ScriptListDialog(
                 }
             }
 
-            DarkButton("+ Browse .bat / .exe", modifier = Modifier.fillMaxWidth(), onClick = {
+            DarkButton(tr("+ Выбрать .bat / .exe"), modifier = Modifier.fillMaxWidth(), onClick = {
                 scope.launch {
-                    val picked = pickFile("Select script", "bat;exe", null)
+                    val picked = pickFile(tr("Выберите скрипт"), "bat;exe", null)
                     picked?.let { if (it !in localScripts) localScripts = localScripts + it }
                 }
             })
 
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                DarkButton("Save", onClick = { onSave(localScripts) }, modifier = Modifier.weight(1f))
-                DarkButton("Cancel", onClick = onDismiss, modifier = Modifier.weight(1f))
+                DarkButton(tr("Сохранить"), onClick = { onSave(localScripts) }, modifier = Modifier.weight(1f))
+                DarkButton(tr("Отмена"), onClick = onDismiss, modifier = Modifier.weight(1f))
             }
         }
     }
@@ -650,7 +668,7 @@ private fun ProcessPickerDialog(
                     .padding(10.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Text("Running processes", color = TextForeground, fontSize = 12.sp)
+            Text(tr("Запущенные процессы"), color = TextForeground, fontSize = 12.sp)
 
             BasicTextField(
                 value = filter,
@@ -666,7 +684,7 @@ private fun ProcessPickerDialog(
                 singleLine = true,
                 decorationBox = { inner ->
                     Box(contentAlignment = Alignment.CenterStart) {
-                        if (filter.isEmpty()) Text("Filter...", color = GhostlyText, fontSize = 11.sp)
+                        if (filter.isEmpty()) Text(tr("Фильтр…"), color = GhostlyText, fontSize = 11.sp)
                         inner()
                     }
                 },
@@ -685,7 +703,7 @@ private fun ProcessPickerDialog(
             ) {
                 if (processes.isEmpty()) {
                     Box(Modifier.fillMaxWidth().padding(8.dp), contentAlignment = Alignment.Center) {
-                        Text("Loading...", color = GhostlyText, fontSize = 11.sp)
+                        Text(tr("Загрузка…"), color = GhostlyText, fontSize = 11.sp)
                     }
                 } else {
                     filtered.forEach { proc ->
@@ -714,7 +732,7 @@ private fun ProcessPickerDialog(
                 }
             }
 
-            DarkButton("Cancel", onClick = onDismiss, modifier = Modifier.fillMaxWidth())
+            DarkButton(tr("Отмена"), onClick = onDismiss, modifier = Modifier.fillMaxWidth())
         }
     }
 }
@@ -768,7 +786,7 @@ private fun ThemeTab(
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(5.dp),
         verticalArrangement = Arrangement.spacedBy(3.dp),
     ) {
-        Text("Built-in", color = GhostlyText, fontSize = 10.sp, modifier = Modifier.padding(start = 4.dp))
+        Text(tr("Встроенные"), color = GhostlyText, fontSize = 10.sp, modifier = Modifier.padding(start = 4.dp))
         Spacer(Modifier.height(2.dp))
         BuiltinThemes.all.forEach { theme ->
             ThemeRow(
@@ -779,18 +797,18 @@ private fun ThemeTab(
                     editingTheme =
                         theme.copy(
                             id = "custom_${System.currentTimeMillis()}",
-                            name = "${theme.name} Copy",
+                            name = tr("{0} (копия)", theme.name),
                         )
                 },
             )
         }
 
         Spacer(Modifier.height(6.dp))
-        Text("Custom", color = GhostlyText, fontSize = 10.sp, modifier = Modifier.padding(start = 4.dp))
+        Text(tr("Свои"), color = GhostlyText, fontSize = 10.sp, modifier = Modifier.padding(start = 4.dp))
         Spacer(Modifier.height(2.dp))
 
         if (config.customThemes.isEmpty()) {
-            Text("No custom themes", color = GhostlyText, fontSize = 11.sp, modifier = Modifier.padding(start = 8.dp, bottom = 2.dp))
+            Text(tr("Своих тем нет"), color = GhostlyText, fontSize = 11.sp, modifier = Modifier.padding(start = 8.dp, bottom = 2.dp))
         }
         config.customThemes.forEach { theme ->
             ThemeRow(
@@ -801,7 +819,7 @@ private fun ThemeTab(
                     editingTheme =
                         theme.copy(
                             id = "custom_${System.currentTimeMillis()}",
-                            name = "${theme.name} Copy",
+                            name = tr("{0} (копия)", theme.name),
                         )
                 },
                 onEdit = { editingTheme = theme },
@@ -814,12 +832,12 @@ private fun ThemeTab(
         }
 
         Spacer(Modifier.height(4.dp))
-        DarkButton("+ New Theme", onClick = {
+        DarkButton(tr("+ Новая тема"), onClick = {
             val base =
                 BuiltinThemes.findById(config.selectedTheme)
                     ?: config.customThemes.find { it.id == config.selectedTheme }
                     ?: BuiltinThemes.Dark
-            editingTheme = base.copy(id = "custom_${System.currentTimeMillis()}", name = "My Theme")
+            editingTheme = base.copy(id = "custom_${System.currentTimeMillis()}", name = tr("Моя тема"))
         })
     }
 
@@ -959,10 +977,10 @@ private fun ThemeEditorDialog(
                     .padding(10.dp),
             verticalArrangement = Arrangement.spacedBy(5.dp),
         ) {
-            Text("Theme Editor", color = TextForeground, fontSize = 12.sp)
+            Text(tr("Редактор темы"), color = TextForeground, fontSize = 12.sp)
 
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text("Name", color = GhostlyText, fontSize = 11.sp, modifier = Modifier.width(120.dp))
+                Text(tr("Имя"), color = GhostlyText, fontSize = 11.sp, modifier = Modifier.width(120.dp))
                 BasicTextField(
                     value = name,
                     onValueChange = { name = it },
@@ -986,26 +1004,34 @@ private fun ThemeEditorDialog(
                         .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(5.dp),
             ) {
-                CollapsibleSection("UI Colors") {
-                    ThemeColorRow("Frame Background", frameBackground) { frameBackground = it }
-                    ThemeColorRow("Elements Background", elementsBackground) { elementsBackground = it }
-                    ThemeColorRow("Selection", selectColor) { selectColor = it }
-                    ThemeColorRow("Accent", subSelectColor) { subSelectColor = it }
-                    ThemeColorRow("Border", darkenedBorder) { darkenedBorder = it }
-                    ThemeColorRow("Text", textForeground) { textForeground = it }
-                    ThemeColorRow("Dim Text", ghostlyText) { ghostlyText = it }
+                CollapsibleSection(tr("Цвета интерфейса")) {
+                    ThemeColorRow(tr("Фон окна"), frameBackground) { frameBackground = it }
+                    ThemeColorRow(tr("Фон элементов"), elementsBackground) { elementsBackground = it }
+                    ThemeColorRow(tr("Выделение"), selectColor) { selectColor = it }
+                    ThemeColorRow(tr("Акцент"), subSelectColor) { subSelectColor = it }
+                    ThemeColorRow(tr("Рамка"), darkenedBorder) { darkenedBorder = it }
+                    ThemeColorRow(tr("Текст"), textForeground) { textForeground = it }
+                    ThemeColorRow(tr("Приглушённый текст"), ghostlyText) { ghostlyText = it }
                 }
-                CollapsibleSection("Icons") {
-                    ThemeColorRow("Client Side", modIconClientSide, "assets/images/mod_client_side.svg") { modIconClientSide = it }
-                    ThemeColorRow("Server Side", modIconServerSide, "assets/images/mod_server_side.svg") { modIconServerSide = it }
-                    ThemeColorRow("Enabled", modIconEnabled, "assets/images/mod_enabled.svg") { modIconEnabled = it }
-                    ThemeColorRow("Disabled", modIconDisabled, "assets/images/mod_disebled.svg") { modIconDisabled = it }
+                CollapsibleSection(tr("Значки")) {
+                    ThemeColorRow(
+                        tr("Клиентская сторона"),
+                        modIconClientSide,
+                        "assets/images/mod_client_side.svg",
+                    ) { modIconClientSide = it }
+                    ThemeColorRow(
+                        tr("Серверная сторона"),
+                        modIconServerSide,
+                        "assets/images/mod_server_side.svg",
+                    ) { modIconServerSide = it }
+                    ThemeColorRow(tr("Включён"), modIconEnabled, "assets/images/mod_enabled.svg") { modIconEnabled = it }
+                    ThemeColorRow(tr("Выключен"), modIconDisabled, "assets/images/mod_disebled.svg") { modIconDisabled = it }
                     ThemeColorRow("Workshop", modIconWorkshop, "assets/images/workshop.svg") { modIconWorkshop = it }
                 }
             }
 
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                DarkButton("Save", onClick = {
+                DarkButton(tr("Сохранить"), onClick = {
                     onSave(
                         initial.copy(
                             name = name.ifBlank { initial.name },
@@ -1024,7 +1050,7 @@ private fun ThemeEditorDialog(
                         ),
                     )
                 }, modifier = Modifier.weight(1f))
-                DarkButton("Cancel", onClick = onDismiss, modifier = Modifier.weight(1f))
+                DarkButton(tr("Отмена"), onClick = onDismiss, modifier = Modifier.weight(1f))
             }
         }
     }
@@ -1141,8 +1167,8 @@ private fun TextEditDialog(
                 textStyle = TextStyle(color = TextForeground, fontSize = 11.sp),
             )
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                DarkButton("Save", onClick = { onSave(text) }, modifier = Modifier.weight(1f))
-                DarkButton("Cancel", onClick = onDismiss, modifier = Modifier.weight(1f))
+                DarkButton(tr("Сохранить"), onClick = { onSave(text) }, modifier = Modifier.weight(1f))
+                DarkButton(tr("Отмена"), onClick = onDismiss, modifier = Modifier.weight(1f))
             }
         }
     }

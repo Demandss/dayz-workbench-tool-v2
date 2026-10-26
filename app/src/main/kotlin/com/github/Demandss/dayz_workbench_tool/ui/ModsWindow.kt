@@ -20,6 +20,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import com.github.demandss.dayz_workbench_tool.i18n.tr
 import com.github.demandss.dayz_workbench_tool.model.ModSide
 import com.github.demandss.dayz_workbench_tool.model.Modification
 import com.github.demandss.dayz_workbench_tool.state.AppState
@@ -134,7 +135,7 @@ fun ModsScreen(state: AppState) {
                         .padding(horizontal = 8.dp),
                 contentAlignment = Alignment.Center,
             ) {
-                Text("← Back", color = TextForeground, fontSize = 10.sp)
+                Text(tr("← Назад"), color = TextForeground, fontSize = 10.sp)
             }
             Spacer(Modifier.weight(1f))
 
@@ -150,7 +151,7 @@ fun ModsScreen(state: AppState) {
                             .padding(horizontal = 8.dp),
                     contentAlignment = Alignment.Center,
                 ) {
-                    Text("Filter: ${filter.name}", color = TextForeground, fontSize = 10.sp)
+                    Text(tr("Фильтр: {0}", filter.name), color = TextForeground, fontSize = 10.sp)
                 }
                 DropdownMenu(
                     expanded = filterMenuOpen,
@@ -194,7 +195,7 @@ fun ModsScreen(state: AppState) {
                 singleLine = true,
                 decorationBox = { inner ->
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.CenterStart) {
-                        if (search.isEmpty()) Text("search mods..", color = GhostlyText, fontSize = 10.sp)
+                        if (search.isEmpty()) Text(tr("поиск модов…"), color = GhostlyText, fontSize = 10.sp)
                         inner()
                     }
                 },
@@ -219,13 +220,13 @@ fun ModsScreen(state: AppState) {
 
                 if (showEnable) {
                     DropdownMenuItem(
-                        text = { Text("Enable", color = TextForeground, fontSize = 10.sp) },
+                        text = { Text(tr("Включить"), color = TextForeground, fontSize = 10.sp) },
                         onClick = {
                             dismiss()
                             val toEnable = liveMods.filter { !it.enabled }
                             pendingAction =
                                 PendingAction(
-                                    title = "Enable mods",
+                                    title = tr("Включить моды"),
                                     mods = toEnable,
                                     onConfirm = {
                                         toEnable.forEach { state.toggleEnabled(it) }
@@ -238,13 +239,13 @@ fun ModsScreen(state: AppState) {
                 }
                 if (showDisable) {
                     DropdownMenuItem(
-                        text = { Text("Disable", color = TextForeground, fontSize = 10.sp) },
+                        text = { Text(tr("Выключить"), color = TextForeground, fontSize = 10.sp) },
                         onClick = {
                             dismiss()
                             val toDisable = liveMods.filter { it.enabled }
                             pendingAction =
                                 PendingAction(
-                                    title = "Disable mods",
+                                    title = tr("Выключить моды"),
                                     mods = toDisable,
                                     onConfirm = {
                                         toDisable.forEach { state.toggleEnabled(it) }
@@ -256,12 +257,12 @@ fun ModsScreen(state: AppState) {
                     )
                 }
                 DropdownMenuItem(
-                    text = { Text("Remove", color = TextForeground, fontSize = 10.sp) },
+                    text = { Text(tr("Удалить"), color = TextForeground, fontSize = 10.sp) },
                     onClick = {
                         dismiss()
                         pendingAction =
                             PendingAction(
-                                title = "Remove mods",
+                                title = tr("Удалить моды"),
                                 mods = liveMods,
                                 onConfirm = {
                                     liveMods.forEach { state.removeMod(it) }
@@ -275,7 +276,7 @@ fun ModsScreen(state: AppState) {
                     val singleMod = liveMods.firstOrNull()
                     if (singleMod != null && File(singleMod.path).exists()) {
                         DropdownMenuItem(
-                            text = { Text("Open location", color = TextForeground, fontSize = 10.sp) },
+                            text = { Text(tr("Открыть папку"), color = TextForeground, fontSize = 10.sp) },
                             onClick = {
                                 dismiss()
                                 scope.launch(Dispatchers.IO) {
@@ -290,7 +291,7 @@ fun ModsScreen(state: AppState) {
                         )
                     }
                     DropdownMenuItem(
-                        text = { Text("Info", color = TextForeground, fontSize = 10.sp) },
+                        text = { Text(tr("Сведения"), color = TextForeground, fontSize = 10.sp) },
                         onClick = {
                             infoMod = liveMods.firstOrNull()
                             dismiss()
@@ -318,7 +319,7 @@ fun ModsScreen(state: AppState) {
                     infoMod = null
                     pendingAction =
                         PendingAction(
-                            title = if (live.enabled) "Disable mod" else "Enable mod",
+                            title = if (live.enabled) tr("Выключить мод") else tr("Включить мод"),
                             mods = listOf(live),
                             onConfirm = { state.toggleEnabled(live) },
                         )
@@ -329,7 +330,7 @@ fun ModsScreen(state: AppState) {
                     infoMod = null
                     pendingAction =
                         PendingAction(
-                            title = if (live.side == ModSide.CLIENT) "Move to server" else "Move to client",
+                            title = if (live.side == ModSide.CLIENT) tr("Перенести на сервер") else tr("Перенести на клиент"),
                             mods = listOf(live),
                             onConfirm = { state.switchSide(live) },
                         )
@@ -340,7 +341,7 @@ fun ModsScreen(state: AppState) {
                     infoMod = null
                     pendingAction =
                         PendingAction(
-                            title = "Remove mod",
+                            title = tr("Удалить мод"),
                             mods = listOf(live),
                             onConfirm = {
                                 state.removeMod(live)
@@ -384,11 +385,11 @@ private fun ConfirmDialog(
                 }
             }
             Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                DarkButton("Confirm", onClick = {
+                DarkButton(tr("Подтвердить"), onClick = {
                     action.onConfirm()
                     onDismiss()
                 }, modifier = Modifier.weight(1f))
-                DarkButton("Cancel", onClick = onDismiss, modifier = Modifier.weight(1f))
+                DarkButton(tr("Отмена"), onClick = onDismiss, modifier = Modifier.weight(1f))
             }
         }
     }
@@ -417,26 +418,26 @@ private fun ModInfoDialog(
             Text(mod.name, color = TextForeground, fontSize = 12.sp)
             Text(mod.path, color = GhostlyText, fontSize = 10.sp, lineHeight = 14.sp)
             Text(
-                if (isMissing) "✗ Directory not found" else "✓ Directory found",
+                if (isMissing) tr("✗ Папка не найдена") else tr("✓ Папка найдена"),
                 color = if (isMissing) GhostlyText else TextForeground,
                 fontSize = 10.sp,
             )
             Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 DarkButton(
-                    text = if (mod.enabled) "Disable" else "Enable",
+                    text = if (mod.enabled) tr("Выключить") else tr("Включить"),
                     onClick = onToggleEnabled,
                     modifier = Modifier.weight(1f),
                 )
                 DarkButton(
-                    text = if (mod.side == ModSide.CLIENT) "→ Server" else "→ Client",
+                    text = if (mod.side == ModSide.CLIENT) tr("→ Сервер") else tr("→ Клиент"),
                     onClick = onSwitchSide,
                     modifier = Modifier.weight(1f),
                 )
             }
             Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                DarkButton("Open", onClick = onOpenLocation, modifier = Modifier.weight(1f), enabled = !isMissing)
-                DarkButton("Remove", onClick = onRemove, modifier = Modifier.weight(1f))
-                DarkButton("Close", onClick = onDismiss, modifier = Modifier.weight(1f))
+                DarkButton(tr("Открыть"), onClick = onOpenLocation, modifier = Modifier.weight(1f), enabled = !isMissing)
+                DarkButton(tr("Удалить"), onClick = onRemove, modifier = Modifier.weight(1f))
+                DarkButton(tr("Закрыть"), onClick = onDismiss, modifier = Modifier.weight(1f))
             }
         }
     }

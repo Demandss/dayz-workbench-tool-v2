@@ -29,6 +29,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.rememberWindowState
 import com.github.demandss.dayz_workbench_tool.config.ConfigManager
+import com.github.demandss.dayz_workbench_tool.i18n.tr
 import com.github.demandss.dayz_workbench_tool.manager.ModificationManager
 import com.github.demandss.dayz_workbench_tool.manager.ProcessManager
 import com.github.demandss.dayz_workbench_tool.state.AppState
@@ -66,8 +67,8 @@ fun MainWindow(
     val windowTitle =
         when (state.currentScreen) {
             Screen.MAIN -> "DayZ Workbench Tool"
-            Screen.SETTINGS -> "DayZ Workbench Tool - Settings"
-            Screen.MODS -> "DayZ Workbench Tool - Mods Setting"
+            Screen.SETTINGS -> "DayZ Workbench Tool - ${tr("Настройки")}"
+            Screen.MODS -> "DayZ Workbench Tool - ${tr("Настройка модов")}"
         }
     val themeColors =
         remember(state.config.selectedTheme, state.config.customThemes) {
@@ -192,21 +193,21 @@ private fun WorkDriveMissingDialog(
                     .padding(12.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            Text("Work drive not found", color = TextForeground, fontSize = 13.sp)
+            Text(tr("Рабочий диск не найден"), color = TextForeground, fontSize = 13.sp)
             Text(
-                "\"$path\" is missing or not mounted.\nSelect another folder or close the app.",
+                tr("«{0}» не найден или не подключён. Выберите другую папку или закройте приложение.", path),
                 color = GhostlyText,
                 fontSize = 11.sp,
                 lineHeight = 15.sp,
             )
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                DarkButton("Select another", modifier = Modifier.weight(1f), onClick = {
+                DarkButton(tr("Выбрать другую"), modifier = Modifier.weight(1f), onClick = {
                     scope.launch {
-                        val picked = pickDirectory("Select work drive folder", null)
+                        val picked = pickDirectory(tr("Выберите папку рабочего диска"), null)
                         picked?.let { onSelect(it) }
                     }
                 })
-                DarkButton("Close", modifier = Modifier.weight(1f), onClick = onClose)
+                DarkButton(tr("Закрыть"), modifier = Modifier.weight(1f), onClick = onClose)
             }
         }
     }
@@ -218,7 +219,7 @@ private fun InitialSetupDialog(state: AppState) {
     var workbenchPath by remember { mutableStateOf(state.config.workbenchPath) }
     var workDrive by remember { mutableStateOf(state.config.workDrivePath.ifBlank { "P:" }) }
     var scriptsPath by remember { mutableStateOf(state.config.scriptsPath.ifBlank { "P:\\scripts" }) }
-    var statusText by remember { mutableStateOf("Detecting Steam installations...") }
+    var statusText by remember { mutableStateOf(tr("Поиск установок Steam…")) }
 
     LaunchedEffect(Unit) {
         val detected = withContext(Dispatchers.IO) { SteamDetector.detect() }
@@ -231,7 +232,7 @@ private fun InitialSetupDialog(state: AppState) {
             workbenchPath = detected.workbenchPath
             found = true
         }
-        statusText = if (found) "Paths auto-detected from Steam" else "Steam not found — enter paths manually"
+        statusText = if (found) tr("Пути найдены автоматически через Steam") else tr("Steam не найден — введите пути вручную")
     }
 
     Dialog(onDismissRequest = {}) {
@@ -244,15 +245,15 @@ private fun InitialSetupDialog(state: AppState) {
                     .padding(12.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Text("Initial Setup", color = TextForeground, fontSize = 13.sp)
+            Text(tr("Первоначальная настройка"), color = TextForeground, fontSize = 13.sp)
             Text(statusText, color = GhostlyText, fontSize = 11.sp, lineHeight = 14.sp)
 
-            SetupField("Game folder (DayZ)", gamePath, isFile = false) { gamePath = it }
-            SetupField("Workbench folder (DayZ Tools/Bin/Workbench)", workbenchPath, isFile = false) { workbenchPath = it }
-            SetupField("Work drive (e.g. P:)", workDrive, isFile = false) { workDrive = it }
-            SetupField("Scripts path (e.g. P:\\scripts)", scriptsPath, isFile = false) { scriptsPath = it }
+            SetupField(tr("Папка игры (DayZ)"), gamePath, isFile = false) { gamePath = it }
+            SetupField(tr("Папка Workbench (DayZ Tools/Bin/Workbench)"), workbenchPath, isFile = false) { workbenchPath = it }
+            SetupField(tr("Рабочий диск (например, P:)"), workDrive, isFile = false) { workDrive = it }
+            SetupField(tr("Путь к скриптам (например, P:/scripts)"), scriptsPath, isFile = false) { scriptsPath = it }
 
-            DarkButton("Confirm", modifier = Modifier.fillMaxWidth(), onClick = {
+            DarkButton(tr("Подтвердить"), modifier = Modifier.fillMaxWidth(), onClick = {
                 state.updateConfig(
                     state.config.copy(
                         gamePath = gamePath,
@@ -312,7 +313,7 @@ private fun SetupField(
                                     value.takeIf { it.isNotBlank() }?.let {
                                         if (isFile) File(it).parent else it
                                     }
-                                val picked = if (isFile) pickFile("Select", "exe", dir) else pickDirectory("Select directory", dir)
+                                val picked = if (isFile) pickFile(tr("Выбрать"), "exe", dir) else pickDirectory(tr("Выберите папку"), dir)
                                 picked?.let { onChange(it) }
                             }
                         },
@@ -365,19 +366,19 @@ private fun MainContent(state: AppState) {
                         .border(1.dp, DarkenedBorder)
                         .width(160.dp),
             ) {
-                ToolsMenuItem("stopWorkbench") {
+                ToolsMenuItem(tr("Остановить Workbench")) {
                     ProcessManager.killTasks(listOf("workbenchApp.exe"))
                     toolsOpen = false
                 }
-                ToolsMenuItem("stopAll") {
+                ToolsMenuItem(tr("Остановить всё")) {
                     ProcessManager.killTasks(state.config.autoKillTasks)
                     toolsOpen = false
                 }
-                ToolsMenuItem("workbench plugin") {
+                ToolsMenuItem(tr("Плагин Workbench")) {
                     toolsOpen = false
                     showPluginDialog = true
                 }
-                ToolsMenuItem("remove mods mklink") {
+                ToolsMenuItem(tr("Удалить симлинки модов")) {
                     runCatching { ModificationManager.removeAll(state.mods.toList(), state.config.gamePath) }
                     toolsOpen = false
                 }
@@ -406,8 +407,8 @@ private fun DarkMenuBar(
                     drawLine(darkenedBorder, Offset(0f, size.height - 1f), Offset(size.width, size.height - 1f), 1f)
                 },
     ) {
-        MenuBarItem("Settings") { state.navigate(Screen.SETTINGS) }
-        MenuBarItem("Tools") { onToolsOpen() }
+        MenuBarItem(tr("Настройки")) { state.navigate(Screen.SETTINGS) }
+        MenuBarItem(tr("Инструменты")) { onToolsOpen() }
     }
 }
 
@@ -454,18 +455,18 @@ private fun WorkbenchPluginDialog(
                     .padding(12.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Text("Workbench Plugin", color = TextForeground, fontSize = 13.sp)
+            Text(tr("Плагин Workbench"), color = TextForeground, fontSize = 13.sp)
             if (status.isNotBlank()) Text(status, color = GhostlyText, fontSize = 11.sp, lineHeight = 14.sp)
 
-            SetupField("Plugin mod folder (config.cpp + scripts)", pluginPath, isFile = false) { pluginPath = it }
+            SetupField(tr("Папка мода-плагина (config.cpp и скрипты)"), pluginPath, isFile = false) { pluginPath = it }
 
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                DarkButton("Install", modifier = Modifier.weight(1f), onClick = {
+                DarkButton(tr("Установить"), modifier = Modifier.weight(1f), onClick = {
                     if (pluginPath.isBlank()) {
-                        status = "Select a folder first"
+                        status = tr("Сначала выберите папку")
                         return@DarkButton
                     }
-                    status = "Working..."
+                    status = tr("Работаю…")
                     scope.launch(Dispatchers.IO) {
                         val result = runCatching { installWorkbenchPlugin(File(pluginPath)) }
                         withContext(Dispatchers.Main) {
@@ -473,11 +474,11 @@ private fun WorkbenchPluginDialog(
                                 .onSuccess {
                                     state.updateConfig(state.config.copy(workbenchPluginPath = pluginPath))
                                     onDismiss()
-                                }.onFailure { status = "Failed: ${it.message}" }
+                                }.onFailure { status = tr("Ошибка: {0}", it.message.orEmpty()) }
                         }
                     }
                 })
-                DarkButton("Cancel", modifier = Modifier.weight(1f), onClick = onDismiss)
+                DarkButton(tr("Отмена"), modifier = Modifier.weight(1f), onClick = onDismiss)
             }
         }
     }
@@ -508,11 +509,11 @@ private val workbenchPluginConfig =
 // Creates an unpacked mod (config.cpp + scripts) that is passed to Workbench via -mod
 private fun installWorkbenchPlugin(modDir: File) {
     val pluginDir = File(modDir, "scripts\\editor\\plugins\\DayZWorkbenchTool")
-    check(pluginDir.mkdirs() || pluginDir.isDirectory) { "Cannot create ${pluginDir.path}" }
+    check(pluginDir.mkdirs() || pluginDir.isDirectory) { tr("Не удалось создать {0}", pluginDir.path) }
     File(modDir, "config.cpp").writeText(workbenchPluginConfig)
     val cl = ProcessManager::class.java.classLoader
     for (name in workbenchPluginFiles) {
-        val src = checkNotNull(cl?.getResourceAsStream("assets/DayZWorkbenchTool/$name")) { "Missing resource $name" }
+        val src = checkNotNull(cl?.getResourceAsStream("assets/DayZWorkbenchTool/$name")) { tr("Нет ресурса {0}", name) }
         src.use { File(pluginDir, name).outputStream().use { dst -> it.copyTo(dst) } }
     }
 }
