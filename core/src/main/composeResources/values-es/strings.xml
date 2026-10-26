@@ -732,4 +732,11 @@
     <string name="hint_background_color_of_the_video">Color de fondo del vídeo</string>
     <string name="hint_thickness_of_the_outline_in_pixels">Grosor del contorno en píxeles</string>
     <string name="hint_color_of_the_outline">Color del contorno</string>
+    <string name="settings_global">Global</string>
+    <string name="settings_app">Aplicación</string>
+    <string name="section_interface">Interfaz</string>
+    <string name="section_folders">Carpetas</string>
+    <string name="section_game">Inicio del juego</string>
+    <string name="section_processes">Procesos</string>
+    <string name="search">Buscar</string>
 </resources>

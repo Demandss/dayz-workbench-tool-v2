@@ -732,4 +732,11 @@
     <string name="hint_background_color_of_the_video">Колір тла відео</string>
     <string name="hint_thickness_of_the_outline_in_pixels">Товщина обведення в пікселях</string>
     <string name="hint_color_of_the_outline">Колір обведення</string>
+    <string name="settings_global">Глобальні</string>
+    <string name="settings_app">Застосунок</string>
+    <string name="section_interface">Інтерфейс</string>
+    <string name="section_folders">Теки</string>
+    <string name="section_game">Запуск гри</string>
+    <string name="section_processes">Процеси</string>
+    <string name="search">Пошук</string>
 </resources>

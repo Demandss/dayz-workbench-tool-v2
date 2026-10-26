@@ -732,4 +732,11 @@
     <string name="hint_background_color_of_the_video">Цвет фона видео</string>
     <string name="hint_thickness_of_the_outline_in_pixels">Толщина обводки в пикселях</string>
     <string name="hint_color_of_the_outline">Цвет обводки</string>
+    <string name="settings_global">Глобальные</string>
+    <string name="settings_app">Приложение</string>
+    <string name="section_interface">Интерфейс</string>
+    <string name="section_folders">Папки</string>
+    <string name="section_game">Запуск игры</string>
+    <string name="section_processes">Процессы</string>
+    <string name="search">Поиск</string>
 </resources>
