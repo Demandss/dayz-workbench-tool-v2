@@ -18,7 +18,6 @@ import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalWindowInfo
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -51,6 +50,8 @@ import com.github.demandss.dayz_workbench_tool.ui.theme.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.jetbrains.compose.resources.DrawableResource
+import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import java.io.File
 import java.util.stream.Collectors
@@ -1081,16 +1082,16 @@ private fun ThemeEditorDialog(
                     ThemeColorRow(
                         str(Res.string.client_side),
                         modIconClientSide,
-                        "assets/images/mod_client_side.svg",
+                        Res.drawable.mod_client_side,
                     ) { modIconClientSide = it }
                     ThemeColorRow(
                         str(Res.string.server_side),
                         modIconServerSide,
-                        "assets/images/mod_server_side.svg",
+                        Res.drawable.mod_server_side,
                     ) { modIconServerSide = it }
-                    ThemeColorRow(str(Res.string.enabled), modIconEnabled, "assets/images/mod_enabled.svg") { modIconEnabled = it }
-                    ThemeColorRow(str(Res.string.disabled), modIconDisabled, "assets/images/mod_disebled.svg") { modIconDisabled = it }
-                    ThemeColorRow("Workshop", modIconWorkshop, "assets/images/workshop.svg") { modIconWorkshop = it }
+                    ThemeColorRow(str(Res.string.enabled), modIconEnabled, Res.drawable.mod_enabled) { modIconEnabled = it }
+                    ThemeColorRow(str(Res.string.disabled), modIconDisabled, Res.drawable.mod_disebled) { modIconDisabled = it }
+                    ThemeColorRow("Workshop", modIconWorkshop, Res.drawable.workshop) { modIconWorkshop = it }
                 }
             }
 
@@ -1151,7 +1152,7 @@ private fun CollapsibleSection(
 private fun ThemeColorRow(
     label: String,
     colorLong: Long,
-    iconRes: String? = null,
+    iconRes: DrawableResource? = null,
     onChange: (Long) -> Unit,
 ) {
     var showPicker by remember { mutableStateOf(false) }

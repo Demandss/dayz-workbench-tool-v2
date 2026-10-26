@@ -21,7 +21,6 @@ import androidx.compose.ui.input.pointer.PointerButton
 import androidx.compose.ui.input.pointer.isCtrlPressed
 import androidx.compose.ui.input.pointer.isShiftPressed
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
@@ -29,7 +28,9 @@ import androidx.compose.ui.unit.sp
 import com.github.demandss.dayz_workbench_tool.model.ModSide
 import com.github.demandss.dayz_workbench_tool.model.ModType
 import com.github.demandss.dayz_workbench_tool.model.Modification
+import com.github.demandss.dayz_workbench_tool.resources.*
 import com.github.demandss.dayz_workbench_tool.ui.theme.*
+import org.jetbrains.compose.resources.painterResource
 
 @Composable
 fun ModItem(
@@ -130,7 +131,7 @@ fun ModItem(
             ) {
                 if (mod.type == ModType.WORKSHOP) {
                     Image(
-                        painter = painterResource("assets/images/workshop.svg"),
+                        painter = painterResource(Res.drawable.workshop),
                         contentDescription = null,
                         colorFilter = ColorFilter.tint(colors.modIconWorkshop),
                         modifier = Modifier.size(14.dp).padding(start = 2.dp),
@@ -179,9 +180,9 @@ private fun SideButton(
             painter =
                 painterResource(
                     if (side == ModSide.CLIENT) {
-                        "assets/images/mod_client_side.svg"
+                        Res.drawable.mod_client_side
                     } else {
-                        "assets/images/mod_server_side.svg"
+                        Res.drawable.mod_server_side
                     },
                 ),
             contentDescription = if (side == ModSide.CLIENT) "client side" else "server side",
@@ -213,9 +214,9 @@ private fun EnableButton(
             painter =
                 painterResource(
                     if (enabled) {
-                        "assets/images/mod_enabled.svg"
+                        Res.drawable.mod_enabled
                     } else {
-                        "assets/images/mod_disebled.svg"
+                        Res.drawable.mod_disebled
                     },
                 ),
             contentDescription = if (enabled) "enabled" else "disabled",
