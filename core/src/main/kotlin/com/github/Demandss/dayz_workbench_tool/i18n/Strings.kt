@@ -12,21 +12,25 @@ import java.util.Locale
 fun str(
     resource: StringResource,
     vararg args: Any,
-): String = runBlocking { getString(resource, *args) }
+): String = synchronized(localeLock) { runBlocking { getString(resource, *args) } }
+
+// Held while the default locale is changed, so that a string asked for on another thread meanwhile is not read in the wrong language
+private val localeLock = Any()
 
 /**
  * The text of a resource in every language of the interface, in the order of [Language.entries]. For the search of the settings,
  * where a person may type a word of another language than the one the interface is in. The resources follow the default locale,
  * so it is set for each language in turn and put back.
  */
-fun strInEveryLanguage(resource: StringResource): List<String> {
-    val saved = Locale.getDefault()
-    try {
-        return Language.entries.map { language ->
-            Locale.setDefault(Locale.forLanguageTag(language.code))
-            str(resource)
+fun strInEveryLanguage(resource: StringResource): List<String> =
+    synchronized(localeLock) {
+        val saved = Locale.getDefault()
+        try {
+            Language.entries.map { language ->
+                Locale.setDefault(Locale.forLanguageTag(language.code))
+                str(resource)
+            }
+        } finally {
+            Locale.setDefault(saved)
         }
-    } finally {
-        Locale.setDefault(saved)
     }
-}
