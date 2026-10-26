@@ -12,7 +12,7 @@ kotlin {
 }
 
 group = "com.github.demandss"
-version = (findProperty("version") as? String)?.takeIf { it != "unspecified" } ?: "1.0.0"
+version = rootProject.version
 
 repositories {
     mavenCentral()

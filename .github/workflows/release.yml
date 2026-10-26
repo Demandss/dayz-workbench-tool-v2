@@ -75,9 +75,22 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-gradle-
 
+      - name: Write the version into build.gradle.kts
+        shell: pwsh
+        env:
+          RELEASE_VERSION: ${{ github.event.inputs.version }}
+        run: |
+          if ($env:RELEASE_VERSION -notmatch '^\d+\.\d+\.\d+$') { Write-Error "The version must look like 1.2.0"; exit 1 }
+          $file = "build.gradle.kts"
+          $text = Get-Content $file -Raw
+          $new = [regex]::Replace($text, '(?m)^version = ".*"', "version = ""$env:RELEASE_VERSION""")
+          if ($new -notmatch "(?m)^version = ""$([regex]::Escape($env:RELEASE_VERSION))""") { Write-Error "No version line in $file"; exit 1 }
+          Set-Content -Path $file -Value $new -NoNewline
+          Select-String -Path $file -Pattern '^version = '
+
       - name: Build portable zip and installer
         shell: pwsh
-        run: ./gradlew :app:packagePortable :app:packageReleaseMsi "--no-daemon" "-x" "ktlintCheckAll" "-Pversion=${{ github.event.inputs.version }}"
+        run: ./gradlew :app:packagePortable :app:packageReleaseMsi "--no-daemon" "-x" "ktlintCheckAll"
 
       - name: Find installer
         id: find-installer

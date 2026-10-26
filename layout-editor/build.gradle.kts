@@ -11,7 +11,7 @@ kotlin {
 }
 
 group = "com.github.demandss"
-version = "1.0-SNAPSHOT"
+version = rootProject.version
 
 repositories {
     mavenCentral()
@@ -67,6 +67,13 @@ compose.desktop {
 
 dependencies {
     testImplementation(kotlin("test"))
+}
+
+// The version goes into app-version.properties, for the server of the editor to tell its clients (see McpHost)
+tasks.processResources {
+    val appVersion = project.version.toString()
+    inputs.property("appVersion", appVersion)
+    filesMatching("app-version.properties") { expand("version" to appVersion) }
 }
 
 tasks.test {
