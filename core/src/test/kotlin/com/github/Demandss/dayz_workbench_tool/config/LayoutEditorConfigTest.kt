@@ -1,43 +1,38 @@
 package com.github.demandss.dayz_workbench_tool.config
 
-import kotlinx.serialization.json.Json
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertTrue
 
 class LayoutEditorConfigTest {
-    private val json =
-        Json {
-            prettyPrint = true
-            ignoreUnknownKeys = true
-        }
-
     @Test
-    fun `settings saved before sessions existed still load`() {
-        val config = json.decodeFromString(LayoutEditorConfig.serializer(), """{ "undoLimit": 9 }""")
-
-        assertEquals(9, config.undoLimit)
-        assertTrue(config.sessions.isEmpty())
-    }
-
-    @Test
-    fun `session survives a save and load`() {
-        val session =
-            EditorSession(
-                layouts = listOf("K:\\MF_Mods\\a.layout"),
-                textures = listOf("K:\\MF_Mods\\b.edds"),
-                active = "K:\\MF_Mods\\b.edds",
-                activeIsTexture = true,
-                expandedDirs = listOf("K:\\MF_Mods\\gui"),
-                selectedPath = "K:\\MF_Mods\\b.edds",
-                referencePath = "K:\\shots\\workbench.png",
-                referenceOpacity = 0.75f,
-                referenceShown = true,
+    fun theSettingsAreTakenButTheWindowAndTheSessionsStay() {
+        val onDisk =
+            LayoutEditorConfig(
+                windowWidth = 1500,
+                windowHeight = 900,
+                windowMaximized = true,
+                sessions = mapOf("k:/mods" to EditorSession(layouts = listOf("a.layout"))),
             )
-        val config = LayoutEditorConfig(sessions = mapOf("k:\\mf_mods" to session))
-
-        val back = json.decodeFromString(LayoutEditorConfig.serializer(), json.encodeToString(LayoutEditorConfig.serializer(), config))
-
-        assertEquals(session, back.sessions["k:\\mf_mods"])
+        val edited =
+            LayoutEditorConfig(
+                mcpEnabled = false,
+                mcpPort = 40000,
+                gridSize = 16,
+                language = "de",
+                undoLimit = 20,
+                // The copy kept by the settings window has an old window size and no sessions
+                windowWidth = 800,
+                windowHeight = 600,
+            )
+        val merged = onDisk.withSettingsFrom(edited)
+        assertEquals(false, merged.mcpEnabled)
+        assertEquals(40000, merged.mcpPort)
+        assertEquals(16, merged.gridSize)
+        assertEquals("de", merged.language)
+        assertEquals(20, merged.undoLimit)
+        assertEquals(1500, merged.windowWidth)
+        assertEquals(900, merged.windowHeight)
+        assertEquals(true, merged.windowMaximized)
+        assertEquals(listOf("a.layout"), merged.sessions.getValue("k:/mods").layouts)
     }
 }

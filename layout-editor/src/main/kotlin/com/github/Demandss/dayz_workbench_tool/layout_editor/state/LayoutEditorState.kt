@@ -10,6 +10,7 @@ import androidx.compose.ui.graphics.toAwtImage
 import androidx.compose.ui.graphics.toComposeImageBitmap
 import com.github.demandss.dayz_workbench_tool.config.ConfigManager
 import com.github.demandss.dayz_workbench_tool.config.EditorSession
+import com.github.demandss.dayz_workbench_tool.config.LayoutEditorConfig
 import com.github.demandss.dayz_workbench_tool.font.FontCatalog
 import com.github.demandss.dayz_workbench_tool.font.FontInfo
 import com.github.demandss.dayz_workbench_tool.font.GameFontFile
@@ -30,6 +31,7 @@ import com.github.demandss.dayz_workbench_tool.layout_editor.behavior.ScriptPara
 import com.github.demandss.dayz_workbench_tool.layout_editor.behavior.ScriptParams
 import com.github.demandss.dayz_workbench_tool.layout_editor.containsId
 import com.github.demandss.dayz_workbench_tool.layout_editor.findNode
+import com.github.demandss.dayz_workbench_tool.layout_editor.mcp.McpHost
 import com.github.demandss.dayz_workbench_tool.layout_editor.removeNode
 import com.github.demandss.dayz_workbench_tool.layout_editor.toEditorNode
 import com.github.demandss.dayz_workbench_tool.layout_editor.toWidgetNode
@@ -352,6 +354,50 @@ class LayoutEditorState(
         historyDepth = config.undoLimit.coerceIn(1, 200)
         defaultResolution = Resolution.entries.firstOrNull { it.label == config.defaultResolution } ?: Resolution.R1920x1080
         selectedResolution = defaultResolution
+    }
+
+    /** The settings the editor works with now, as a config (the window size and the sessions are not in it). */
+    fun settings(): LayoutEditorConfig =
+        LayoutEditorConfig(
+            undoLimit = historyDepth,
+            defaultResolution = defaultResolution.label,
+            mcpEnabled = mcpEnabled,
+            mcpPort = mcpPort,
+            workbenchColors = workbenchColors,
+            showGrid = showGrid,
+            snapToGrid = snapToGrid,
+            gridSize = gridSize,
+            showWidgetNames = showWidgetNames,
+            language = I18n.setting,
+            zoomOnOpen = zoomOnOpen,
+            rememberWindow = rememberWindow,
+        )
+
+    /** Takes [config] into use at once (the MCP server is restarted when its switch or port changed) and, with [save], stores it. */
+    fun applySettings(
+        config: LayoutEditorConfig,
+        save: Boolean = true,
+    ) {
+        val mcpChanged = config.mcpEnabled != mcpEnabled || config.mcpPort != mcpPort
+        mcpEnabled = config.mcpEnabled
+        mcpPort = config.mcpPort
+        workbenchColors = config.workbenchColors
+        showGrid = config.showGrid
+        snapToGrid = config.snapToGrid
+        gridSize = config.gridSize.coerceIn(1, 512)
+        showWidgetNames = config.showWidgetNames
+        I18n.setting = config.language
+        zoomOnOpen = config.zoomOnOpen
+        rememberWindow = config.rememberWindow
+        historyDepth = config.undoLimit.coerceIn(1, 200)
+        defaultResolution = Resolution.entries.firstOrNull { it.label == config.defaultResolution } ?: Resolution.R1920x1080
+        if (mcpChanged) McpHost.apply(this)
+        if (save) savePreferences()
+    }
+
+    /** Reads the settings that the settings window of the app stored, so that an editor that is open follows them. */
+    fun reloadSettingsFromDisk() {
+        runCatching { ConfigManager.LayoutEditor.load() }.getOrNull()?.let { applySettings(it, save = false) }
     }
 
     fun savePreferences() {

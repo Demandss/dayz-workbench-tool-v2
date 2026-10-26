@@ -28,6 +28,26 @@ data class LayoutEditorConfig(
     val sessions: Map<String, EditorSession> = emptyMap(),
 )
 
+/**
+ * [other]'s settings on top of this config; the window size, `windowMaximized` and the `sessions` stay as they are, because the
+ * editor writes those itself while it runs and a copy kept in the settings window of the app must not bring old ones back.
+ */
+fun LayoutEditorConfig.withSettingsFrom(other: LayoutEditorConfig) =
+    copy(
+        undoLimit = other.undoLimit,
+        defaultResolution = other.defaultResolution,
+        mcpEnabled = other.mcpEnabled,
+        mcpPort = other.mcpPort,
+        workbenchColors = other.workbenchColors,
+        showGrid = other.showGrid,
+        snapToGrid = other.snapToGrid,
+        gridSize = other.gridSize,
+        showWidgetNames = other.showWidgetNames,
+        language = other.language,
+        zoomOnOpen = other.zoomOnOpen,
+        rememberWindow = other.rememberWindow,
+    )
+
 @Serializable
 data class EditorSession(
     val layouts: List<String> = emptyList(),

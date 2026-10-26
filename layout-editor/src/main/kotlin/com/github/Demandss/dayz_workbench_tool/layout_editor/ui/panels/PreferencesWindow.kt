@@ -124,105 +124,6 @@ fun PreferencesWindow(state: LayoutEditorState) {
 }
 
 @Composable
-private fun Heading(text: String) {
-    Text(text, color = TextForeground, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
-}
-
-@Composable
-private fun Caption(text: String) {
-    Text(text.uppercase(), color = GhostlyText, fontSize = 10.sp, modifier = Modifier.padding(top = 8.dp))
-}
-
-@Composable
-private fun Check(
-    label: String,
-    checked: Boolean,
-    onChange: (Boolean) -> Unit,
-) {
-    Row(
-        Modifier.clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { onChange(!checked) },
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        Box(
-            Modifier
-                .size(16.dp)
-                .background(if (checked) SelectColor else FrameBackground)
-                .border(1.dp, DarkenedBorder),
-            contentAlignment = Alignment.Center,
-        ) {
-            if (checked) {
-                Canvas(Modifier.size(16.dp)) {
-                    val stroke = 1.6.dp.toPx()
-                    drawLine(
-                        Color.White,
-                        Offset(size.width * 0.24f, size.height * 0.52f),
-                        Offset(size.width * 0.43f, size.height * 0.72f),
-                        stroke,
-                    )
-                    drawLine(
-                        Color.White,
-                        Offset(size.width * 0.43f, size.height * 0.72f),
-                        Offset(size.width * 0.77f, size.height * 0.30f),
-                        stroke,
-                    )
-                }
-            }
-        }
-        Text(label, color = TextForeground, fontSize = 12.sp)
-    }
-}
-
-/** A number typed into a small field; [onValue] gets it on Enter or when the field loses the focus, held inside the limits. */
-@Composable
-private fun NumberField(
-    value: Int,
-    range: IntRange,
-    onValue: (Int) -> Unit,
-) {
-    var text by remember(value) { mutableStateOf(value.toString()) }
-    var focused by remember { mutableStateOf(false) }
-
-    fun apply() {
-        val number = text.toIntOrNull()?.coerceIn(range)
-        if (number == null) {
-            text = value.toString()
-        } else {
-            text = number.toString()
-            if (number != value) onValue(number)
-        }
-    }
-    Box(
-        Modifier
-            .width(70.dp)
-            .background(FrameBackground)
-            .border(1.dp, DarkenedBorder)
-            .padding(horizontal = 6.dp, vertical = 4.dp),
-    ) {
-        BasicTextField(
-            value = text,
-            onValueChange = { v -> text = v.filter(Char::isDigit).take(5) },
-            singleLine = true,
-            textStyle = TextStyle(color = TextForeground, fontSize = 12.sp),
-            cursorBrush = SolidColor(TextForeground),
-            modifier =
-                Modifier
-                    .onFocusChanged { fs ->
-                        if (focused && !fs.isFocused) apply()
-                        focused = fs.isFocused
-                    }.onKeyEvent { ev ->
-                        if (ev.key == Key.Enter && ev.type == KeyEventType.KeyDown) {
-                            apply()
-                            true
-                        } else {
-                            false
-                        }
-                    },
-        )
-    }
-}
-
-@Composable
 private fun CopyRow(
     state: LayoutEditorState,
     label: String,
@@ -274,20 +175,7 @@ private fun McpPage(state: LayoutEditorState) {
             fontSize = 12.sp,
         )
     }
-    Check(tr("Включить сервер"), state.mcpEnabled) {
-        state.mcpEnabled = it
-        McpHost.apply(state)
-        state.savePreferences()
-    }
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(tr("Порт"), color = TextForeground, fontSize = 12.sp)
-        NumberField(state.mcpPort, 1024..65000) { state.mcpPort = it }
-        DarkButton(tr("Применить"), {
-            McpHost.apply(state)
-            state.savePreferences()
-        })
-        Text(tr("Если порт занят, берётся следующий свободный"), color = GhostlyText, fontSize = 10.sp)
-    }
+    LayoutEditorMcpSection(state.settings()) { state.applySettings(it) }
 
     if (url != null) {
         Caption(tr("Подключить"))
@@ -360,105 +248,10 @@ private fun McpPage(state: LayoutEditorState) {
 
 @Composable
 private fun ViewPage(state: LayoutEditorState) {
-    Heading(tr("Отображение"))
-    Caption(tr("Цвета"))
-    Check(tr("Цвета как в Workbench 1.30 (F6)"), state.workbenchColors) {
-        state.workbenchColors = it
-        state.savePreferences()
-    }
-    Text(
-        tr("Выключено: числа color читаются как sRGB, как в игре. Включено: как линейный свет, как в Workbench 1.30."),
-        color = GhostlyText,
-        fontSize = 10.sp,
-    )
-    Caption(tr("Холст"))
-    Check(tr("Подписи виджетов (F7)"), state.showWidgetNames) {
-        state.showWidgetNames = it
-        state.savePreferences()
-    }
-    Caption(tr("Сетка"))
-    Check(tr("Показывать сетку"), state.showGrid) {
-        state.showGrid = it
-        state.savePreferences()
-    }
-    Check(tr("Привязывать перемещаемые виджеты к сетке"), state.snapToGrid) {
-        state.snapToGrid = it
-        state.savePreferences()
-    }
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(tr("Шаг сетки, пикселей"), color = TextForeground, fontSize = 12.sp)
-        NumberField(state.gridSize, 1..512) {
-            state.gridSize = it
-            state.savePreferences()
-        }
-    }
+    LayoutEditorViewSection(state.settings()) { state.applySettings(it) }
 }
 
 @Composable
 private fun GeneralPage(state: LayoutEditorState) {
-    Heading(tr("Общие"))
-
-    Caption(tr("Язык"))
-    val system = Language.ofSystem()
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        Text(tr("Язык интерфейса"), color = TextForeground, fontSize = 12.sp)
-        DropdownField(
-            I18n.setting,
-            listOf(I18n.SYSTEM) + Language.entries.map { it.code },
-            { code -> if (code == I18n.SYSTEM) tr("Как в системе: {0}", system.nativeName) else Language.byCode(code)?.nativeName ?: code },
-        ) {
-            I18n.setting = it
-            state.savePreferences()
-        }
-    }
-    Text(
-        tr("По умолчанию берётся язык системы. Язык, которого нет в списке, заменяется английским."),
-        color = GhostlyText,
-        fontSize = 10.sp,
-    )
-
-    Caption(tr("Открытие лайаута"))
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        Text(tr("Масштаб при открытии"), color = TextForeground, fontSize = 12.sp)
-        DropdownField(
-            state.zoomOnOpen,
-            listOf("actual", "fit"),
-            { if (it == "fit") tr("Вписать в окно") else tr("100%") },
-        ) {
-            state.zoomOnOpen = it
-            state.savePreferences()
-        }
-    }
-
-    Caption(tr("Окно"))
-    Check(tr("Запоминать размер окна"), state.rememberWindow) {
-        state.rememberWindow = it
-        state.savePreferences()
-    }
-    Text(tr("Размер сохраняется при изменении и возвращается при следующем запуске."), color = GhostlyText, fontSize = 10.sp)
-
-    Caption(tr("Правка"))
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        Text(tr("Шагов в истории (отмена и возврат)"), color = TextForeground, fontSize = 12.sp)
-        NumberField(state.historyDepth, 1..200) {
-            state.historyDepth = it
-            state.savePreferences()
-        }
-    }
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        Text(tr("Разрешение при запуске"), color = TextForeground, fontSize = 12.sp)
-        DropdownField(state.defaultResolution, Resolution.entries.toList(), {
-            if (it ==
-                Resolution.FIT
-            ) {
-                tr("Вписать в окно")
-            } else {
-                it.label
-            }
-        }) {
-            state.defaultResolution = it
-            state.savePreferences()
-        }
-    }
-    Text(tr("Разрешение применяется при следующем запуске редактора."), color = GhostlyText, fontSize = 10.sp)
+    LayoutEditorGeneralSection(state.settings()) { state.applySettings(it) }
 }
