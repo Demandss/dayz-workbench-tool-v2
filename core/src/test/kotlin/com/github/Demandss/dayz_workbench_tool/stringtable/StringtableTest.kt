@@ -20,6 +20,13 @@ class StringtableTest {
     }
 
     @Test
+    fun aByteOrderMarkIsNotPartOfTheFirstCell() {
+        val entries = StringtableCsv.parse("﻿" + vanilla, "game")
+        assertEquals(listOf("STR_Craft", "STR_Multi"), entries.map { it.key })
+        assertEquals("Создать", entries[0].texts["russian"])
+    }
+
+    @Test
     fun readsModTablesWithCapitalsAndUnquotedCells() {
         val entries =
             StringtableCsv.parse(

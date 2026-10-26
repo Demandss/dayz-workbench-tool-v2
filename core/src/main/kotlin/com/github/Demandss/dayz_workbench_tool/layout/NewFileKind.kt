@@ -28,7 +28,8 @@ enum class NewFileKind(
     }
 
     /**
-     * Creates the item in [parent] and returns its path, or null when [name] is empty or is not a plain file name.
+     * Creates the item in [parent] and returns its path, or null when [name] is empty or is not a plain file name, or when the
+     * path is taken by something of the other sort (a folder where a file is wanted, or a file where a folder is).
      * An existing file is returned as it is and never overwritten.
      */
     fun create(
@@ -38,6 +39,7 @@ enum class NewFileKind(
         val clean = name.trim()
         if (clean.isEmpty() || clean.any { it in FORBIDDEN } || clean == "." || clean == "..") return null
         val target = parent.resolve(fileName(clean))
+        if (Files.exists(target) && Files.isDirectory(target) != (this == FOLDER)) return null
         if (this == FOLDER) {
             Files.createDirectories(target)
         } else if (!Files.exists(target)) {

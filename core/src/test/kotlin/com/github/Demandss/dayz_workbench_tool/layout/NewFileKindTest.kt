@@ -70,6 +70,24 @@ class NewFileKindTest {
     }
 
     @Test
+    fun `a name taken by something of the other sort is refused`() {
+        Files.createDirectories(dir.resolve("menu.layout"))
+        Files.writeString(dir.resolve("plain"), "x")
+
+        assertNull(NewFileKind.LAYOUT.create(dir, "menu"))
+        assertNull(NewFileKind.FOLDER.create(dir, "plain"))
+        assertTrue(Files.isDirectory(dir.resolve("menu.layout")))
+        assertEquals("x", dir.resolve("plain").readText())
+    }
+
+    @Test
+    fun `an existing folder is returned as it is`() {
+        val first = assertNotNull(NewFileKind.FOLDER.create(dir, "gui"))
+
+        assertEquals(first, NewFileKind.FOLDER.create(dir, "gui"))
+    }
+
+    @Test
     fun `names that leave the folder are refused`() {
         for (bad in listOf("", "   ", "..", ".", "../x", "a/b", "a\\b", "c:x", "a*b")) {
             assertNull(NewFileKind.LAYOUT.create(dir, bad), "'$bad' must be refused")

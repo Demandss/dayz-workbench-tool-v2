@@ -54,7 +54,7 @@ object StringtableCsv {
         text: String,
         origin: String,
     ): List<StringtableEntry> {
-        val rows = rows(text.removePrefix(""))
+        val rows = rows(text.removePrefix("﻿"))
         if (rows.isEmpty()) return emptyList()
         val header = rows.first().map { normalize(it) }
         val out = ArrayList<StringtableEntry>(rows.size)
