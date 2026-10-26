@@ -32,6 +32,8 @@ data class AppConfig(
     val windowHeight: Float = 400f,
     // The language of the interface: `system`, or the code of a language. Null until it was chosen once (see AppState)
     val language: String? = null,
+    // Whether the program asks GitHub for the latest release when it starts
+    val checkForUpdates: Boolean = true,
 ) {
     // Falls back to <work drive root>\scripts when no path is set
     fun effectiveScriptsPath(): String {

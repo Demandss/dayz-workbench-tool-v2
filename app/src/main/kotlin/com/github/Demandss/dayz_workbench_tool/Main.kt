@@ -13,6 +13,7 @@ import com.github.demandss.dayz_workbench_tool.manager.ToolsManager
 import com.github.demandss.dayz_workbench_tool.state.AppState
 import com.github.demandss.dayz_workbench_tool.ui.MainWindow
 import com.github.demandss.dayz_workbench_tool.ui.theme.resolveTheme
+import com.github.demandss.dayz_workbench_tool.update.UpdateStatus
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.util.Locale
@@ -42,6 +43,11 @@ fun main() =
                     ModificationManager.createScriptsSymlink(state.config.effectiveScriptsPath(), state.config.gamePath)
                 }
             }
+        }
+
+        // Asks GitHub for the latest release; asks again when the setting is switched on
+        LaunchedEffect(state.config.checkForUpdates) {
+            if (state.config.checkForUpdates) UpdateStatus.refresh()
         }
 
         // The strings of the resources follow the default locale: set it from the language of the app (MainWindow draws its

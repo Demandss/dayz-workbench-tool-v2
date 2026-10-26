@@ -738,6 +738,10 @@
     <string name="section_folders">Папки</string>
     <string name="section_game">Запуск игры</string>
     <string name="section_processes">Процессы</string>
+    <string name="section_updates">Обновления</string>
+    <string name="check_for_updates">Проверять обновления при запуске</string>
+    <string name="app_version_x">Версия %1$s</string>
+    <string name="update_available_x">Доступно обновление: %1$s</string>
     <string name="search">Поиск</string>
     <string name="mcp_ports_busy">Порты %1$s–%2$s заняты</string>
     <string name="mcp_address_copied">Адрес MCP скопирован: %1$s</string>

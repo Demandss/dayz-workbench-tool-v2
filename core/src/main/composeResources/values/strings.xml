@@ -738,6 +738,10 @@
     <string name="section_folders">Folders</string>
     <string name="section_game">Game launch</string>
     <string name="section_processes">Processes</string>
+    <string name="section_updates">Updates</string>
+    <string name="check_for_updates">Check for updates on start</string>
+    <string name="app_version_x">Version %1$s</string>
+    <string name="update_available_x">Update available: %1$s</string>
     <string name="search">Search</string>
     <string name="mcp_ports_busy">Ports %1$s–%2$s are busy</string>
     <string name="mcp_address_copied">MCP address copied: %1$s</string>

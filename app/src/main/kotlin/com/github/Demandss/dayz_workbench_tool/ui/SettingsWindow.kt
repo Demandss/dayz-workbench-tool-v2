@@ -212,6 +212,7 @@ private fun appSections(
     val lock = stringResource(Res.string.lock_window_size)
     val adaptive = stringResource(Res.string.adaptive_scaling)
     val size = stringResource(Res.string.window_size)
+    val updates = stringResource(Res.string.check_for_updates)
     return listOf(
         SettingsSection(
             id = "workbench",
@@ -271,6 +272,16 @@ private fun appSections(
                     SettingItem(
                         Res.string.auto_kill_list,
                     ) { KillListRow(config.autoKillTasks) { onChange(config.copy(autoKillTasks = it)) } },
+                ),
+        ),
+        SettingsSection(
+            id = "updates",
+            title = stringResource(Res.string.section_updates),
+            items =
+                listOf(
+                    SettingItem(
+                        Res.string.check_for_updates,
+                    ) { CheckRow(updates, config.checkForUpdates) { onChange(config.copy(checkForUpdates = it)) } },
                 ),
         ),
         SettingsSection(
