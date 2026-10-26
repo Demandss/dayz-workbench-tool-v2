@@ -55,7 +55,7 @@ fun SettingsScreen(state: AppState) {
     // A local copy of the settings of the layout editor, stored by Save like the rest
     val editorBase = remember { ConfigManager.LayoutEditor.load() }
     var localEditor by remember { mutableStateOf(editorBase) }
-    var selectedTab by remember { mutableStateOf(state.settingsTab) }
+    val selectedTab = state.settingsTab
 
     Column(modifier = Modifier.fillMaxSize()) {
         // Header: ← Back | Save | Reset
@@ -86,7 +86,7 @@ fun SettingsScreen(state: AppState) {
         DarkTabRow(
             tabs = listOf(tr("Общие"), tr("Дополнительно"), tr("Тема"), "Layout Editor"),
             selectedIndex = selectedTab,
-            onTabSelected = { selectedTab = it },
+            onTabSelected = { state.settingsTab = it },
         )
         HorizontalDivider(color = DarkenedBorder)
 

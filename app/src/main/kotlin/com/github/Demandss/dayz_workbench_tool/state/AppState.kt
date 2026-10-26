@@ -37,10 +37,12 @@ class AppState {
     }
 
     fun navigate(screen: Screen) {
+        // The next visit to the settings starts on the first tab again, not on the one the editor asked for
+        if (screen != Screen.SETTINGS) settingsTab = 0
         currentScreen = screen
     }
 
-    /** The tab the settings window opens on: 0 Global, 3 Layout Editor (the editor asks for it). */
+    /** The tab of the settings window: 0 Global, 3 Layout Editor (the editor asks for it, also while the window is open). */
     var settingsTab by mutableStateOf(0)
 
     /** Brings the settings window of the app to the Layout Editor tab. */
