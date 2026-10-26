@@ -46,11 +46,15 @@ fun main() =
 
         if (state.showLayoutEditor) {
             val scope = rememberCoroutineScope()
+            val enabledMods = (state.config.clientMods + state.config.serverMods).filter { it.enabled }.map { it.path }.distinct()
             val leState =
                 remember {
-                    val mods = (state.config.clientMods + state.config.serverMods).filter { it.enabled }.map { it.path }.distinct()
-                    LayoutEditorState(state.config.workDrivePath, scope, state.config.gamePath, mods)
+                    LayoutEditorState(state.config.workDrivePath, scope, state.config.gamePath, enabledMods)
                 }
+            // The window is kept while the game path or the enabled mods change in the main window: the editor takes them too
+            LaunchedEffect(state.config.workDrivePath, state.config.gamePath, enabledMods) {
+                leState.updateRoots(state.config.workDrivePath, state.config.gamePath, enabledMods)
+            }
             val leTheme =
                 remember(state.config.selectedTheme, state.config.customThemes) {
                     resolveTheme(state.config.selectedTheme, state.config.customThemes)

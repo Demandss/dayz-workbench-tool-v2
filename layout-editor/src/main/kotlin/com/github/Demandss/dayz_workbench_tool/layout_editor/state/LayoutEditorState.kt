@@ -136,13 +136,44 @@ class TreeRoot(
 )
 
 class LayoutEditorState(
-    val workDrivePath: String,
+    workDrive: String,
     private val scope: CoroutineScope,
     /** The folder of the game (the one with `dta`): its `gui.pbo` is the source of the vanilla layouts, styles and fonts. */
-    private val gameFolder: String = "",
+    gameFolderAtStart: String = "",
     /** The folders of the connected mods; null shows the whole work drive instead. */
-    private val modFolders: List<String>? = null,
+    modFoldersAtStart: List<String>? = null,
 ) {
+    /** The work drive, the folder of the game and the mods follow the settings of the main window: see [updateRoots]. */
+    var workDrivePath by mutableStateOf(workDrive)
+        private set
+
+    private var gameFolder by mutableStateOf(gameFolderAtStart)
+    private var modFolders by mutableStateOf(modFoldersAtStart)
+
+    /**
+     * Takes new roots of the resources (the game folder or the enabled mods were changed in the main window). Open files stay;
+     * what was read from the old roots (the PBO, styles, fonts, string tables, scripts) is read again.
+     */
+    fun updateRoots(
+        workDrive: String,
+        game: String,
+        mods: List<String>?,
+    ) {
+        if (workDrive == workDrivePath && game == gameFolder && mods == modFolders) return
+        val gameChanged = game != gameFolder
+        workDrivePath = workDrive
+        gameFolder = game
+        modFolders = mods
+        if (gameChanged) {
+            gamePbo = null
+            gameScriptDeclarations = null
+            openGamePbo()
+        }
+        refreshAssets()
+        scanScriptClasses()
+        scanStringtables()
+    }
+
     /** `gui.pbo` of the game once its header is read. Its files are read from it when needed, never unpacked. */
     var gamePbo by mutableStateOf<PboArchive?>(null)
         private set
