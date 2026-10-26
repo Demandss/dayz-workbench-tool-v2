@@ -16,6 +16,11 @@ internal object Lz4 {
         dst: ByteArray,
         dstPos: Int,
     ): Int {
+        // A length that reaches past the data is a corrupt file, not an index error
+        val pastEnd = srcPos < 0 || length < 0 || srcPos.toLong() + length > src.size
+        if (pastEnd) {
+            throw IllegalArgumentException("Corrupt LZ4 data: block past the end")
+        }
         var s = srcPos
         var d = dstPos
         val srcEnd = srcPos + length
@@ -26,8 +31,10 @@ internal object Lz4 {
             if (literals == 15) {
                 var b: Int
                 do {
+                    if (s >= srcEnd) throw IllegalArgumentException("Corrupt LZ4 data: literal length cut off")
                     b = src[s++].toInt() and 0xFF
                     literals += b
+                    if (literals < 0) throw IllegalArgumentException("Corrupt LZ4 data: literal length too big")
                 } while (b == 255)
             }
             if (d + literals > dst.size || s + literals > srcEnd) throw IllegalArgumentException("LZ4 literal run out of range")
@@ -36,6 +43,7 @@ internal object Lz4 {
             d += literals
             if (s >= srcEnd) break
 
+            if (s + 2 > srcEnd) throw IllegalArgumentException("Corrupt LZ4 data: match offset cut off")
             val offset = (src[s].toInt() and 0xFF) or ((src[s + 1].toInt() and 0xFF) shl 8)
             s += 2
             if (offset == 0 || offset > d) throw IllegalArgumentException("LZ4 bad match offset")
@@ -44,8 +52,10 @@ internal object Lz4 {
             if (matchLen == 15) {
                 var b: Int
                 do {
+                    if (s >= srcEnd) throw IllegalArgumentException("Corrupt LZ4 data: match length cut off")
                     b = src[s++].toInt() and 0xFF
                     matchLen += b
+                    if (matchLen < 0) throw IllegalArgumentException("Corrupt LZ4 data: match length too big")
                 } while (b == 255)
             }
             matchLen += 4

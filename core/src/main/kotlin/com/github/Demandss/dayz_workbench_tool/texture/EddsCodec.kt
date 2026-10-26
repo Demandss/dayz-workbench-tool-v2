@@ -237,6 +237,7 @@ object EddsCodec {
         size: Int,
     ): ByteArray {
         val buf = ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN)
+        if (size < 4 || start < 0 || start.toLong() + 4 > bytes.size) throw EddsException("Truncated LZ4 data")
         val unpacked = buf.getInt(start)
         if (unpacked < 0 || unpacked > 1 shl 28) throw EddsException("Bad LZ4 size $unpacked")
         val target = ByteArray(unpacked)
@@ -244,7 +245,12 @@ object EddsCodec {
         var consumed = 4
         try {
             while (consumed < size) {
+                // The length of a block is read from the file: it has to fit in what is left of the data
+                val cutOff = consumed + 4 > size || start.toLong() + consumed + 4 > bytes.size
+                if (cutOff) throw EddsException("Truncated LZ4 block table")
                 val length = buf.getInt(start + consumed) and Int.MAX_VALUE
+                val left = size - consumed - 4
+                if (length > left) throw EddsException("Corrupt LZ4 data: block of $length bytes, $left left")
                 written = Lz4.decodeBlock(bytes, start + consumed + 4, length, target, written)
                 consumed += 4 + length
             }
