@@ -51,11 +51,38 @@ class McpGuideTest {
     }
 
     @Test
+    fun `every extra shape of an argument names a tool and an argument that exist`() {
+        for (key in McpTools.ARGUMENT_SHAPES.keys) {
+            val (tool, argument) = key.split(".")
+            val definition = tools.firstOrNull { it["name"]!!.jsonPrimitive.content == tool }
+            assertTrue(definition != null, "$key: there is no tool $tool")
+            val properties = definition!!["inputSchema"]!!.jsonObject["properties"]!!.jsonObject
+            assertTrue(argument in properties.keys, "$key: $tool takes no $argument")
+        }
+    }
+
+    @Test
+    fun `a list says what it holds and screenshot lists its modes`() {
+        for (tool in tools) {
+            val properties = tool["inputSchema"]!!.jsonObject["properties"]!!.jsonObject
+            for ((argument, schema) in properties) {
+                val spec = schema.jsonObject
+                if (spec["type"]!!.jsonPrimitive.content == "array") {
+                    assertTrue("items" in spec, "${tool["name"]!!.jsonPrimitive.content}.$argument is a list without items")
+                }
+            }
+        }
+        val screenshot = tools.first { it["name"]!!.jsonPrimitive.content == "screenshot" }
+        val mode = screenshot["inputSchema"]!!.jsonObject["properties"]!!.jsonObject["mode"]!!.jsonObject
+        assertEquals(listOf("editor", "preview", "preview_workbench"), (mode["enum"] as JsonArray).map { it.jsonPrimitive.content })
+    }
+
+    @Test
     fun `every tool the guide and the prompts name exists`() {
         val verb = "get|set|list|open|create|save|add|copy|move|delete|rename|convert|measure|register|replace|find|select|close"
         val text =
             McpGuide.instructions +
-                McpGuide.assistantPrompt("http://127.0.0.1:1/mcp", "t", "P:\\", "", emptyList()) +
+                McpGuide.assistantPrompt("http://127.0.0.1:1/mcp", "t", "work-drive", "", emptyList()) +
                 promptNames.joinToString("\n") { promptText(it) }
         val named = Regex("\\b(?:$verb)_[a-z_]+\\b").findAll(text).map { it.value }.toSet() + "editor_status"
         assertTrue(named.size > 20, "the tools should be found in the guide, got ${named.size}")
@@ -91,8 +118,8 @@ class McpGuideTest {
     @Test
     fun `the prompt for the assistant says where to look and how to connect`() {
         val prompt =
-            McpGuide.assistantPrompt("http://127.0.0.1:39871/mcp", "secret", "P:\\", "C:\\Games\\DayZ", listOf("K:\\MF_Mods", "K:\\Other"))
-        assertTrue("P:\\" in prompt && "C:\\Games\\DayZ" in prompt && "K:\\MF_Mods" in prompt && "K:\\Other" in prompt)
+            McpGuide.assistantPrompt("http://127.0.0.1:39871/mcp", "secret", "work-drive", "game-folder", listOf("mod-one", "mod-two"))
+        assertTrue("work-drive" in prompt && "game-folder" in prompt && "mod-one" in prompt && "mod-two" in prompt)
         assertTrue("claude mcp add" in prompt && "Bearer secret" in prompt && "http://127.0.0.1:39871/mcp" in prompt)
         assertTrue("editor_status" in prompt && "list_layouts" in prompt)
         assertTrue(prompt.endsWith("My task: "))

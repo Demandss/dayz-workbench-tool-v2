@@ -153,6 +153,153 @@ class McpToolsTest {
         assertEquals(false, hints["save_layout"])
     }
 
+    private fun args(vararg pairs: Pair<String, Any>): JsonObject =
+        buildJsonObject {
+            for ((key, value) in pairs) {
+                when (value) {
+                    is JsonObject -> put(key, value)
+                    is JsonArray -> put(key, value)
+                    is Boolean -> put(key, value)
+                    is Int -> put(key, value)
+                    else -> put(key, value.toString())
+                }
+            }
+        }
+
+    private fun widget(
+        type: String,
+        name: String,
+    ) = ok("add_widget", args("type" to type, "name" to name))
+
+    @Test
+    fun `one property is set on many widgets in one step`() {
+        newLayout()
+        widget("TextWidget", "Row_1")
+        widget("TextWidget", "Row_2")
+        widget("TextWidget", "Other")
+
+        ok("set_properties_many", args("name_regex" to "^Row_", "properties" to args("color" to "0.25 0.5 0.75 1")))
+        assertTrue("0.25 0.5 0.75 1" in ok("get_widget", args("name" to "Row_1")))
+        assertTrue("0.25 0.5 0.75 1" in ok("get_widget", args("name" to "Row_2")))
+        assertFalse("0.25 0.5 0.75 1" in ok("get_widget", args("name" to "Other")))
+
+        // The whole change is one step of undo
+        ok("undo")
+        assertFalse("0.25 0.5 0.75 1" in ok("get_widget", args("name" to "Row_1")))
+        assertFalse("0.25 0.5 0.75 1" in ok("get_widget", args("name" to "Row_2")))
+    }
+
+    @Test
+    fun `a widget is copied, renamed, moved and deleted`() {
+        newLayout()
+        widget("PanelWidget", "Box")
+        widget("TextWidget", "Label")
+
+        ok("copy_widget", args("name" to "Label", "count" to 2))
+        val tree = ok("get_tree")
+        assertTrue("Label_1" in tree && "Label_2" in tree, tree)
+
+        ok("rename_widget", args("name" to "Label_1", "new_name" to "Caption"))
+        assertTrue("Caption" in ok("get_tree"))
+
+        ok("move_widget", args("name" to "Caption", "new_parent_name" to "Box"))
+        ok("get_widget", args("path" to "Root/Box/Caption"))
+
+        ok("delete_widget", args("name" to "Box"))
+        assertFalse("Caption" in ok("get_tree"))
+    }
+
+    @Test
+    fun `widgets are found by words and by type`() {
+        newLayout()
+        widget("TextWidget", "Alpha")
+        widget("PanelWidget", "Beta")
+
+        val byName = ok("find_widgets", args("query" to "alp"))
+        assertTrue("Alpha" in byName && "Beta" !in byName, byName)
+        val byType = ok("find_widgets", args("type" to "PanelWidget"))
+        assertTrue("Beta" in byType && "Alpha" !in byType, byType)
+    }
+
+    @Test
+    fun `several widgets are added at once`() {
+        newLayout()
+        val widgets =
+            JsonArray(
+                listOf(
+                    args("type" to "TextWidget", "name" to "First"),
+                    args("type" to "ImageWidget", "name" to "Second"),
+                ),
+            )
+        ok("add_widgets", args("widgets" to widgets))
+        val tree = ok("get_tree")
+        assertTrue("First" in tree && "Second" in tree, tree)
+    }
+
+    @Test
+    fun `redo brings back what undo took`() {
+        newLayout()
+        widget("TextWidget", "Title")
+        ok("undo")
+        assertFalse("Title" in ok("get_tree"))
+        ok("redo")
+        assertTrue("Title" in ok("get_tree"))
+    }
+
+    @Test
+    fun `the whole text of a layout is read and replaced`() {
+        newLayout()
+        assertTrue("FrameWidgetClass Root" in ok("get_layout_text"))
+
+        val text = "FrameWidgetClass Root {\n size 100 100\n {\n  TextWidgetClass Hello {\n   text \"Hi\"\n  }\n }\n}\n"
+        ok("replace_layout_text", args("text" to text))
+        assertTrue("Hello" in ok("get_tree"))
+    }
+
+    @Test
+    fun `a layout with unsaved changes is closed only when it is discarded`() {
+        newLayout()
+        widget("TextWidget", "Title")
+
+        val refused = call("close_layout")
+        assertTrue(refused.isError)
+        assertTrue("unsaved" in refused.text, refused.text)
+
+        ok("close_layout", args("discard" to true))
+        assertTrue("\"open_layouts\":[]" in ok("editor_status"))
+    }
+
+    @Test
+    fun `the view is changed and the status tells it`() {
+        newLayout()
+        ok("set_view", args("show_grid" to true, "grid_size" to 20))
+        val status = ok("editor_status")
+        assertTrue("\"show_grid\":true" in status && "\"grid_size\":20" in status, status)
+    }
+
+    @Test
+    fun `the script of a layout names its widgets`() {
+        newLayout()
+        widget("TextWidget", "Title")
+        val script = ok("get_script_template", args("kind" to "widgets"))
+        assertTrue("Title" in script && "TextWidget" in script, script)
+    }
+
+    @Test
+    fun `a missing argument is said by name`() {
+        newLayout()
+        val noType = call("add_widget", args("name" to "X"))
+        assertTrue(noType.isError, noType.text)
+        val noProperties = call("set_properties", args("name" to "Root"))
+        assertTrue(noProperties.isError && "properties" in noProperties.text, noProperties.text)
+    }
+
+    @Test
+    fun `a tool that needs a layout says so when none is open`() {
+        val answer = call("get_tree")
+        assertTrue(answer.isError, answer.text)
+    }
+
     @Test
     fun `the answer of a tool is a content list`() {
         val result = tools.call("editor_status", buildJsonObject { })

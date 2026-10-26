@@ -1656,6 +1656,7 @@ internal class McpTools(
 
     companion object {
         private fun schema(
+            tool: String,
             properties: Map<String, Pair<String, String>> = emptyMap(),
             required: List<String> = emptyList(),
         ): JsonObject =
@@ -1665,13 +1666,12 @@ internal class McpTools(
                     "properties",
                     buildJsonObject {
                         properties.forEach { (name, spec) ->
-                            put(
-                                name,
-                                buildJsonObject {
-                                    put("type", spec.first)
-                                    put("description", spec.second)
-                                },
-                            )
+                            val declared =
+                                mapOf<String, JsonElement>(
+                                    "type" to JsonPrimitive(spec.first),
+                                    "description" to JsonPrimitive(spec.second),
+                                )
+                            put(name, JsonObject(declared + ARGUMENT_SHAPES["$tool.$name"].orEmpty()))
                         }
                     },
                 )
@@ -1687,10 +1687,95 @@ internal class McpTools(
             buildJsonObject {
                 put("name", name)
                 put("description", description)
-                put("inputSchema", schema(properties, required))
+                put("inputSchema", schema(name, properties, required))
                 // A client can let the tools that only look run without asking each time
                 put("annotations", buildJsonObject { put("readOnlyHint", name in READ_ONLY_TOOLS) })
             }
+
+        private fun values(vararg allowed: String): JsonObject = JsonObject(mapOf("enum" to JsonArray(allowed.map { JsonPrimitive(it) })))
+
+        private fun listOfItems(items: JsonObject): JsonObject = JsonObject(mapOf("items" to items))
+
+        private fun type(vararg names: String): JsonObject =
+            JsonObject(mapOf("type" to if (names.size == 1) JsonPrimitive(names[0]) else JsonArray(names.map { JsonPrimitive(it) })))
+
+        private fun objectWith(
+            properties: Map<String, JsonObject>,
+            required: List<String> = emptyList(),
+        ): JsonObject =
+            buildJsonObject {
+                put("type", "object")
+                put("properties", JsonObject(properties))
+                if (required.isNotEmpty()) put("required", JsonArray(required.map { JsonPrimitive(it) }))
+            }
+
+        /** An object whose keys are free and whose values all look like [values]. */
+        private fun mapOfValues(values: JsonObject): JsonObject = JsonObject(mapOf("additionalProperties" to values))
+
+        /** A value of a property of a widget, as the file writes it: a text, a number or a flag; null removes the property. */
+        private val PROPERTY_VALUE = type("string", "number", "boolean", "null")
+
+        /**
+         * What the schema of an argument says beyond its type, by "tool.argument": the values it takes, what a list holds, what an
+         * object maps. It is for the assistant to see before the call, and for the clients that check a call before they send it.
+         * McpGuideTest checks that every key names a tool and an argument that exist.
+         */
+        internal val ARGUMENT_SHAPES: Map<String, JsonObject> =
+            mapOf(
+                "screenshot.mode" to values("editor", "preview", "preview_workbench"),
+                "screenshot.area" to values("canvas", "window", "screen"),
+                "get_script_template.kind" to values("menu", "component", "widgets"),
+                "convert_font.charset" to values("ascii", "latin", "cyrillic", "default"),
+                "convert_font.sizes" to
+                    listOfItems(
+                        JsonObject(
+                            mapOf(
+                                "type" to JsonPrimitive("integer"),
+                                "minimum" to JsonPrimitive(6),
+                                "maximum" to JsonPrimitive(200),
+                            ),
+                        ),
+                    ),
+                "select_widgets.ids" to listOfItems(type("string")),
+                "set_properties_many.names" to listOfItems(type("string")),
+                "set_properties.properties" to mapOfValues(PROPERTY_VALUE),
+                "set_properties_many.properties" to mapOfValues(PROPERTY_VALUE),
+                "add_widget.properties" to mapOfValues(PROPERTY_VALUE),
+                "add_widgets.widgets" to
+                    listOfItems(
+                        objectWith(
+                            mapOf(
+                                "type" to type("string"),
+                                "name" to type("string"),
+                                "parent_id" to type("string"),
+                                "parent_name" to type("string"),
+                                "parent_path" to type("string"),
+                                "properties" to JsonObject(objectWith(emptyMap()) + ("additionalProperties" to PROPERTY_VALUE)),
+                                "index" to type("integer"),
+                            ),
+                            required = listOf("type"),
+                        ),
+                    ),
+                "create_imageset.images" to
+                    listOfItems(
+                        objectWith(mapOf("name" to type("string"), "source" to type("string")), required = listOf("name", "source")),
+                    ),
+                "create_style.slots" to mapOfValues(type("string")),
+                "create_style.states" to
+                    mapOfValues(
+                        JsonObject(
+                            mapOf(
+                                "anyOf" to
+                                    JsonArray(
+                                        listOf(
+                                            type("string"),
+                                            JsonObject(mapOf("type" to JsonPrimitive("object"), "additionalProperties" to type("string"))),
+                                        ),
+                                    ),
+                            ),
+                        ),
+                    ),
+            )
 
         /** The tools that change nothing in the editor, on disk or in the view. */
         private val READ_ONLY_TOOLS =
@@ -1994,7 +2079,7 @@ internal class McpTools(
                         "output" to
                             (
                                 "string" to
-                                    "Full path of the .imageset to write, inside the mod (e.g. K:\\MF_Mods\\MyMod\\assets\\gui\\icons.imageset)"
+                                    "Full path of the .imageset to write, inside the mod (e.g. <mod folder>\\assets\\gui\\icons.imageset)"
                             ),
                         "images" to ("array" to "List of {name, source}: the name of the image and the full path of its picture"),
                         "folder" to ("string" to "A folder whose pictures are all added, named after their files"),

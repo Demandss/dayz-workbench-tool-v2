@@ -129,9 +129,17 @@ object McpHost {
     /** The token kept in the settings of the editor; one is made and kept when there is none. */
     private fun storedToken(): String {
         val config = runCatching { ConfigManager.LayoutEditor.load() }.getOrDefault(LayoutEditorConfig())
-        if (config.mcpToken.length >= 32) return config.mcpToken
+        return tokenOf(config) { runCatching { ConfigManager.LayoutEditor.save(it) } }
+    }
+
+    /** The token of [config] when it has a good one; otherwise a new one, which [keep] gets in a config to store. */
+    internal fun tokenOf(
+        config: LayoutEditorConfig,
+        keep: (LayoutEditorConfig) -> Unit,
+    ): String {
+        if (config.mcpToken.length >= MIN_TOKEN_LENGTH) return config.mcpToken
         val fresh = newToken()
-        runCatching { ConfigManager.LayoutEditor.save(config.copy(mcpToken = fresh)) }
+        keep(config.copy(mcpToken = fresh))
         return fresh
     }
 
@@ -379,6 +387,8 @@ object McpHost {
                 ),
             )
         }
+
+    private const val MIN_TOKEN_LENGTH = 32
 
     private const val WINDOW_CLOSED =
         "The layout editor window is not open. Ask the person to open it with the Layout Editor button of the DayZ Workbench Tool, then try again."
