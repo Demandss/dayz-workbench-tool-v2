@@ -67,7 +67,7 @@ object BuiltinThemes {
             subSelectColor = 0xFF346BD8,
             darkenedBorder = 0xFF1E1F22,
             textForeground = 0xFFDCD4CF,
-            ghostlyText = 0xFF6F737A,
+            ghostlyText = 0xFF9499A1,
             modIconClientSide = 0xFF346BD8,
             modIconServerSide = 0xFF346BD8,
             modIconEnabled = 0xFF346BD8,

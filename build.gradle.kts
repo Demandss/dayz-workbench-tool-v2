@@ -13,7 +13,9 @@ plugins {
 }
 
 group = "com.github.demandss"
-version = "1.0-SNAPSHOT"
+
+// The version of the programs. The release workflow writes the version of a release into the next line; the modules read it from here.
+version = "1.0.0"
 
 
 val ktlintCheckAll by tasks.registering {

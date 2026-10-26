@@ -30,6 +30,8 @@ data class AppConfig(
     val customThemes: List<ThemeDefinition> = emptyList(),
     val windowWidth: Float = 400f,
     val windowHeight: Float = 400f,
+    // The language of the interface: `system`, or the code of a language. Null until it was chosen once (see AppState)
+    val language: String? = null,
 ) {
     // Falls back to <work drive root>\scripts when no path is set
     fun effectiveScriptsPath(): String {

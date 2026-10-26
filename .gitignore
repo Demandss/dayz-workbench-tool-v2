@@ -40,3 +40,21 @@ bin/
 
 ### Mac OS ###
 .DS_Store
+
+### JVM crash dumps and logs ###
+logs/
+hs_err_pid*
+replay_pid*
+*.log
+*.hprof
+
+### Local settings and secrets ###
+local.properties
+.env
+
+### Assistant tooling ###
+.claude/
+.codegraph/
+
+### Windows ###
+Thumbs.db

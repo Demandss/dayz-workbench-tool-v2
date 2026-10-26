@@ -20,8 +20,10 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import com.github.demandss.dayz_workbench_tool.i18n.str
 import com.github.demandss.dayz_workbench_tool.model.ModSide
 import com.github.demandss.dayz_workbench_tool.model.Modification
+import com.github.demandss.dayz_workbench_tool.resources.*
 import com.github.demandss.dayz_workbench_tool.state.AppState
 import com.github.demandss.dayz_workbench_tool.state.Screen
 import com.github.demandss.dayz_workbench_tool.ui.components.DarkButton
@@ -31,6 +33,7 @@ import com.github.demandss.dayz_workbench_tool.ui.theme.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.jetbrains.compose.resources.stringResource
 import java.awt.Desktop
 import java.io.File
 
@@ -134,7 +137,7 @@ fun ModsScreen(state: AppState) {
                         .padding(horizontal = 8.dp),
                 contentAlignment = Alignment.Center,
             ) {
-                Text("← Back", color = TextForeground, fontSize = 10.sp)
+                Text(stringResource(Res.string.back), color = TextForeground, fontSize = 10.sp)
             }
             Spacer(Modifier.weight(1f))
 
@@ -150,7 +153,7 @@ fun ModsScreen(state: AppState) {
                             .padding(horizontal = 8.dp),
                     contentAlignment = Alignment.Center,
                 ) {
-                    Text("Filter: ${filter.name}", color = TextForeground, fontSize = 10.sp)
+                    Text(stringResource(Res.string.filter_x, filter.name), color = TextForeground, fontSize = 10.sp)
                 }
                 DropdownMenu(
                     expanded = filterMenuOpen,
@@ -194,7 +197,7 @@ fun ModsScreen(state: AppState) {
                 singleLine = true,
                 decorationBox = { inner ->
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.CenterStart) {
-                        if (search.isEmpty()) Text("search mods..", color = GhostlyText, fontSize = 10.sp)
+                        if (search.isEmpty()) Text(stringResource(Res.string.search_mods), color = GhostlyText, fontSize = 10.sp)
                         inner()
                     }
                 },
@@ -219,13 +222,13 @@ fun ModsScreen(state: AppState) {
 
                 if (showEnable) {
                     DropdownMenuItem(
-                        text = { Text("Enable", color = TextForeground, fontSize = 10.sp) },
+                        text = { Text(stringResource(Res.string.enable), color = TextForeground, fontSize = 10.sp) },
                         onClick = {
                             dismiss()
                             val toEnable = liveMods.filter { !it.enabled }
                             pendingAction =
                                 PendingAction(
-                                    title = "Enable mods",
+                                    title = str(Res.string.enable_mods),
                                     mods = toEnable,
                                     onConfirm = {
                                         toEnable.forEach { state.toggleEnabled(it) }
@@ -238,13 +241,13 @@ fun ModsScreen(state: AppState) {
                 }
                 if (showDisable) {
                     DropdownMenuItem(
-                        text = { Text("Disable", color = TextForeground, fontSize = 10.sp) },
+                        text = { Text(stringResource(Res.string.disable), color = TextForeground, fontSize = 10.sp) },
                         onClick = {
                             dismiss()
                             val toDisable = liveMods.filter { it.enabled }
                             pendingAction =
                                 PendingAction(
-                                    title = "Disable mods",
+                                    title = str(Res.string.disable_mods),
                                     mods = toDisable,
                                     onConfirm = {
                                         toDisable.forEach { state.toggleEnabled(it) }
@@ -256,12 +259,12 @@ fun ModsScreen(state: AppState) {
                     )
                 }
                 DropdownMenuItem(
-                    text = { Text("Remove", color = TextForeground, fontSize = 10.sp) },
+                    text = { Text(stringResource(Res.string.delete), color = TextForeground, fontSize = 10.sp) },
                     onClick = {
                         dismiss()
                         pendingAction =
                             PendingAction(
-                                title = "Remove mods",
+                                title = str(Res.string.remove_mods),
                                 mods = liveMods,
                                 onConfirm = {
                                     liveMods.forEach { state.removeMod(it) }
@@ -275,7 +278,7 @@ fun ModsScreen(state: AppState) {
                     val singleMod = liveMods.firstOrNull()
                     if (singleMod != null && File(singleMod.path).exists()) {
                         DropdownMenuItem(
-                            text = { Text("Open location", color = TextForeground, fontSize = 10.sp) },
+                            text = { Text(stringResource(Res.string.open_location), color = TextForeground, fontSize = 10.sp) },
                             onClick = {
                                 dismiss()
                                 scope.launch(Dispatchers.IO) {
@@ -290,7 +293,7 @@ fun ModsScreen(state: AppState) {
                         )
                     }
                     DropdownMenuItem(
-                        text = { Text("Info", color = TextForeground, fontSize = 10.sp) },
+                        text = { Text(stringResource(Res.string.info), color = TextForeground, fontSize = 10.sp) },
                         onClick = {
                             infoMod = liveMods.firstOrNull()
                             dismiss()
@@ -318,7 +321,7 @@ fun ModsScreen(state: AppState) {
                     infoMod = null
                     pendingAction =
                         PendingAction(
-                            title = if (live.enabled) "Disable mod" else "Enable mod",
+                            title = if (live.enabled) str(Res.string.disable_mod) else str(Res.string.enable_mod),
                             mods = listOf(live),
                             onConfirm = { state.toggleEnabled(live) },
                         )
@@ -329,7 +332,7 @@ fun ModsScreen(state: AppState) {
                     infoMod = null
                     pendingAction =
                         PendingAction(
-                            title = if (live.side == ModSide.CLIENT) "Move to server" else "Move to client",
+                            title = if (live.side == ModSide.CLIENT) str(Res.string.move_to_server) else str(Res.string.move_to_client),
                             mods = listOf(live),
                             onConfirm = { state.switchSide(live) },
                         )
@@ -340,7 +343,7 @@ fun ModsScreen(state: AppState) {
                     infoMod = null
                     pendingAction =
                         PendingAction(
-                            title = "Remove mod",
+                            title = str(Res.string.remove_mod),
                             mods = listOf(live),
                             onConfirm = {
                                 state.removeMod(live)
@@ -384,11 +387,11 @@ private fun ConfirmDialog(
                 }
             }
             Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                DarkButton("Confirm", onClick = {
+                DarkButton(str(Res.string.confirm), onClick = {
                     action.onConfirm()
                     onDismiss()
                 }, modifier = Modifier.weight(1f))
-                DarkButton("Cancel", onClick = onDismiss, modifier = Modifier.weight(1f))
+                DarkButton(str(Res.string.cancel), onClick = onDismiss, modifier = Modifier.weight(1f))
             }
         }
     }
@@ -417,26 +420,26 @@ private fun ModInfoDialog(
             Text(mod.name, color = TextForeground, fontSize = 12.sp)
             Text(mod.path, color = GhostlyText, fontSize = 10.sp, lineHeight = 14.sp)
             Text(
-                if (isMissing) "✗ Directory not found" else "✓ Directory found",
+                if (isMissing) str(Res.string.directory_not_found) else str(Res.string.directory_found),
                 color = if (isMissing) GhostlyText else TextForeground,
                 fontSize = 10.sp,
             )
             Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 DarkButton(
-                    text = if (mod.enabled) "Disable" else "Enable",
+                    text = if (mod.enabled) str(Res.string.disable) else str(Res.string.enable),
                     onClick = onToggleEnabled,
                     modifier = Modifier.weight(1f),
                 )
                 DarkButton(
-                    text = if (mod.side == ModSide.CLIENT) "→ Server" else "→ Client",
+                    text = if (mod.side == ModSide.CLIENT) str(Res.string.server) else str(Res.string.client),
                     onClick = onSwitchSide,
                     modifier = Modifier.weight(1f),
                 )
             }
             Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                DarkButton("Open", onClick = onOpenLocation, modifier = Modifier.weight(1f), enabled = !isMissing)
-                DarkButton("Remove", onClick = onRemove, modifier = Modifier.weight(1f))
-                DarkButton("Close", onClick = onDismiss, modifier = Modifier.weight(1f))
+                DarkButton(str(Res.string.open), onClick = onOpenLocation, modifier = Modifier.weight(1f), enabled = !isMissing)
+                DarkButton(str(Res.string.delete), onClick = onRemove, modifier = Modifier.weight(1f))
+                DarkButton(str(Res.string.close), onClick = onDismiss, modifier = Modifier.weight(1f))
             }
         }
     }

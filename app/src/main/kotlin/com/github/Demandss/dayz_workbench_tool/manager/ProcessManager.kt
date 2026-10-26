@@ -5,7 +5,8 @@ import java.io.File
 import java.nio.file.Path
 
 object ProcessManager {
-    fun launchWorkbench(config: AppConfig): Process {
+    /** The command line of Workbench: the program, the arguments of the settings, the flags it always needs, and the mods. */
+    internal fun workbenchCommand(config: AppConfig): List<String> {
         val exe = File(config.workbenchPath, "workbenchApp.exe").absolutePath
         val allMods =
             (config.clientMods + config.serverMods)
@@ -25,12 +26,19 @@ object ProcessManager {
         // Unpacked mods are resolved through file patching since 1.30
         listOf("-filePatching", "-resolveFilePatchingUsingEnfusion=1", "-dologs").forEach { args.addIfMissing(it) }
         if (allMods.isNotEmpty()) args.add("\"-mod=${allMods.joinToString(";")}\"")
-        // dayz.gproj sets the project root to "./", so Workbench must start in the game folder
+        return args
+    }
+
+    /** The folder Workbench starts in: dayz.gproj sets the project root to "./", so it is the game folder when there is one. */
+    internal fun workbenchDirectory(config: AppConfig): File {
         val gameDir = File(config.gamePath).let { if (it.isFile) it.parentFile else it }
-        val workDir = if (config.gamePath.isNotBlank() && gameDir.isDirectory) gameDir else File(config.workbenchPath)
+        return if (config.gamePath.isNotBlank() && gameDir.isDirectory) gameDir else File(config.workbenchPath)
+    }
+
+    fun launchWorkbench(config: AppConfig): Process {
         val workbench =
-            ProcessBuilder(args)
-                .directory(workDir)
+            ProcessBuilder(workbenchCommand(config))
+                .directory(workbenchDirectory(config))
                 .inheritIO()
                 .start()
         if (config.skipWorkbenchAsserts) startAssertSkipper()
@@ -94,7 +102,7 @@ object ProcessManager {
         }
     }
 
-    private fun buildArgs(
+    internal fun buildArgs(
         exePath: String,
         extraArgs: String,
         mods: List<String>,
@@ -106,7 +114,7 @@ object ProcessManager {
         }
 
     // Splits args by whitespace, respecting double-quoted tokens
-    private fun parseArgs(args: String): List<String> {
+    internal fun parseArgs(args: String): List<String> {
         val result = mutableListOf<String>()
         Regex(""""[^"]*"|\S+""").findAll(args.trim()).forEach { match ->
             result.add(match.value.removeSurrounding("\""))

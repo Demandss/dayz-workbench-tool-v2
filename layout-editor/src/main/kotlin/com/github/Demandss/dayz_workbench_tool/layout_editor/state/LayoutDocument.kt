@@ -8,6 +8,9 @@ data class LayoutDocument(
     var isModified: Boolean = false,
     val undoStack: ArrayDeque<EditorWidgetNode> = ArrayDeque(),
     val redoStack: ArrayDeque<EditorWidgetNode> = ArrayDeque(),
+    // What each undo step did, in step with undoStack and redoStack
+    val undoLabels: ArrayDeque<String> = ArrayDeque(),
+    val redoLabels: ArrayDeque<String> = ArrayDeque(),
 ) {
     val fileName: String get() = path.replace('\\', '/').substringAfterLast('/')
 }

@@ -1,27 +1,36 @@
 package com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.hoverable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.input.pointer.*
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.github.demandss.dayz_workbench_tool.layout.WidgetType
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.DragSession
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.DragSource
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.LayoutEditorState
-import com.github.demandss.dayz_workbench_tool.layout_editor.state.PendingAdd
+import com.github.demandss.dayz_workbench_tool.resources.*
+import com.github.demandss.dayz_workbench_tool.ui.icons.AppIconView
+import com.github.demandss.dayz_workbench_tool.ui.icons.widgetIcon
 import com.github.demandss.dayz_workbench_tool.ui.theme.*
+import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun PaletteContent(
@@ -33,10 +42,47 @@ fun PaletteContent(
             WidgetType.entries.filter { it != WidgetType.UNKNOWN }.sortedBy { it.className }
         }
     val enabled = state.activeFile != null
+    var query by remember { mutableStateOf("") }
+    val shown = types.filter { it.className.contains(query.trim(), ignoreCase = true) }
 
-    LazyColumn(modifier.background(FrameBackground)) {
-        items(types) { type ->
-            PaletteRow(type, enabled, state)
+    Column(modifier.background(FrameBackground)) {
+        Box(Modifier.fillMaxWidth().padding(6.dp)) {
+            BasicTextField(
+                value = query,
+                onValueChange = { query = it },
+                singleLine = true,
+                textStyle = TextStyle(color = TextForeground, fontSize = 11.sp),
+                cursorBrush = SolidColor(TextForeground),
+                decorationBox = { inner ->
+                    Box(
+                        Modifier
+                            .fillMaxWidth()
+                            .height(22.dp)
+                            .background(ElementsBackground)
+                            .border(1.dp, DarkenedBorder)
+                            .padding(horizontal = 6.dp),
+                        contentAlignment = Alignment.CenterStart,
+                    ) {
+                        if (query.isEmpty()) Text(stringResource(Res.string.search_for_a_widget), color = GhostlyText, fontSize = 11.sp)
+                        inner()
+                    }
+                },
+            )
+        }
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(2),
+            modifier = Modifier.fillMaxSize().padding(horizontal = 4.dp),
+        ) {
+            items(shown) { type -> PaletteRow(type, enabled, state) }
+            item(span = { GridItemSpan(maxLineSpan) }) {
+                Text(
+                    stringResource(Res.string.drag_a_widget_onto_the_canvas_or_onto_a),
+                    color = GhostlyText,
+                    fontSize = 11.sp,
+                    lineHeight = 16.sp,
+                    modifier = Modifier.padding(8.dp),
+                )
+            }
         }
     }
 }
@@ -54,9 +100,11 @@ private fun PaletteRow(
         modifier =
             Modifier
                 .fillMaxWidth()
-                .height(22.dp)
+                .height(26.dp)
                 .hoverable(interactionSource)
-                .background(if (enabled && hovered) SubSelectColor else Color.Transparent)
+                .padding(2.dp)
+                .background(DarkenedBorder)
+                .border(1.dp, if (enabled && hovered) GhostlyText else Color.Transparent)
                 .padding(horizontal = 8.dp)
                 .pointerInput(type, enabled) {
                     if (!enabled) return@pointerInput
@@ -94,8 +142,8 @@ private fun PaletteRow(
                                     if (pressed) {
                                         pressed = false
                                         if (!dragStarted) {
-                                            // Simple click — show name dialog
-                                            state.pendingAdd = PendingAdd(type, null, null)
+                                            // A simple click adds the widget under its technical name
+                                            state.addWidgetOfType(type, null, null)
                                         }
                                         // Drag drop is handled by the root interceptor
                                         dragStarted = false
@@ -112,6 +160,7 @@ private fun PaletteRow(
         horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         val shortName = type.className.removeSuffix("WidgetClass")
-        Text(shortName, color = if (enabled) TextForeground else GhostlyText, fontSize = 11.sp)
+        AppIconView(widgetIcon(type), size = 16.dp, tint = if (enabled) null else GhostlyText)
+        Text(shortName, color = if (enabled) TextForeground else GhostlyText, fontSize = 11.sp, maxLines = 1)
     }
 }

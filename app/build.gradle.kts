@@ -12,7 +12,7 @@ kotlin {
 }
 
 group = "com.github.demandss"
-version = (findProperty("version") as? String)?.takeIf { it != "unspecified" } ?: "1.0.0"
+version = rootProject.version
 
 repositories {
     mavenCentral()
@@ -29,11 +29,24 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.1")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-swing:1.8.1")
+
+    testImplementation(kotlin("test"))
+    // Tests of the windows: they are drawn without a screen and clicked by the tests
+    @OptIn(org.jetbrains.compose.ExperimentalComposeLibrary::class)
+    testImplementation(compose.uiTest)
+}
+
+tasks.test {
+    useJUnitPlatform()
+    jvmArgs("-XX:ErrorFile=logs/hs_err_pid%p.log", "-XX:ReplayDataFile=logs/replay_pid%p.log")
 }
 
 compose.desktop {
     application {
         mainClass = "com.github.demandss.dayz_workbench_tool.MainKt"
+
+        // Crash dumps go to logs/ (ignored by git) instead of the working directory
+        jvmArgs += listOf("-XX:ErrorFile=logs/hs_err_pid%p.log", "-XX:ReplayDataFile=logs/replay_pid%p.log")
 
         javaHome =
             javaToolchains

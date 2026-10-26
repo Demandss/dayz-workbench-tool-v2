@@ -1,0 +1,25 @@
+[
+  {
+    "name": "edit_layout",
+    "description": "Change the open layout and check the result on a screenshot",
+    "file": "prompts/edit_layout.md",
+    "arguments": [
+      { "name": "task", "description": "What to change or build", "required": true }
+    ]
+  },
+  {
+    "name": "write_script",
+    "description": "Write the Enforce Script class for the open layout",
+    "file": "prompts/write_script.md",
+    "arguments": [
+      { "name": "class_name", "description": "Name of the class (optional)", "default": "of your choice, from the name of the layout" },
+      { "name": "kind", "description": "menu, component or widgets (default menu)", "default": "menu" }
+    ]
+  },
+  {
+    "name": "review_layout",
+    "description": "Look for mistakes in the open layout",
+    "file": "prompts/review_layout.md",
+    "arguments": []
+  }
+]

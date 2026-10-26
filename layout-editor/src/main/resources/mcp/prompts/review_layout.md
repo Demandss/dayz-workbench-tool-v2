@@ -1,0 +1,1 @@
+Review the layout that is open in the DayZ Layout Editor. Run get_problems, take screenshots with mode preview at 1920x1080 and at 1280x720 (set_view resolution), look for widgets that are cut, overlap or leave the screen, bad anchors, missing styles or icons and names that a script cannot use. Report what you found; change nothing unless asked.

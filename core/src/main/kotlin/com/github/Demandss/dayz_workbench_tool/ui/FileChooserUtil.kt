@@ -10,15 +10,7 @@ suspend fun pickFile(
     initialDir: String? = null,
 ): String? =
     withContext(Dispatchers.IO) {
-        val initLine = if (!initialDir.isNullOrBlank()) "\$d.InitialDirectory = '$initialDir'; " else ""
-        val script =
-            "Add-Type -AssemblyName System.Windows.Forms; " +
-                "\$d = New-Object System.Windows.Forms.OpenFileDialog; " +
-                "\$d.Title = '$title'; " +
-                initLine +
-                "\$d.Filter = '$extension files (*.$extension)|*.$extension'; " +
-                "if (\$d.ShowDialog() -eq 'OK') { Write-Output \$d.FileName }"
-        runPs("-Command", script)
+        runPsScript(fileDialogScript(title, extension, initialDir))
     }
 
 suspend fun pickDirectory(
@@ -26,19 +18,64 @@ suspend fun pickDirectory(
     initialDir: String? = null,
 ): String? =
     withContext(Dispatchers.IO) {
-        val temp = File.createTempFile("dayz_pick_", ".ps1")
-        try {
-            temp.writeText(folderPickerScript(title, initialDir))
-            runPs("-ExecutionPolicy", "Bypass", "-File", temp.absolutePath)
-        } finally {
-            temp.delete()
-        }
+        runPsScript(folderPickerScript(title, initialDir))
     }
+
+/**
+ * Runs [script] from a file: a command line reaches PowerShell in the code page of the system, so a title or a folder of another
+ * alphabet would turn into question marks there.
+ */
+private fun runPsScript(script: String): String? {
+    val temp = File.createTempFile("dayz_pick_", ".ps1")
+    try {
+        writePowerShellFile(temp, script)
+        return runPs("-ExecutionPolicy", "Bypass", "-File", temp.absolutePath)
+    } finally {
+        temp.delete()
+    }
+}
+
+/**
+ * A text as a PowerShell string in single quotes. PowerShell takes the curly quotes (‘ ’ ‚ ‛) for the plain one, so each of
+ * them inside the text is written twice, like the plain one.
+ */
+internal fun psQuote(text: String): String = "'" + text.replace(Regex("['‘’‚‛]")) { it.value + it.value } + "'"
+
+/** The script of the dialog that picks a file; the title and the folder are quoted, so any text is safe in them. */
+internal fun fileDialogScript(
+    title: String,
+    extension: String,
+    initialDir: String? = null,
+): String {
+    val initLine = if (!initialDir.isNullOrBlank()) "\$d.InitialDirectory = ${psQuote(initialDir)}; " else ""
+    return UTF8_OUTPUT +
+        "Add-Type -AssemblyName System.Windows.Forms; " +
+        "\$d = New-Object System.Windows.Forms.OpenFileDialog; " +
+        "\$d.Title = ${psQuote(title)}; " +
+        initLine +
+        "\$d.Filter = ${psQuote("$extension files (*.$extension)|*.$extension")}; " +
+        "if (\$d.ShowDialog() -eq 'OK') { Write-Output \$d.FileName }"
+}
+
+/** What the script says first, so that a path with letters of any alphabet comes back as it is. */
+internal const val UTF8_OUTPUT = "[Console]::OutputEncoding = New-Object System.Text.UTF8Encoding \$false; "
+
+/**
+ * Writes [script] to [file] as UTF-8 with a byte order mark. Windows PowerShell 5.1 reads a script without the mark in the code
+ * page of the system, and a translated title turns into other characters, some of them quotes.
+ */
+internal fun writePowerShellFile(
+    file: File,
+    script: String,
+) {
+    file.writeBytes(byteArrayOf(0xEF.toByte(), 0xBB.toByte(), 0xBF.toByte()) + script.toByteArray(Charsets.UTF_8))
+}
 
 private fun folderPickerScript(
     title: String,
     initialDir: String? = null,
-) = """
+) = UTF8_OUTPUT +
+    """
 Add-Type -TypeDefinition @'
 using System;
 using System.Runtime.InteropServices;
@@ -111,17 +148,25 @@ public class FolderPicker {
     }
 }
 '@
-[FolderPicker]::Pick('$title', '${initialDir ?: ""}')
+[FolderPicker]::Pick(${psQuote(title)}, ${psQuote(initialDir ?: "")})
     """.trimIndent()
 
+/**
+ * Runs PowerShell and returns what the script wrote, or null when it wrote nothing or failed: an error message is not an answer
+ * (it used to come back as if it were the path that was picked).
+ */
 fun runPs(vararg args: String): String? {
     val cmd = arrayOf("powershell", "-NoProfile", "-NonInteractive", "-STA") + args
-    val process = ProcessBuilder(*cmd).redirectErrorStream(true).start()
+    val process =
+        ProcessBuilder(*cmd)
+            .redirectError(ProcessBuilder.Redirect.DISCARD)
+            .start()
     val output =
         process.inputStream
-            .bufferedReader()
+            .bufferedReader(Charsets.UTF_8)
             .readText()
+            .removePrefix("\uFEFF")
             .trim()
-    process.waitFor()
+    if (process.waitFor() != 0) return null
     return output.ifBlank { null }
 }

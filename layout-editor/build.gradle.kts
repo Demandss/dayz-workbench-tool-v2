@@ -11,7 +11,7 @@ kotlin {
 }
 
 group = "com.github.demandss"
-version = "1.0-SNAPSHOT"
+version = rootProject.version
 
 repositories {
     mavenCentral()
@@ -31,6 +31,9 @@ dependencies {
 compose.desktop {
     application {
         mainClass = "com.github.demandss.dayz_workbench_tool.layout_editor.MainKt"
+
+        // Crash dumps go to logs/ (ignored by git) instead of the working directory
+        jvmArgs += listOf("-XX:ErrorFile=logs/hs_err_pid%p.log", "-XX:ReplayDataFile=logs/replay_pid%p.log")
 
         javaHome =
             javaToolchains
@@ -60,4 +63,20 @@ compose.desktop {
             }
         }
     }
+}
+
+dependencies {
+    testImplementation(kotlin("test"))
+}
+
+// The version goes into app-version.properties, for the server of the editor to tell its clients (see McpHost)
+tasks.processResources {
+    val appVersion = project.version.toString()
+    inputs.property("appVersion", appVersion)
+    filesMatching("app-version.properties") { expand("version" to appVersion) }
+}
+
+tasks.test {
+    useJUnitPlatform()
+    jvmArgs("-XX:ErrorFile=logs/hs_err_pid%p.log", "-XX:ReplayDataFile=logs/replay_pid%p.log")
 }

@@ -18,8 +18,10 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import com.github.demandss.dayz_workbench_tool.i18n.str
 import com.github.demandss.dayz_workbench_tool.model.ModSide
 import com.github.demandss.dayz_workbench_tool.model.Modification
+import com.github.demandss.dayz_workbench_tool.resources.*
 import com.github.demandss.dayz_workbench_tool.state.AppState
 import com.github.demandss.dayz_workbench_tool.ui.pickDirectory
 import com.github.demandss.dayz_workbench_tool.ui.theme.*
@@ -77,11 +79,11 @@ fun ModChooserRow(
             onDismiss = { showTypeDialog = false },
             onLocal = {
                 showTypeDialog = false
-                scope.launch { pickDirectory("Select Local Mod", localDir)?.let { path = it } }
+                scope.launch { pickDirectory(str(Res.string.select_local_mod), localDir)?.let { path = it } }
             },
             onWorkshop = {
                 showTypeDialog = false
-                scope.launch { pickDirectory("Select Workshop Mod", workshopDir)?.let { path = it } }
+                scope.launch { pickDirectory(str(Res.string.select_workshop_mod), workshopDir)?.let { path = it } }
             },
         )
     }
@@ -103,9 +105,9 @@ private fun ModTypeDialog(
                     .padding(10.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Text("Select modification type", color = TextForeground, fontSize = 12.sp)
+            Text(str(Res.string.select_modification_type), color = TextForeground, fontSize = 12.sp)
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                DarkButton("Local", onClick = onLocal, modifier = Modifier.weight(1f))
+                DarkButton(str(Res.string.local), onClick = onLocal, modifier = Modifier.weight(1f))
                 DarkButton("Workshop", onClick = onWorkshop, modifier = Modifier.weight(1f))
             }
         }

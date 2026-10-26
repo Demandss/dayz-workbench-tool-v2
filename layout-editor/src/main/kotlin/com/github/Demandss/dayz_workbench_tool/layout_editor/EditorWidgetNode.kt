@@ -49,3 +49,12 @@ fun EditorWidgetNode.containsId(id: UUID): Boolean {
     if (this.id == id) return true
     return children.any { it.containsId(id) }
 }
+
+/** The widgets from this one down to the one with [id], both included, or null when [id] is not in the tree. */
+fun EditorWidgetNode.pathTo(id: UUID): List<EditorWidgetNode>? {
+    if (this.id == id) return listOf(this)
+    for (child in children) {
+        child.pathTo(id)?.let { return listOf(this) + it }
+    }
+    return null
+}

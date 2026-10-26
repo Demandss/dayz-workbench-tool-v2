@@ -28,23 +28,40 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.github.demandss.dayz_workbench_tool.config.AppConfig
+import com.github.demandss.dayz_workbench_tool.config.ConfigManager
+import com.github.demandss.dayz_workbench_tool.config.LayoutEditorConfig
+import com.github.demandss.dayz_workbench_tool.config.withSettingsFrom
+import com.github.demandss.dayz_workbench_tool.i18n.I18n
+import com.github.demandss.dayz_workbench_tool.i18n.Language
+import com.github.demandss.dayz_workbench_tool.i18n.str
+import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.DropdownField
+import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.layoutEditorSettingsSections
+import com.github.demandss.dayz_workbench_tool.resources.*
 import com.github.demandss.dayz_workbench_tool.state.AppState
 import com.github.demandss.dayz_workbench_tool.state.Screen
+import com.github.demandss.dayz_workbench_tool.ui.components.CheckRow
 import com.github.demandss.dayz_workbench_tool.ui.components.ColorPickerDialog
 import com.github.demandss.dayz_workbench_tool.ui.components.DarkButton
-import com.github.demandss.dayz_workbench_tool.ui.components.DarkTabRow
 import com.github.demandss.dayz_workbench_tool.ui.components.PoweredByFooter
+import com.github.demandss.dayz_workbench_tool.ui.components.SettingItem
+import com.github.demandss.dayz_workbench_tool.ui.components.SettingRow
+import com.github.demandss.dayz_workbench_tool.ui.components.SettingsGroup
+import com.github.demandss.dayz_workbench_tool.ui.components.SettingsPages
+import com.github.demandss.dayz_workbench_tool.ui.components.SettingsSection
 import com.github.demandss.dayz_workbench_tool.ui.theme.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.jetbrains.compose.resources.stringResource
 import java.io.File
 import java.util.stream.Collectors
 
 @Composable
 fun SettingsScreen(state: AppState) {
     var localConfig by remember { mutableStateOf(state.config) }
-    var selectedTab by remember { mutableStateOf(0) }
+    // A local copy of the settings of the layout editor, stored by Save like the rest
+    val editorBase = remember { ConfigManager.LayoutEditor.load() }
+    var localEditor by remember { mutableStateOf(editorBase) }
 
     Column(modifier = Modifier.fillMaxSize()) {
         // Header: ← Back | Save | Reset
@@ -59,29 +76,27 @@ fun SettingsScreen(state: AppState) {
                         drawLine(borderColor, Offset(0f, size.height - 1f), Offset(size.width, size.height - 1f), 1f)
                     },
         ) {
-            SettingsMenuButton("← Back") { state.navigate(Screen.MAIN) }
-            SettingsMenuButton("Save") {
+            SettingsMenuButton(stringResource(Res.string.back)) { state.navigate(Screen.MAIN) }
+            SettingsMenuButton(stringResource(Res.string.save)) {
                 state.updateConfig(localConfig)
+                state.saveLayoutEditorSettings(editorBase, localEditor)
                 state.navigate(Screen.MAIN)
             }
-            SettingsMenuButton("Reset") { localConfig = AppConfig() }
-        }
-        HorizontalDivider(color = DarkenedBorder)
-
-        DarkTabRow(
-            tabs = listOf("Global", "Advanced", "Theme"),
-            selectedIndex = selectedTab,
-            onTabSelected = { selectedTab = it },
-        )
-        HorizontalDivider(color = DarkenedBorder)
-
-        Box(modifier = Modifier.weight(1f)) {
-            when (selectedTab) {
-                0 -> GlobalTab(localConfig) { localConfig = it }
-                1 -> AdvancedTab(localConfig) { localConfig = it }
-                2 -> ThemeTab(localConfig) { localConfig = it }
+            SettingsMenuButton(stringResource(Res.string.reset)) {
+                localConfig = AppConfig()
+                localEditor = editorBase.withSettingsFrom(LayoutEditorConfig())
             }
         }
+        HorizontalDivider(color = DarkenedBorder)
+
+        SettingsPages(
+            groups = settingsGroups(localConfig, { localConfig = it }, localEditor, { localEditor = it }),
+            group = state.settingsGroup,
+            onGroup = { state.settingsGroup = it },
+            section = state.settingsSection,
+            onSection = { state.settingsSection = it },
+            modifier = Modifier.weight(1f),
+        )
 
         PoweredByFooter()
     }
@@ -108,75 +123,179 @@ private fun SettingsMenuButton(
 }
 
 @Composable
-private fun GlobalTab(
+private fun settingsGroups(
+    config: AppConfig,
+    onConfig: (AppConfig) -> Unit,
+    editor: LayoutEditorConfig,
+    onEditor: (LayoutEditorConfig) -> Unit,
+): List<SettingsGroup> =
+    listOf(
+        SettingsGroup(stringResource(Res.string.settings_global), globalSections(config, onConfig)),
+        SettingsGroup(stringResource(Res.string.settings_app), appSections(config, onConfig)),
+        SettingsGroup("Layout Editor", layoutEditorSettingsSections(editor, onEditor)),
+    )
+
+/** What both programs use: the language, the theme and the folders of the game and of the work drive. */
+@Composable
+private fun globalSections(
     config: AppConfig,
     onChange: (AppConfig) -> Unit,
-) {
-    Column(
-        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(5.dp),
-        verticalArrangement = Arrangement.spacedBy(5.dp),
-    ) {
-        SettingRow("Game folder") {
-            PathField(value = config.gamePath, isFile = false) { onChange(config.copy(gamePath = it)) }
-        }
-        SettingRow("Work drive path") {
-            PathField(value = config.workDrivePath, isFile = false) { onChange(config.copy(workDrivePath = it)) }
-        }
-        SettingRow("Workbench folder") {
-            PathField(value = config.workbenchPath, isFile = false) { onChange(config.copy(workbenchPath = it)) }
-        }
-        SettingRow("Scripts path") {
-            PathField(value = config.scriptsPath, isFile = false) { onChange(config.copy(scriptsPath = it)) }
-        }
-        SettingRow("Workbench plugin mod") {
-            PathField(value = config.workbenchPluginPath, isFile = false) { onChange(config.copy(workbenchPluginPath = it)) }
-        }
-        CheckRow("Lock window size", config.lockWindowSize) { onChange(config.copy(lockWindowSize = it)) }
-        CheckRow("Adaptive scaling", config.adaptiveScale) { onChange(config.copy(adaptiveScale = it)) }
-        SettingRow("Window size") {
-            DarkButton(
-                text = "Reset to default (400 × 400)",
-                onClick = { onChange(config.copy(windowWidth = 400f, windowHeight = 400f)) },
-                modifier = Modifier.weight(1f),
-            )
-        }
-    }
+): List<SettingsSection> {
+    val language = stringResource(Res.string.language)
+    val theme = stringResource(Res.string.theme)
+    val game = stringResource(Res.string.game_folder)
+    val workDrive = stringResource(Res.string.work_drive)
+    val system = Language.ofSystem()
+    val sameAsSystem = stringResource(Res.string.same_as_the_system_x, system.nativeName)
+    return listOf(
+        SettingsSection(
+            id = "interface",
+            title = stringResource(Res.string.section_interface),
+            items =
+                listOf(
+                    SettingItem(Res.string.language) {
+                        SettingRow(language) {
+                            DropdownField(
+                                config.language ?: I18n.SYSTEM,
+                                listOf(I18n.SYSTEM) + Language.entries.map { it.code },
+                                { code -> if (code == I18n.SYSTEM) sameAsSystem else Language.byCode(code)?.nativeName ?: code },
+                            ) { onChange(config.copy(language = it)) }
+                        }
+                    },
+                ),
+        ),
+        SettingsSection(
+            id = "theme",
+            title = theme,
+            items =
+                listOf(
+                    SettingItem(Res.string.theme, listOf(Res.string.built_in, Res.string.custom)) {
+                        ThemeTab(config, onChange)
+                    },
+                ),
+        ),
+        SettingsSection(
+            id = "folders",
+            title = stringResource(Res.string.section_folders),
+            items =
+                listOf(
+                    SettingItem(Res.string.game_folder) {
+                        SettingRow(game) { PathField(value = config.gamePath, isFile = false) { onChange(config.copy(gamePath = it)) } }
+                    },
+                    SettingItem(Res.string.work_drive) {
+                        SettingRow(workDrive) {
+                            PathField(value = config.workDrivePath, isFile = false) { onChange(config.copy(workDrivePath = it)) }
+                        }
+                    },
+                ),
+        ),
+    )
 }
 
+/** The launcher itself: Workbench, the game, the processes to close and the window. */
 @Composable
-private fun AdvancedTab(
+private fun appSections(
     config: AppConfig,
     onChange: (AppConfig) -> Unit,
-) {
-    Column(
-        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(5.dp),
-        verticalArrangement = Arrangement.spacedBy(5.dp),
-    ) {
-        AdvancedRow("Client args", config.clientArgs, "exe args") { onChange(config.copy(clientArgs = it)) }
-        AdvancedRow("Sandbox args", config.sandboxArgs, "exe args") { onChange(config.copy(sandboxArgs = it)) }
-        AdvancedRow("Server args", config.serverArgs, "exe args") { onChange(config.copy(serverArgs = it)) }
-        AdvancedRow("Workbench args", config.workbenchArgs, "exe args") { onChange(config.copy(workbenchArgs = it)) }
-        CheckRow("Auto-skip Workbench assert dialogs", config.skipWorkbenchAsserts) { onChange(config.copy(skipWorkbenchAsserts = it)) }
-        KillListRow(config.autoKillTasks) { onChange(config.copy(autoKillTasks = it)) }
-        ScriptListRow(config.customWorkbenchScripts) { onChange(config.copy(customWorkbenchScripts = it)) }
-    }
-}
-
-@Composable
-private fun SettingRow(
-    label: String,
-    field: @Composable RowScope.() -> Unit,
-) {
-    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        Text(
-            text = label,
-            color = TextForeground,
-            fontSize = 12.sp,
-            lineHeight = 14.sp,
-            modifier = Modifier.width(110.dp).padding(start = 5.dp),
-        )
-        field()
-    }
+): List<SettingsSection> {
+    val workbench = stringResource(Res.string.workbench_folder)
+    val scripts = stringResource(Res.string.scripts_path)
+    val plugin = stringResource(Res.string.workbench_plugin_mod)
+    val workbenchArgs = stringResource(Res.string.workbench_args)
+    val asserts = stringResource(Res.string.auto_skip_workbench_assert_dialogs)
+    val workbenchScripts = stringResource(Res.string.workbench_scripts)
+    val clientArgs = stringResource(Res.string.client_args)
+    val sandboxArgs = stringResource(Res.string.sandbox_args)
+    val serverArgs = stringResource(Res.string.server_args)
+    val exeArgs = stringResource(Res.string.exe_args)
+    val killList = stringResource(Res.string.auto_kill_list)
+    val lock = stringResource(Res.string.lock_window_size)
+    val adaptive = stringResource(Res.string.adaptive_scaling)
+    val size = stringResource(Res.string.window_size)
+    return listOf(
+        SettingsSection(
+            id = "workbench",
+            title = "Workbench",
+            items =
+                listOf(
+                    SettingItem(Res.string.workbench_folder) {
+                        SettingRow(workbench) {
+                            PathField(value = config.workbenchPath, isFile = false) { onChange(config.copy(workbenchPath = it)) }
+                        }
+                    },
+                    SettingItem(Res.string.scripts_path) {
+                        SettingRow(scripts) {
+                            PathField(value = config.scriptsPath, isFile = false) { onChange(config.copy(scriptsPath = it)) }
+                        }
+                    },
+                    SettingItem(Res.string.workbench_plugin_mod) {
+                        SettingRow(plugin) {
+                            PathField(
+                                value = config.workbenchPluginPath,
+                                isFile = false,
+                            ) { onChange(config.copy(workbenchPluginPath = it)) }
+                        }
+                    },
+                    SettingItem(Res.string.workbench_args) {
+                        AdvancedRow(workbenchArgs, config.workbenchArgs, exeArgs) { onChange(config.copy(workbenchArgs = it)) }
+                    },
+                    SettingItem(Res.string.auto_skip_workbench_assert_dialogs) {
+                        CheckRow(asserts, config.skipWorkbenchAsserts) { onChange(config.copy(skipWorkbenchAsserts = it)) }
+                    },
+                    SettingItem(Res.string.workbench_scripts) {
+                        ScriptListRow(config.customWorkbenchScripts) { onChange(config.copy(customWorkbenchScripts = it)) }
+                    },
+                ),
+        ),
+        SettingsSection(
+            id = "game",
+            title = stringResource(Res.string.section_game),
+            items =
+                listOf(
+                    SettingItem(Res.string.client_args) {
+                        AdvancedRow(clientArgs, config.clientArgs, exeArgs) { onChange(config.copy(clientArgs = it)) }
+                    },
+                    SettingItem(Res.string.sandbox_args) {
+                        AdvancedRow(sandboxArgs, config.sandboxArgs, exeArgs) { onChange(config.copy(sandboxArgs = it)) }
+                    },
+                    SettingItem(Res.string.server_args) {
+                        AdvancedRow(serverArgs, config.serverArgs, exeArgs) { onChange(config.copy(serverArgs = it)) }
+                    },
+                ),
+        ),
+        SettingsSection(
+            id = "processes",
+            title = stringResource(Res.string.section_processes),
+            items =
+                listOf(
+                    SettingItem(
+                        Res.string.auto_kill_list,
+                    ) { KillListRow(config.autoKillTasks) { onChange(config.copy(autoKillTasks = it)) } },
+                ),
+        ),
+        SettingsSection(
+            id = "window",
+            title = stringResource(Res.string.window),
+            items =
+                listOf(
+                    SettingItem(
+                        Res.string.lock_window_size,
+                    ) { CheckRow(lock, config.lockWindowSize) { onChange(config.copy(lockWindowSize = it)) } },
+                    SettingItem(
+                        Res.string.adaptive_scaling,
+                    ) { CheckRow(adaptive, config.adaptiveScale) { onChange(config.copy(adaptiveScale = it)) } },
+                    SettingItem(Res.string.window_size) {
+                        SettingRow(size) {
+                            DarkButton(
+                                text = stringResource(Res.string.reset_to_default_400_400),
+                                onClick = { onChange(config.copy(windowWidth = 400f, windowHeight = 400f)) },
+                                modifier = Modifier.weight(1f),
+                            )
+                        }
+                    },
+                ),
+        ),
+    )
 }
 
 @Composable
@@ -221,7 +340,16 @@ private fun RowScope.PathField(
                                 value.takeIf { it.isNotBlank() }?.let {
                                     if (isFile) File(it).parent else it
                                 }
-                            val picked = if (isFile) pickFile("Select executable", "exe", dir) else pickDirectory("Select directory", dir)
+                            val picked =
+                                if (isFile) {
+                                    pickFile(
+                                        str(Res.string.select_executable),
+                                        "exe",
+                                        dir,
+                                    )
+                                } else {
+                                    pickDirectory(str(Res.string.select_directory), dir)
+                                }
                             picked?.let { onChange(it) }
                         }
                     },
@@ -301,7 +429,7 @@ private fun KillListRow(
 ) {
     var showDialog by remember { mutableStateOf(false) }
 
-    SettingRow("Auto kill list") {
+    SettingRow(stringResource(Res.string.auto_kill_list)) {
         Row(modifier = Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
             Box(
                 modifier =
@@ -314,7 +442,7 @@ private fun KillListRow(
                 contentAlignment = Alignment.CenterStart,
             ) {
                 Text(
-                    text = if (tasks.isEmpty()) "No tasks" else tasks.joinToString(", "),
+                    text = if (tasks.isEmpty()) stringResource(Res.string.no_tasks) else tasks.joinToString(", "),
                     color = if (tasks.isEmpty()) GhostlyText else TextForeground,
                     fontSize = 11.sp,
                     maxLines = 1,
@@ -370,7 +498,7 @@ private fun KillListDialog(
                     .padding(10.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Text("Auto kill list", color = TextForeground, fontSize = 12.sp)
+            Text(str(Res.string.auto_kill_list), color = TextForeground, fontSize = 12.sp)
 
             Column(
                 modifier =
@@ -384,7 +512,7 @@ private fun KillListDialog(
                 verticalArrangement = Arrangement.spacedBy(3.dp),
             ) {
                 if (localTasks.isEmpty()) {
-                    Text("No tasks added", color = GhostlyText, fontSize = 11.sp, modifier = Modifier.padding(4.dp))
+                    Text(str(Res.string.no_tasks_added), color = GhostlyText, fontSize = 11.sp, modifier = Modifier.padding(4.dp))
                 } else {
                     localTasks.forEach { task ->
                         KillTaskItem(name = task, onRemove = { localTasks = localTasks - task })
@@ -393,23 +521,23 @@ private fun KillListDialog(
             }
 
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                DarkButton("+ Browse .exe", modifier = Modifier.weight(1f), onClick = {
+                DarkButton(str(Res.string.browse_exe), modifier = Modifier.weight(1f), onClick = {
                     scope.launch {
-                        val picked = pickFile("Select executable", "exe", null)
+                        val picked = pickFile(str(Res.string.select_executable), "exe", null)
                         picked?.let {
                             val name = File(it).name
                             if (name !in localTasks) localTasks = localTasks + name
                         }
                     }
                 })
-                DarkButton("+ Running", modifier = Modifier.weight(1f), onClick = {
+                DarkButton(str(Res.string.running), modifier = Modifier.weight(1f), onClick = {
                     showProcessPicker = true
                 })
             }
 
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                DarkButton("Save", onClick = { onSave(localTasks) }, modifier = Modifier.weight(1f))
-                DarkButton("Cancel", onClick = onDismiss, modifier = Modifier.weight(1f))
+                DarkButton(str(Res.string.save), onClick = { onSave(localTasks) }, modifier = Modifier.weight(1f))
+                DarkButton(str(Res.string.cancel), onClick = onDismiss, modifier = Modifier.weight(1f))
             }
         }
     }
@@ -474,7 +602,7 @@ private fun ScriptListRow(
 ) {
     var showDialog by remember { mutableStateOf(false) }
 
-    SettingRow("Workbench scripts") {
+    SettingRow(stringResource(Res.string.workbench_scripts)) {
         Row(modifier = Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
             Box(
                 modifier =
@@ -489,7 +617,7 @@ private fun ScriptListRow(
                 Text(
                     text =
                         if (scripts.isEmpty()) {
-                            "Default (workbenchApp.exe)"
+                            stringResource(Res.string.default_workbenchapp_exe)
                         } else {
                             scripts.joinToString(", ") { File(it).name }
                         },
@@ -547,9 +675,9 @@ private fun ScriptListDialog(
                     .padding(10.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Text("Workbench scripts", color = TextForeground, fontSize = 12.sp)
+            Text(str(Res.string.workbench_scripts), color = TextForeground, fontSize = 12.sp)
             Text(
-                "These launch alongside workbenchApp.exe when Workbench is clicked.",
+                str(Res.string.these_launch_alongside_workbenchapp_exe),
                 color = GhostlyText,
                 fontSize = 10.sp,
                 lineHeight = 14.sp,
@@ -567,7 +695,7 @@ private fun ScriptListDialog(
                 verticalArrangement = Arrangement.spacedBy(3.dp),
             ) {
                 if (localScripts.isEmpty()) {
-                    Text("No scripts added", color = GhostlyText, fontSize = 11.sp, modifier = Modifier.padding(4.dp))
+                    Text(str(Res.string.no_scripts_added), color = GhostlyText, fontSize = 11.sp, modifier = Modifier.padding(4.dp))
                 } else {
                     localScripts.forEach { path ->
                         KillTaskItem(name = File(path).name, onRemove = { localScripts = localScripts - path })
@@ -575,16 +703,16 @@ private fun ScriptListDialog(
                 }
             }
 
-            DarkButton("+ Browse .bat / .exe", modifier = Modifier.fillMaxWidth(), onClick = {
+            DarkButton(str(Res.string.browse_bat_exe), modifier = Modifier.fillMaxWidth(), onClick = {
                 scope.launch {
-                    val picked = pickFile("Select script", "bat;exe", null)
+                    val picked = pickFile(str(Res.string.select_script), "bat;exe", null)
                     picked?.let { if (it !in localScripts) localScripts = localScripts + it }
                 }
             })
 
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                DarkButton("Save", onClick = { onSave(localScripts) }, modifier = Modifier.weight(1f))
-                DarkButton("Cancel", onClick = onDismiss, modifier = Modifier.weight(1f))
+                DarkButton(str(Res.string.save), onClick = { onSave(localScripts) }, modifier = Modifier.weight(1f))
+                DarkButton(str(Res.string.cancel), onClick = onDismiss, modifier = Modifier.weight(1f))
             }
         }
     }
@@ -627,7 +755,7 @@ private fun ProcessPickerDialog(
                     .padding(10.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Text("Running processes", color = TextForeground, fontSize = 12.sp)
+            Text(str(Res.string.running_processes), color = TextForeground, fontSize = 12.sp)
 
             BasicTextField(
                 value = filter,
@@ -643,7 +771,7 @@ private fun ProcessPickerDialog(
                 singleLine = true,
                 decorationBox = { inner ->
                     Box(contentAlignment = Alignment.CenterStart) {
-                        if (filter.isEmpty()) Text("Filter...", color = GhostlyText, fontSize = 11.sp)
+                        if (filter.isEmpty()) Text(str(Res.string.filter), color = GhostlyText, fontSize = 11.sp)
                         inner()
                     }
                 },
@@ -662,7 +790,7 @@ private fun ProcessPickerDialog(
             ) {
                 if (processes.isEmpty()) {
                     Box(Modifier.fillMaxWidth().padding(8.dp), contentAlignment = Alignment.Center) {
-                        Text("Loading...", color = GhostlyText, fontSize = 11.sp)
+                        Text(str(Res.string.loading), color = GhostlyText, fontSize = 11.sp)
                     }
                 } else {
                     filtered.forEach { proc ->
@@ -691,31 +819,7 @@ private fun ProcessPickerDialog(
                 }
             }
 
-            DarkButton("Cancel", onClick = onDismiss, modifier = Modifier.fillMaxWidth())
-        }
-    }
-}
-
-@Composable
-private fun CheckRow(
-    label: String,
-    checked: Boolean,
-    onChange: (Boolean) -> Unit,
-) {
-    SettingRow(label) {
-        Box(
-            modifier =
-                Modifier
-                    .size(16.dp)
-                    .border(1.dp, SubSelectColor)
-                    .background(if (checked) SelectColor else FrameBackground)
-                    .clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null,
-                    ) { onChange(!checked) },
-            contentAlignment = Alignment.Center,
-        ) {
-            if (checked) Text("✓", color = TextForeground, fontSize = 9.sp, lineHeight = 10.sp)
+            DarkButton(str(Res.string.cancel), onClick = onDismiss, modifier = Modifier.fillMaxWidth())
         }
     }
 }
@@ -728,10 +832,10 @@ private fun ThemeTab(
     var editingTheme by remember { mutableStateOf<ThemeDefinition?>(null) }
 
     Column(
-        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(5.dp),
+        modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(3.dp),
     ) {
-        Text("Built-in", color = GhostlyText, fontSize = 10.sp, modifier = Modifier.padding(start = 4.dp))
+        Text(stringResource(Res.string.built_in), color = GhostlyText, fontSize = 10.sp, modifier = Modifier.padding(start = 4.dp))
         Spacer(Modifier.height(2.dp))
         BuiltinThemes.all.forEach { theme ->
             ThemeRow(
@@ -742,18 +846,23 @@ private fun ThemeTab(
                     editingTheme =
                         theme.copy(
                             id = "custom_${System.currentTimeMillis()}",
-                            name = "${theme.name} Copy",
+                            name = str(Res.string.x_copy, theme.name),
                         )
                 },
             )
         }
 
         Spacer(Modifier.height(6.dp))
-        Text("Custom", color = GhostlyText, fontSize = 10.sp, modifier = Modifier.padding(start = 4.dp))
+        Text(stringResource(Res.string.custom), color = GhostlyText, fontSize = 10.sp, modifier = Modifier.padding(start = 4.dp))
         Spacer(Modifier.height(2.dp))
 
         if (config.customThemes.isEmpty()) {
-            Text("No custom themes", color = GhostlyText, fontSize = 11.sp, modifier = Modifier.padding(start = 8.dp, bottom = 2.dp))
+            Text(
+                stringResource(Res.string.no_custom_themes),
+                color = GhostlyText,
+                fontSize = 11.sp,
+                modifier = Modifier.padding(start = 8.dp, bottom = 2.dp),
+            )
         }
         config.customThemes.forEach { theme ->
             ThemeRow(
@@ -764,7 +873,7 @@ private fun ThemeTab(
                     editingTheme =
                         theme.copy(
                             id = "custom_${System.currentTimeMillis()}",
-                            name = "${theme.name} Copy",
+                            name = str(Res.string.x_copy, theme.name),
                         )
                 },
                 onEdit = { editingTheme = theme },
@@ -777,12 +886,12 @@ private fun ThemeTab(
         }
 
         Spacer(Modifier.height(4.dp))
-        DarkButton("+ New Theme", onClick = {
+        DarkButton(stringResource(Res.string.new_theme), onClick = {
             val base =
                 BuiltinThemes.findById(config.selectedTheme)
                     ?: config.customThemes.find { it.id == config.selectedTheme }
                     ?: BuiltinThemes.Dark
-            editingTheme = base.copy(id = "custom_${System.currentTimeMillis()}", name = "My Theme")
+            editingTheme = base.copy(id = "custom_${System.currentTimeMillis()}", name = str(Res.string.my_theme))
         })
     }
 
@@ -922,10 +1031,10 @@ private fun ThemeEditorDialog(
                     .padding(10.dp),
             verticalArrangement = Arrangement.spacedBy(5.dp),
         ) {
-            Text("Theme Editor", color = TextForeground, fontSize = 12.sp)
+            Text(str(Res.string.theme_editor), color = TextForeground, fontSize = 12.sp)
 
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text("Name", color = GhostlyText, fontSize = 11.sp, modifier = Modifier.width(120.dp))
+                Text(str(Res.string.name), color = GhostlyText, fontSize = 11.sp, modifier = Modifier.width(120.dp))
                 BasicTextField(
                     value = name,
                     onValueChange = { name = it },
@@ -949,26 +1058,34 @@ private fun ThemeEditorDialog(
                         .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(5.dp),
             ) {
-                CollapsibleSection("UI Colors") {
-                    ThemeColorRow("Frame Background", frameBackground) { frameBackground = it }
-                    ThemeColorRow("Elements Background", elementsBackground) { elementsBackground = it }
-                    ThemeColorRow("Selection", selectColor) { selectColor = it }
-                    ThemeColorRow("Accent", subSelectColor) { subSelectColor = it }
-                    ThemeColorRow("Border", darkenedBorder) { darkenedBorder = it }
-                    ThemeColorRow("Text", textForeground) { textForeground = it }
-                    ThemeColorRow("Dim Text", ghostlyText) { ghostlyText = it }
+                CollapsibleSection(str(Res.string.ui_colors)) {
+                    ThemeColorRow(str(Res.string.frame_background), frameBackground) { frameBackground = it }
+                    ThemeColorRow(str(Res.string.elements_background), elementsBackground) { elementsBackground = it }
+                    ThemeColorRow(str(Res.string.selection), selectColor) { selectColor = it }
+                    ThemeColorRow(str(Res.string.accent), subSelectColor) { subSelectColor = it }
+                    ThemeColorRow(str(Res.string.border), darkenedBorder) { darkenedBorder = it }
+                    ThemeColorRow(str(Res.string.text), textForeground) { textForeground = it }
+                    ThemeColorRow(str(Res.string.dim_text), ghostlyText) { ghostlyText = it }
                 }
-                CollapsibleSection("Icons") {
-                    ThemeColorRow("Client Side", modIconClientSide, "assets/images/mod_client_side.svg") { modIconClientSide = it }
-                    ThemeColorRow("Server Side", modIconServerSide, "assets/images/mod_server_side.svg") { modIconServerSide = it }
-                    ThemeColorRow("Enabled", modIconEnabled, "assets/images/mod_enabled.svg") { modIconEnabled = it }
-                    ThemeColorRow("Disabled", modIconDisabled, "assets/images/mod_disebled.svg") { modIconDisabled = it }
+                CollapsibleSection(str(Res.string.icons)) {
+                    ThemeColorRow(
+                        str(Res.string.client_side),
+                        modIconClientSide,
+                        "assets/images/mod_client_side.svg",
+                    ) { modIconClientSide = it }
+                    ThemeColorRow(
+                        str(Res.string.server_side),
+                        modIconServerSide,
+                        "assets/images/mod_server_side.svg",
+                    ) { modIconServerSide = it }
+                    ThemeColorRow(str(Res.string.enabled), modIconEnabled, "assets/images/mod_enabled.svg") { modIconEnabled = it }
+                    ThemeColorRow(str(Res.string.disabled), modIconDisabled, "assets/images/mod_disebled.svg") { modIconDisabled = it }
                     ThemeColorRow("Workshop", modIconWorkshop, "assets/images/workshop.svg") { modIconWorkshop = it }
                 }
             }
 
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                DarkButton("Save", onClick = {
+                DarkButton(str(Res.string.save), onClick = {
                     onSave(
                         initial.copy(
                             name = name.ifBlank { initial.name },
@@ -987,7 +1104,7 @@ private fun ThemeEditorDialog(
                         ),
                     )
                 }, modifier = Modifier.weight(1f))
-                DarkButton("Cancel", onClick = onDismiss, modifier = Modifier.weight(1f))
+                DarkButton(str(Res.string.cancel), onClick = onDismiss, modifier = Modifier.weight(1f))
             }
         }
     }
@@ -1104,8 +1221,8 @@ private fun TextEditDialog(
                 textStyle = TextStyle(color = TextForeground, fontSize = 11.sp),
             )
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                DarkButton("Save", onClick = { onSave(text) }, modifier = Modifier.weight(1f))
-                DarkButton("Cancel", onClick = onDismiss, modifier = Modifier.weight(1f))
+                DarkButton(str(Res.string.save), onClick = { onSave(text) }, modifier = Modifier.weight(1f))
+                DarkButton(str(Res.string.cancel), onClick = onDismiss, modifier = Modifier.weight(1f))
             }
         }
     }

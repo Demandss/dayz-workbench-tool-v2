@@ -10,8 +10,15 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.github.demandss.dayz_workbench_tool.manager.ProcessManager
+import com.github.demandss.dayz_workbench_tool.resources.Res
+import com.github.demandss.dayz_workbench_tool.resources.cancel
+import com.github.demandss.dayz_workbench_tool.resources.launch_anyway
+import com.github.demandss.dayz_workbench_tool.resources.missing_mods_message
+import com.github.demandss.dayz_workbench_tool.resources.missing_mods_title
+import com.github.demandss.dayz_workbench_tool.resources.tools_title
 import com.github.demandss.dayz_workbench_tool.state.AppState
 import com.github.demandss.dayz_workbench_tool.ui.theme.*
+import org.jetbrains.compose.resources.stringResource
 import java.io.File
 import java.nio.file.Path
 
@@ -19,7 +26,7 @@ import java.nio.file.Path
 fun ToolsPanel(state: AppState) {
     var missingWarning by remember { mutableStateOf<List<String>>(emptyList()) }
 
-    TitledPanel(title = "Tools", modifier = Modifier.fillMaxWidth()) {
+    TitledPanel(title = stringResource(Res.string.tools_title), modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(3.dp)) {
             DarkButton(text = "Workbench", onClick = {
                 val missing =
@@ -67,9 +74,9 @@ private fun MissingModsDialog(
                     .padding(12.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Text("Missing mods", color = TextForeground, fontSize = 12.sp)
+            Text(stringResource(Res.string.missing_mods_title), color = TextForeground, fontSize = 12.sp)
             Text(
-                "The following enabled mods were not found and won't be used:",
+                stringResource(Res.string.missing_mods_message),
                 color = GhostlyText,
                 fontSize = 10.sp,
                 lineHeight = 14.sp,
@@ -80,8 +87,8 @@ private fun MissingModsDialog(
                 }
             }
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                DarkButton("Launch anyway", onClick = onLaunch, modifier = Modifier.weight(1f))
-                DarkButton("Cancel", onClick = onCancel, modifier = Modifier.weight(1f))
+                DarkButton(stringResource(Res.string.launch_anyway), onClick = onLaunch, modifier = Modifier.weight(1f))
+                DarkButton(stringResource(Res.string.cancel), onClick = onCancel, modifier = Modifier.weight(1f))
             }
         }
     }

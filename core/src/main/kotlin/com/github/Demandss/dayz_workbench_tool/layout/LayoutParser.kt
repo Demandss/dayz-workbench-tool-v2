@@ -20,6 +20,7 @@ private class ParserState(
 
         val props = LinkedHashMap<String, String>()
         val children = mutableListOf<WidgetNode>()
+        var scriptParams: LinkedHashMap<String, String>? = null
 
         while (true) {
             skipWhitespaceAndComments()
@@ -32,8 +33,12 @@ private class ParserState(
 
                 '{' -> {
                     pos++
-                    parseChildrenInto(children)
-                    break
+                    skipWhitespaceAndComments()
+                    if (input.startsWith("ScriptParamsClass", pos)) {
+                        scriptParams = parseScriptParams()
+                    } else {
+                        parseChildrenInto(children)
+                    }
                 }
 
                 else -> {
@@ -42,7 +47,27 @@ private class ParserState(
             }
         }
 
-        return WidgetNode(WidgetType.fromClassName(className), className, name, props, children)
+        return WidgetNode(WidgetType.fromClassName(className), className, name, props, children, scriptParams)
+    }
+
+    /** Reads `ScriptParamsClass { key value ... }` and the brace that closes the block around it. */
+    private fun parseScriptParams(): LinkedHashMap<String, String> {
+        readBareWord()
+        skipInlineWhitespace()
+        expectChar('{')
+        val params = LinkedHashMap<String, String>()
+        while (true) {
+            skipWhitespaceAndComments()
+            if (pos >= input.length) break
+            if (input[pos] == '}') {
+                pos++
+                break
+            }
+            parsePropInto(params)
+        }
+        skipWhitespaceAndComments()
+        expectChar('}')
+        return params
     }
 
     private fun parseChildrenInto(children: MutableList<WidgetNode>) {
@@ -55,8 +80,6 @@ private class ParserState(
             }
             children.add(parseWidget())
         }
-        skipWhitespaceAndComments()
-        expectChar('}')
     }
 
     private fun parsePropInto(props: LinkedHashMap<String, String>) {
