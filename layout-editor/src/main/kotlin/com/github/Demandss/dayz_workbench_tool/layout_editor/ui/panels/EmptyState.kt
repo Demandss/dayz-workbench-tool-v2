@@ -21,8 +21,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.github.demandss.dayz_workbench_tool.i18n.tr
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.LayoutEditorState
+import com.github.demandss.dayz_workbench_tool.resources.*
 import com.github.demandss.dayz_workbench_tool.ui.components.DarkButton
 import com.github.demandss.dayz_workbench_tool.ui.components.Tip
 import com.github.demandss.dayz_workbench_tool.ui.icons.AppIcon
@@ -31,6 +31,7 @@ import com.github.demandss.dayz_workbench_tool.ui.icons.fileIcon
 import com.github.demandss.dayz_workbench_tool.ui.theme.FrameBackground
 import com.github.demandss.dayz_workbench_tool.ui.theme.GhostlyText
 import com.github.demandss.dayz_workbench_tool.ui.theme.TextForeground
+import org.jetbrains.compose.resources.stringResource
 import java.io.File
 
 /** What the viewport shows when nothing is open: a hint, a button and the files used last. */
@@ -43,19 +44,19 @@ fun EmptyState(
     Box(modifier.fillMaxSize().background(FrameBackground), contentAlignment = Alignment.Center) {
         Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
             AppIconView(AppIcon.LAYOUT, size = 44.dp)
-            Text(tr("Откройте layout или текстуру"), color = TextForeground, fontSize = 14.sp)
-            Text(tr("Двойной клик по файлу в дереве или кнопка ниже"), color = GhostlyText, fontSize = 11.sp)
+            Text(stringResource(Res.string.open_a_layout_or_a_texture), color = TextForeground, fontSize = 14.sp)
+            Text(stringResource(Res.string.double_click_a_file_in_the_tree_or_use), color = GhostlyText, fontSize = 11.sp)
             DarkButton(
-                tr("Открыть файл…"),
+                stringResource(Res.string.open_file),
                 onClick = onOpenFile,
                 modifier = Modifier.width(140.dp),
-                tooltip = tr("Выбрать .layout, .edds или картинку"),
+                tooltip = stringResource(Res.string.choose_a_layout_edds_or_an_image),
             )
 
             val recent = state.recentFiles.take(5)
             if (recent.isNotEmpty()) {
                 Spacer(Modifier.height(8.dp))
-                Text(tr("НЕДАВНЕЕ"), color = GhostlyText, fontSize = 10.sp)
+                Text(stringResource(Res.string.recent), color = GhostlyText, fontSize = 10.sp)
                 Column(Modifier.width(300.dp)) {
                     recent.forEach { path -> RecentRow(path) { state.openAny(path) } }
                 }

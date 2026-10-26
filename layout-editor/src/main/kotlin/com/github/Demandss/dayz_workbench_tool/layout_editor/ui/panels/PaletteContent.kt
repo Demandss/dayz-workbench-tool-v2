@@ -22,14 +22,15 @@ import androidx.compose.ui.input.pointer.*
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.github.demandss.dayz_workbench_tool.i18n.tr
 import com.github.demandss.dayz_workbench_tool.layout.WidgetType
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.DragSession
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.DragSource
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.LayoutEditorState
+import com.github.demandss.dayz_workbench_tool.resources.*
 import com.github.demandss.dayz_workbench_tool.ui.icons.AppIconView
 import com.github.demandss.dayz_workbench_tool.ui.icons.widgetIcon
 import com.github.demandss.dayz_workbench_tool.ui.theme.*
+import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun PaletteContent(
@@ -62,7 +63,7 @@ fun PaletteContent(
                             .padding(horizontal = 6.dp),
                         contentAlignment = Alignment.CenterStart,
                     ) {
-                        if (query.isEmpty()) Text(tr("Поиск виджета…"), color = GhostlyText, fontSize = 11.sp)
+                        if (query.isEmpty()) Text(stringResource(Res.string.search_for_a_widget), color = GhostlyText, fontSize = 11.sp)
                         inner()
                     }
                 },
@@ -75,7 +76,7 @@ fun PaletteContent(
             items(shown) { type -> PaletteRow(type, enabled, state) }
             item(span = { GridItemSpan(maxLineSpan) }) {
                 Text(
-                    tr("Перетащите виджет на холст или на строку в иерархии. Клик добавляет в выбранный виджет."),
+                    stringResource(Res.string.drag_a_widget_onto_the_canvas_or_onto_a),
                     color = GhostlyText,
                     fontSize = 11.sp,
                     lineHeight = 16.sp,

@@ -7,6 +7,7 @@ import com.github.demandss.dayz_workbench_tool.config.ConfigManager
 import com.github.demandss.dayz_workbench_tool.i18n.I18n
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.LayoutEditorState
 import java.io.File
+import java.util.Locale
 
 /**
  * An optional first argument overrides the work drive path from the app settings,
@@ -17,7 +18,10 @@ fun main(args: Array<String>) =
     application {
         val scope = rememberCoroutineScope()
         // The language is a setting of the app, also when the editor runs alone
-        remember { I18n.setting = ConfigManager.App.load().language ?: I18n.SYSTEM }
+        remember {
+            I18n.setting = ConfigManager.App.load().language ?: I18n.SYSTEM
+            Locale.setDefault(Locale.forLanguageTag(I18n.language.code))
+        }
         val workDrivePath =
             remember {
                 args.firstOrNull()?.takeIf { File(it).isDirectory } ?: ConfigManager.App.load().workDrivePath

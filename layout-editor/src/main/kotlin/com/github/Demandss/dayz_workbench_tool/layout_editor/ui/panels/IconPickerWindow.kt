@@ -39,8 +39,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.DialogWindow
 import androidx.compose.ui.window.rememberDialogState
-import com.github.demandss.dayz_workbench_tool.i18n.tr
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.LayoutEditorState
+import com.github.demandss.dayz_workbench_tool.resources.*
 import com.github.demandss.dayz_workbench_tool.ui.theme.DarkenedBorder
 import com.github.demandss.dayz_workbench_tool.ui.theme.FrameBackground
 import com.github.demandss.dayz_workbench_tool.ui.theme.GhostlyText
@@ -48,6 +48,7 @@ import com.github.demandss.dayz_workbench_tool.ui.theme.SubSelectColor
 import com.github.demandss.dayz_workbench_tool.ui.theme.TextForeground
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import org.jetbrains.compose.resources.stringResource
 
 /**
  * The window that picks the icon of an image widget from the imagesets of the game and of the connected mods, with a search.
@@ -60,7 +61,7 @@ fun IconPickerWindow(state: LayoutEditorState) {
     DialogWindow(
         onCloseRequest = { state.iconPicker = null },
         state = rememberDialogState(size = DpSize(780.dp, 600.dp)),
-        title = tr("Выбор иконки"),
+        title = stringResource(Res.string.pick_an_icon),
     ) {
         var query by remember { mutableStateOf("") }
         val icons by produceState(emptyList<Pair<String, String>>(), nearPath) {
@@ -77,9 +78,15 @@ fun IconPickerWindow(state: LayoutEditorState) {
                 icons.filter { (set, image) -> words.all { it in "$set $image".lowercase() } }
             }
         Column(Modifier.fillMaxSize().background(FrameBackground)) {
-            SearchField(query, tr("Поиск по названию иконки или набора…")) { query = it }
+            SearchField(query, stringResource(Res.string.search_by_the_name_of_an_icon_or_a_set)) { query = it }
             Text(
-                if (icons.isEmpty()) tr("Загрузка…") else tr("Найдено: {0} из {1}", shown.size, icons.size),
+                if (icons.isEmpty()) {
+                    stringResource(
+                        Res.string.loading,
+                    )
+                } else {
+                    stringResource(Res.string.found_x_of_x, shown.size, icons.size)
+                },
                 color = GhostlyText,
                 fontSize = 10.sp,
                 modifier = Modifier.padding(horizontal = 10.dp, vertical = 2.dp),

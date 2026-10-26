@@ -39,8 +39,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.github.demandss.dayz_workbench_tool.i18n.tr
-import com.github.demandss.dayz_workbench_tool.i18n.trKey
+import com.github.demandss.dayz_workbench_tool.i18n.str
 import com.github.demandss.dayz_workbench_tool.layout.WidgetType
 import com.github.demandss.dayz_workbench_tool.layout_editor.EditorWidgetNode
 import com.github.demandss.dayz_workbench_tool.layout_editor.behavior.ScriptParam
@@ -64,6 +63,7 @@ import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.selection
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.setOnSelected
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.toFileColor
 import com.github.demandss.dayz_workbench_tool.layout_editor.updateNode
+import com.github.demandss.dayz_workbench_tool.resources.*
 import com.github.demandss.dayz_workbench_tool.stringtable.StringtableRegistry
 import com.github.demandss.dayz_workbench_tool.ui.components.Tip
 import com.github.demandss.dayz_workbench_tool.ui.icons.AppIcon
@@ -72,6 +72,7 @@ import com.github.demandss.dayz_workbench_tool.ui.icons.widgetIcon
 import com.github.demandss.dayz_workbench_tool.ui.pickFile
 import com.github.demandss.dayz_workbench_tool.ui.theme.*
 import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.stringResource
 import java.util.UUID
 import kotlin.collections.iterator
 
@@ -158,53 +159,51 @@ internal fun knownPropertyKeys(
 /** What each property does, shown when the pointer rests on its name. */
 private val PROPERTY_HINTS =
     mapOf(
-        "visible" to trKey("Вкл: показывает виджет.\nВыкл: скрывает виджет."),
-        "disabled" to trKey("Вкл: виджет не отвечает на ввод, но виден.\nВыкл: виджет работает как обычно."),
-        "clipchildren" to trKey("Вкл: дети обрезаются по границам виджета.\nВыкл: дети могут торчать наружу."),
-        "inheritalpha" to trKey("Вкл: прозрачность родителя действует и на этот виджет.\nВыкл: прозрачность родителя не влияет."),
-        "ignorepointer" to trKey("Вкл: мышь проходит сквозь виджет к тому, что под ним.\nВыкл: виджет принимает мышь."),
+        "visible" to Res.string.on_shows_the_widget_off_hides_the_widget,
+        "disabled" to Res.string.on_the_widget_does_not_respond_to_input,
+        "clipchildren" to Res.string.on_children_are_cut_off_at_the_borders,
+        "inheritalpha" to Res.string.on_the_transparency_of_the_parent,
+        "ignorepointer" to Res.string.on_the_mouse_passes_through_the_widget,
         "ignoregloballv" to
-            trKey("Вкл: флаг «Ignore global LV» из инспектора Workbench; что именно он делает, не проверялось.\nВыкл: флаг не задан."),
+            Res.string.on_the_ignore_global_lv_flag_from_the,
         "keepsafezone" to
-            trKey("Вкл: виджет учитывает безопасную зону экрана (рамка overscan на телевизорах).\nВыкл: безопасная зона не учитывается."),
-        "color" to trKey("Цвета в файле линейные; Workbench показывает их в sRGB. Клик по образцу открывает палитру"),
+            Res.string.on_the_widget_respects_the_safe_zone_of,
+        "color" to Res.string.the_colours_in_the_file_are_linear_2,
         "scaled" to
-            trKey(
-                "Вкл: размеры пересчитываются под относительное разрешение (в редакторе не учитывается).\nВыкл: размеры не пересчитываются.",
-            ),
-        "fixaspect" to trKey("Держит пропорции виджета с относительным размером: fixwidth берёт ширину из высоты, fixheight наоборот"),
-        "priority" to trKey("Порядок отрисовки среди соседей: больше значит выше"),
-        "userID" to trKey("Числовой идентификатор виджета, который скрипт читает через GetUserID()"),
-        "draggable" to trKey("Вкл: виджет можно перетаскивать мышью.\nВыкл: виджет не перетаскивается."),
-        "scriptclass" to trKey("Класс скрипта, привязанный к виджету"),
-        "style" to trKey("Стиль из .styles: рисует фон, рамку и состояния виджета. Список — стили игры для этого типа виджета"),
-        "image0" to trKey("Картинка: путь к текстуре или запись вида set:имя image:имя из imageset"),
-        "imageTexture" to trKey("Файл текстуры, который рисует виджет. Кнопка «..» выбирает файл"),
-        "mode" to trKey("Как картинка смешивается с тем, что под ней: blend, add, multiply, color, alpha, overlay"),
-        "src alpha" to trKey("Вкл: прозрачность берётся из альфа-канала картинки.\nВыкл: альфа-канал картинки не используется."),
-        "clamp mode" to trKey("Что за краем текстуры: clamp тянет край, wrap повторяет, mirror отражает"),
-        "stretch mode" to trKey("Как картинка заполняет виджет: tile повторяет, stretch растягивает"),
-        "flip u" to trKey("Вкл: картинка отражена по горизонтали.\nВыкл: картинка не отражена."),
-        "flip v" to trKey("Вкл: картинка отражена по вертикали.\nВыкл: картинка не отражена."),
-        "filter" to trKey("Вкл: картинка сглаживается при масштабировании.\nВыкл: сглаживание выключено."),
-        "nocache" to trKey("Вкл: текстура не держится в кэше.\nВыкл: текстура кэшируется."),
-        "rotation" to trKey("Поворот картинки в градусах"),
-        "pivot" to trKey("Точка, вокруг которой картинка поворачивается, от 0 до 1 по каждой оси"),
-        "pivot x" to trKey("Точка поворота по горизонтали, от 0 до 1"),
-        "pivot y" to trKey("Точка поворота по вертикали, от 0 до 1"),
-        "Mask" to trKey("Текстура маски, через которую картинка проявляется"),
-        "mask" to trKey("Текстура маски, через которую картинка проявляется"),
-        "Transition width" to trKey("Ширина мягкого края маски, от 0 до 1"),
-        "transition width" to trKey("Ширина мягкого края маски, от 0 до 1"),
-        "Progress" to trKey("Сколько картинки уже проявилось через маску, от 0 до 1"),
-        "progress" to trKey("Сколько картинки уже проявилось через маску, от 0 до 1"),
-        "X" to trKey("Положение по горизонтали: пиксели или доля родителя, как выбран переключатель"),
-        "Y" to trKey("Положение по вертикали: пиксели или доля родителя, как выбран переключатель"),
-        "W" to trKey("Ширина: пиксели или доля родителя, как выбран переключатель"),
-        "H" to trKey("Высота: пиксели или доля родителя, как выбран переключатель"),
+            Res.string.scaled_hint,
+        "fixaspect" to Res.string.keeps_the_proportions_of_a_widget_with_a,
+        "priority" to Res.string.the_drawing_order_among_siblings_larger,
+        "userID" to Res.string.a_numeric_identifier_of_the_widget_that,
+        "draggable" to Res.string.on_the_widget_can_be_dragged_with_the,
+        "scriptclass" to Res.string.the_script_class_attached_to_the_widget,
+        "style" to Res.string.a_style_from_a_styles_file_draws_the,
+        "image0" to Res.string.image_a_path_to_a_texture_or_an_entry,
+        "imageTexture" to Res.string.the_texture_file_the_widget_draws_the,
+        "mode" to Res.string.how_the_image_blends_with_what_is_under,
+        "src alpha" to Res.string.on_transparency_is_taken_from_the_alpha,
+        "clamp mode" to Res.string.what_lies_beyond_the_edge_of_the_texture,
+        "stretch mode" to Res.string.how_the_image_fills_the_widget_tile,
+        "flip u" to Res.string.on_the_image_is_flipped_horizontally_off,
+        "flip v" to Res.string.on_the_image_is_flipped_vertically_off,
+        "filter" to Res.string.on_the_image_is_smoothed_when_scaled_off,
+        "nocache" to Res.string.on_the_texture_is_not_kept_in_the_cache,
+        "rotation" to Res.string.rotation_of_the_image_in_degrees,
+        "pivot" to Res.string.the_point_the_image_rotates_around_from,
+        "pivot x" to Res.string.the_pivot_horizontally_from_0_to_1,
+        "pivot y" to Res.string.the_pivot_vertically_from_0_to_1,
+        "Mask" to Res.string.the_texture_of_the_mask_the_image_shows,
+        "mask" to Res.string.the_texture_of_the_mask_the_image_shows,
+        "Transition width" to Res.string.the_width_of_the_soft_edge_of_the_mask,
+        "transition width" to Res.string.the_width_of_the_soft_edge_of_the_mask,
+        "Progress" to Res.string.how_much_of_the_image_has_shown_through,
+        "progress" to Res.string.how_much_of_the_image_has_shown_through,
+        "X" to Res.string.horizontal_position_pixels_or_a_share_of,
+        "Y" to Res.string.vertical_position_pixels_or_a_share_of,
+        "W" to Res.string.width_pixels_or_a_share_of_the_parent_as,
+        "H" to Res.string.height_pixels_or_a_share_of_the_parent,
     )
 
-private val UNKNOWN_PROPERTY_HINT = trKey("Свойство из файла, которого нет в списке известных редактору")
+private val UNKNOWN_PROPERTY_HINT = Res.string.a_property_from_the_file_that_is_not_in
 
 // ---------------------------------------------------------------------------
 // Fonts
@@ -231,8 +230,8 @@ private fun commitName(
     val doc = state.openFiles.getOrNull(idx) ?: return
     // Script finds a widget by its name, so the name is kept to Latin letters, digits and underscores
     val clean = sanitizeWidgetName(name)
-    if (clean != name.trim()) state.notify(tr("Имя виджета записано латиницей: {0}", clean))
-    state.pushUndo(idx, doc.root, tr("Переименование в {0}", clean))
+    if (clean != name.trim()) state.notify(str(Res.string.the_widget_name_is_written_in_latin, clean))
+    state.pushUndo(idx, doc.root, str(Res.string.renaming_to_x, clean))
     state.updateActiveRoot(doc.root.updateNode(id) { it.copy(node = it.node.copy(name = clean)) })
 }
 
@@ -243,7 +242,7 @@ private fun commitType(
 ) {
     val idx = state.activeFileIndex
     val doc = state.openFiles.getOrNull(idx) ?: return
-    state.pushUndo(idx, doc.root, tr("Тип {0}", type.className.removeSuffix("WidgetClass")))
+    state.pushUndo(idx, doc.root, str(Res.string.type_x, type.className.removeSuffix("WidgetClass")))
     state.updateActiveRoot(doc.root.updateNode(id) { it.copy(node = it.node.copy(type = type, originalClassName = type.className)) })
 }
 
@@ -344,7 +343,7 @@ fun PropertiesContent(
         }
         if (node == null) {
             Box(Modifier.fillMaxWidth().padding(8.dp)) {
-                Text(tr("Ничего не выбрано"), color = GhostlyText, fontSize = 11.sp)
+                Text(stringResource(Res.string.nothing_selected_2), color = GhostlyText, fontSize = 11.sp)
             }
             return@Column
         }
@@ -460,7 +459,7 @@ private fun PropertiesHeader(
                 AppIconView(AppIcon.UI_WARN, size = 16.dp)
                 Spacer(Modifier.width(8.dp))
                 Text(
-                    tr("В файле стоит голый center. Такой виджет остаётся у начального края. Нужен center_ref."),
+                    stringResource(Res.string.the_file_has_a_bare_center_such_a_widget),
                     color = Color(0xFFF0D9A0),
                     fontSize = 11.sp,
                     lineHeight = 15.sp,
@@ -553,11 +552,11 @@ private fun WidgetSection(
     PropRow(
         "fixaspect",
         "fixaspect" in props,
-        tr("Держит пропорции виджета с относительным размером: fixwidth берёт ширину из высоты, fixheight наоборот"),
+        stringResource(Res.string.keeps_the_proportions_of_a_widget_with_a),
     ) {
         CompactDropdown(props["fixaspect"] ?: "", FIXASPECT_OPTS) { commit("fixaspect", it) }
     }
-    PropRow("priority", "priority" in props, tr("Порядок отрисовки среди соседей: больше значит выше")) {
+    PropRow("priority", "priority" in props, stringResource(Res.string.the_drawing_order_among_siblings_larger)) {
         StringField(props["priority"] ?: "", Modifier.weight(1f)) { commit("priority", it) }
     }
     PropRow("userID", "userID" in props) {
@@ -579,15 +578,15 @@ private fun WidgetSection(
                 options,
                 {
                     if (it.isEmpty()) {
-                        tr("— (нет)")
+                        str(Res.string.none)
                     } else if (it !in names) {
-                        tr("{0} (свой)", it)
+                        str(Res.string.x_custom, it)
                     } else {
                         it
                     }
                 },
                 Modifier.weight(1f),
-                tooltip = tr("Стиль виджета"),
+                tooltip = stringResource(Res.string.widget_style),
             ) { commit("style", it) }
         }
     }
@@ -621,7 +620,7 @@ private fun ImageWidgetSection(
         PropLabel("image0", "image0" in props, null, Modifier.width(LABEL_W))
         // The quotes of the file are not shown; Enter or leaving the field confirms what was typed
         StringField(shownPath(props["image0"]), Modifier.weight(1f)) { commit("image0", storedPath(it, state)) }
-        Tip(tr("Выбрать иконку из imageset-ов игры и модов")) {
+        Tip(stringResource(Res.string.pick_an_icon_from_the_imagesets_of_the)) {
             SmallButton("...") { state.iconPicker = { ref -> commit("image0", "\"$ref\"") } }
         }
     }
@@ -636,7 +635,13 @@ private fun ImageWidgetSection(
         StringField(shownPath(props["imageTexture"]), Modifier.weight(1f)) { commit("imageTexture", storedPath(it, state)) }
         Spacer(Modifier.width(2.dp))
         SmallButton("..") {
-            scope.launch { pickFile(tr("Выбрать текстуру"), "*", basePath)?.let { commit("imageTexture", storedPath(it, state)) } }
+            scope.launch {
+                pickFile(
+                    str(Res.string.choose_a_texture),
+                    "*",
+                    basePath,
+                )?.let { commit("imageTexture", storedPath(it, state)) }
+            }
         }
     }
     HLine()
@@ -677,7 +682,7 @@ private fun ImageWidgetSection(
     ) {
         PropLabel("Mask", "mask" in props, null, Modifier.width(LABEL_W))
         Spacer(Modifier.weight(1f))
-        SmallButton("..") { scope.launch { pickFile(tr("Выбрать маску"), "*", basePath)?.let { commit("mask", it) } } }
+        SmallButton("..") { scope.launch { pickFile(str(Res.string.choose_a_mask), "*", basePath)?.let { commit("mask", it) } } }
     }
     HLine()
 
@@ -756,8 +761,8 @@ private fun ImagePreview(
         Text(
             when {
                 picture != null -> "${picture.width} × ${picture.height}"
-                named -> tr("не найдена")
-                else -> tr("нет картинки")
+                named -> stringResource(Res.string.not_found)
+                else -> stringResource(Res.string.no_image_3)
             },
             color = GhostlyText,
             fontSize = 10.sp,
@@ -799,7 +804,7 @@ private fun SchemaRow(
     pickString: (((String) -> Unit)) -> Unit = {},
 ) {
     val raw = props[spec.key]
-    val hint = tr(spec.hint) + if (spec.default.isNotEmpty()) "\n" + tr("По умолчанию: {0}", spec.default) else ""
+    val hint = stringResource(spec.hint) + if (spec.default.isNotEmpty()) "\n" + stringResource(Res.string.default_x, spec.default) else ""
     if (spec.kind == PropKind.CHECK) {
         CheckRow(spec.key, raw, commit, hint, spec.default == "1")
         return
@@ -827,9 +832,9 @@ private fun SchemaRow(
                     DropdownField(
                         current,
                         listOf("") + fonts.map { it.first },
-                        { if (it.isEmpty()) tr("— (нет)") else labels[it] ?: it },
+                        { if (it.isEmpty()) str(Res.string.none) else labels[it] ?: it },
                         Modifier.weight(1f),
-                        tooltip = tr("Шрифт текста"),
+                        tooltip = stringResource(Res.string.font_of_the_text),
                     ) { commit(spec.key, if (it.isEmpty()) "" else "\"$it\"") }
                     SmallButton("+") { importFont() }
                 } else {
@@ -867,7 +872,7 @@ private fun RawSection(
     SectionHeader("Extra", expanded) { expanded = !expanded }
     if (!expanded) return
     for ((key, value) in props) {
-        PropRow(key, set = true, hint = PROPERTY_HINTS[key] ?: UNKNOWN_PROPERTY_HINT) {
+        PropRow(key, set = true, hint = stringResource(PROPERTY_HINTS[key] ?: UNKNOWN_PROPERTY_HINT)) {
             StringField(value, Modifier.weight(1f)) { commit(key, it) }
         }
     }
@@ -899,11 +904,11 @@ private fun ColorRows(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(2.dp),
     ) {
-        PropLabel("color", "color" in props, tr("Цвета в файле линейные; Workbench показывает их в sRGB"), Modifier.width(LABEL_W))
+        PropLabel("color", "color" in props, stringResource(Res.string.the_colours_in_the_file_are_linear), Modifier.width(LABEL_W))
         var picking by remember { mutableStateOf(false) }
         val anchorHeight = with(LocalDensity.current) { 22.dp.roundToPx() }
         Box {
-            Tip(tr("Выбрать цвет")) {
+            Tip(stringResource(Res.string.pick_a_colour)) {
                 Box(
                     Modifier
                         .size(22.dp)
@@ -1060,7 +1065,7 @@ private fun PropLabel(
     hint: String?,
     modifier: Modifier = Modifier,
 ) {
-    val tip = (hint ?: PROPERTY_HINTS[label.trim()])?.let { tr(it) }
+    val tip = hint ?: PROPERTY_HINTS[label.trim()]?.let { stringResource(it) }
     val text: @Composable () -> Unit = {
         Text(
             label.trim(),
@@ -1251,7 +1256,15 @@ private fun UnitSwitch(
     isPx: Boolean,
     onChange: (Boolean) -> Unit,
 ) {
-    Tip(if (isPx) tr("Пиксели. Клик переключает на долю родителя") else tr("Доля родителя. Клик переключает на пиксели")) {
+    Tip(
+        if (isPx) {
+            stringResource(
+                Res.string.pixels_click_to_switch_to_a_share_of_the,
+            )
+        } else {
+            stringResource(Res.string.a_share_of_the_parent_click_to_switch_to)
+        },
+    ) {
         Box(
             Modifier
                 .height(24.dp)
@@ -1435,10 +1448,10 @@ private fun ScriptParamRows(
         given.keys
             .filter { key ->
                 known.none { it.name == key }
-            }.map { ScriptParam(it, "", tr("В лайауте есть, класс его не читает")) }
+            }.map { ScriptParam(it, "", stringResource(Res.string.present_in_the_layout_the_class_does_not)) }
     if (known.isEmpty() && extra.isEmpty()) return
     Text(
-        tr("Параметры скрипт-класса"),
+        stringResource(Res.string.script_class_parameters),
         color = GhostlyText,
         fontSize = 9.sp,
         modifier = Modifier.fillMaxWidth().padding(start = 8.dp, top = 6.dp, bottom = 2.dp),
@@ -1499,7 +1512,12 @@ private fun ColumnScope.MultiProperties(
         ) {
             AppIconView(AppIcon.UI_LAYERS, size = 18.dp)
             Column(Modifier.weight(1f)) {
-                Text(tr("{0} виджетов", nodes.size), color = TextForeground, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                Text(
+                    stringResource(Res.string.x_widgets, nodes.size),
+                    color = TextForeground,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold,
+                )
                 Text(
                     nodes
                         .groupingBy {
@@ -1568,9 +1586,7 @@ private fun MultiTransform(state: LayoutEditorState) {
             }
         }
         Text(
-            tr(
-                "Рамка вокруг выбранных. X и Y двигают их вместе, W и H масштабируют вместе. Поля свойств ниже: Mixed там, где значения разные.",
-            ),
+            stringResource(Res.string.selection_frame_hint),
             color = GhostlyText,
             fontSize = 10.sp,
             lineHeight = 13.sp,
@@ -1587,8 +1603,8 @@ private fun StringPreview(text: String) {
     val shown = StringtableRegistry.translate(key)
     val line =
         when {
-            entry == null -> tr("Ключ не найден в таблицах строк: текст останется как есть")
-            shown == null -> tr("Для языка редактора в таблице нет текста")
+            entry == null -> stringResource(Res.string.the_key_is_not_in_the_string_tables_the)
+            shown == null -> stringResource(Res.string.the_table_has_no_text_for_the_language)
             else -> shown
         }
     Row(Modifier.fillMaxWidth().padding(start = LABEL_W, end = 4.dp, bottom = 3.dp)) {

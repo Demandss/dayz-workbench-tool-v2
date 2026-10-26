@@ -36,8 +36,8 @@ class WidgetSchemaTest {
     fun `an enum property offers values and a check property is zero or one`() {
         for (type in WidgetType.entries) {
             for (spec in schemaFor(type).flatMap { it.specs }) {
+                // The hint is a string resource now: that every property has one is the type, that it is not empty is StringResourcesTest
                 if (spec.kind == PropKind.ENUM) assertTrue(spec.options.isNotEmpty(), "${spec.key} has no values")
-                assertTrue(spec.hint.isNotBlank(), "${spec.key} has no hint")
             }
         }
     }

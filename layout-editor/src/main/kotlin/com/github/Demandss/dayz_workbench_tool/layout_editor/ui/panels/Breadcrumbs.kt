@@ -21,9 +21,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.github.demandss.dayz_workbench_tool.i18n.tr
 import com.github.demandss.dayz_workbench_tool.layout_editor.pathTo
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.LayoutEditorState
+import com.github.demandss.dayz_workbench_tool.resources.*
 import com.github.demandss.dayz_workbench_tool.ui.components.Tip
 import com.github.demandss.dayz_workbench_tool.ui.icons.AppIcon
 import com.github.demandss.dayz_workbench_tool.ui.icons.AppIconView
@@ -33,6 +33,7 @@ import com.github.demandss.dayz_workbench_tool.ui.theme.FrameBackground
 import com.github.demandss.dayz_workbench_tool.ui.theme.GhostlyText
 import com.github.demandss.dayz_workbench_tool.ui.theme.SelectColor
 import com.github.demandss.dayz_workbench_tool.ui.theme.TextForeground
+import org.jetbrains.compose.resources.stringResource
 
 /** Where the selected widget sits in the tree. A click on a step selects that ancestor. Shown for one selected widget. */
 @Composable
@@ -55,7 +56,15 @@ fun Breadcrumbs(state: LayoutEditorState) {
             path.forEachIndexed { index, node ->
                 if (index > 0) AppIconView(AppIcon.UI_RIGHT, size = 12.dp, tint = GhostlyText)
                 val current = index == path.lastIndex
-                Tip(if (current) tr("Выбранный виджет") else tr("Выбрать {0}", node.node.name.ifEmpty { "(root)" })) {
+                Tip(
+                    if (current) {
+                        stringResource(
+                            Res.string.selected_widget,
+                        )
+                    } else {
+                        stringResource(Res.string.select_x, node.node.name.ifEmpty { "(root)" })
+                    },
+                ) {
                     Row(
                         Modifier
                             .background(if (current) SelectColor else Color.Transparent)

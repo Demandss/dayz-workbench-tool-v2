@@ -34,13 +34,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
-import com.github.demandss.dayz_workbench_tool.i18n.tr
+import com.github.demandss.dayz_workbench_tool.i18n.str
 import com.github.demandss.dayz_workbench_tool.layout.NewFileKind
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.Confirmation
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.LayoutEditorState
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.ToastKind
 import com.github.demandss.dayz_workbench_tool.pbo.PboArchive
 import com.github.demandss.dayz_workbench_tool.pbo.PboFile
+import com.github.demandss.dayz_workbench_tool.resources.*
 import com.github.demandss.dayz_workbench_tool.texture.EddsCodec
 import com.github.demandss.dayz_workbench_tool.ui.components.DarkIconButton
 import com.github.demandss.dayz_workbench_tool.ui.components.Tip
@@ -49,6 +50,7 @@ import com.github.demandss.dayz_workbench_tool.ui.icons.AppIconView
 import com.github.demandss.dayz_workbench_tool.ui.icons.fileIcon
 import com.github.demandss.dayz_workbench_tool.ui.theme.*
 import kotlinx.coroutines.*
+import org.jetbrains.compose.resources.stringResource
 import java.nio.file.*
 import java.nio.file.StandardWatchEventKinds.*
 import kotlin.math.roundToInt
@@ -277,14 +279,14 @@ fun FileTreePanel(
                             .padding(horizontal = 6.dp, vertical = 1.dp),
                 )
             }
-            DarkIconButton(AppIcon.UI_LAYERS, tr("Свернуть все папки"), onClick = { expandedDirs.clear() })
+            DarkIconButton(AppIcon.UI_LAYERS, stringResource(Res.string.collapse_all_folders), onClick = { expandedDirs.clear() })
         }
 
         SearchField(query) { query = it }
 
         if (workRoot.isBlank()) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text(tr("Не задан workdrive"), color = GhostlyText, fontSize = 11.sp)
+                Text(stringResource(Res.string.the_workdrive_is_not_set), color = GhostlyText, fontSize = 11.sp)
             }
             return@Column
         }
@@ -292,9 +294,9 @@ fun FileTreePanel(
         if (searchActive && !searching) {
             val note =
                 when {
-                    searchResults.isEmpty() -> tr("Ничего не найдено")
-                    searchResults.size >= SEARCH_LIMIT -> tr("Показаны первые {0}, уточните запрос", SEARCH_LIMIT)
-                    else -> tr("Найдено: {0}", searchResults.size)
+                    searchResults.isEmpty() -> stringResource(Res.string.nothing_found)
+                    searchResults.size >= SEARCH_LIMIT -> stringResource(Res.string.the_first_x_are_shown_narrow_the_query, SEARCH_LIMIT)
+                    else -> stringResource(Res.string.found_x, searchResults.size)
                 }
             Text(note, color = GhostlyText, fontSize = 10.sp, modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp))
         }
@@ -331,7 +333,7 @@ fun FileTreePanel(
                                         val result = runCatching { kind.create(parentDir, name) }
                                         result.exceptionOrNull()?.let {
                                             state.notify(
-                                                tr("Не создано: {0}", it.message ?: it.javaClass.simpleName),
+                                                str(Res.string.not_created_x, it.message ?: it.javaClass.simpleName),
                                                 ToastKind.ERROR,
                                             )
                                         }
@@ -374,7 +376,7 @@ fun FileTreePanel(
                                             Files.move(entry.path, entry.path.parent.resolve(newName))
                                         }.onFailure {
                                             state.notify(
-                                                tr("Не удалось переименовать {0}: {1}", entry.name, it.message ?: it.javaClass.simpleName),
+                                                str(Res.string.could_not_rename_x_x, entry.name, it.message ?: it.javaClass.simpleName),
                                                 ToastKind.ERROR,
                                             )
                                         }
@@ -448,7 +450,7 @@ fun FileTreePanel(
                                                 TEXTURE_EXTENSIONS.any { entry.name.endsWith(it, ignoreCase = true) }
                                         )
                                     ) {
-                                        ContextMenuItem(tr("Открыть"), icon = fileIcon(entry.name)) {
+                                        ContextMenuItem(str(Res.string.open), icon = fileIcon(entry.name)) {
                                             showMenu = false
                                             state.openAny(entry.path.toString())
                                         }
@@ -466,7 +468,7 @@ fun FileTreePanel(
                                     val isPng = !entry.isDir && entry.name.endsWith(".png", ignoreCase = true)
                                     if (isEdds || isPng) {
                                         ContextMenuItem(
-                                            if (isEdds) tr("Конвертировать в PNG") else tr("Конвертировать в EDDS"),
+                                            if (isEdds) str(Res.string.convert_to_png) else str(Res.string.convert_to_edds),
                                             icon = if (isEdds) AppIcon.IMAGE else AppIcon.EDDS,
                                         ) {
                                             showMenu = false
@@ -479,13 +481,13 @@ fun FileTreePanel(
                                                     }
                                                 }.onSuccess {
                                                     state.notify(
-                                                        tr("Сконвертировано: {0} → {1}", entry.name, if (isEdds) "PNG" else "EDDS"),
+                                                        str(Res.string.converted_x_x, entry.name, if (isEdds) "PNG" else "EDDS"),
                                                         ToastKind.SUCCESS,
                                                     )
                                                 }.onFailure {
                                                     state.notify(
-                                                        tr(
-                                                            "Не удалось сконвертировать {0}: {1}",
+                                                        str(
+                                                            Res.string.could_not_convert_x_x,
                                                             entry.name,
                                                             it.message ?: it.javaClass.simpleName,
                                                         ),
@@ -499,11 +501,11 @@ fun FileTreePanel(
                                             }
                                         }
                                     }
-                                    ContextMenuItem(tr("Переименовать"), icon = AppIcon.FILE) {
+                                    ContextMenuItem(str(Res.string.rename), icon = AppIcon.FILE) {
                                         showMenu = false
                                         renamingPath = entry.path
                                     }
-                                    ContextMenuItem(tr("Показать в проводнике"), icon = AppIcon.UI_SEARCH) {
+                                    ContextMenuItem(str(Res.string.show_in_explorer), icon = AppIcon.UI_SEARCH) {
                                         showMenu = false
                                         scope.launch(Dispatchers.IO) {
                                             runCatching {
@@ -512,7 +514,7 @@ fun FileTreePanel(
                                         }
                                     }
                                     ContextMenuSeparator()
-                                    ContextMenuItem(tr("Удалить..."), color = Color(0xFFFF5555), icon = AppIcon.UI_TRASH) {
+                                    ContextMenuItem(str(Res.string.delete_2), color = Color(0xFFFF5555), icon = AppIcon.UI_TRASH) {
                                         showMenu = false
                                         deletingEntry = entry
                                     }
@@ -539,9 +541,9 @@ fun FileTreePanel(
         deletingEntry = null
         state.confirmation =
             Confirmation(
-                title = tr("Удалить «{0}»?", target.name),
-                message = tr("Это действие необратимо."),
-                confirmLabel = tr("Удалить"),
+                title = stringResource(Res.string.delete_x, target.name),
+                message = stringResource(Res.string.this_action_cannot_be_undone),
+                confirmLabel = stringResource(Res.string.delete),
                 danger = true,
             ) {
                 scope.launch(Dispatchers.IO) {
@@ -553,7 +555,7 @@ fun FileTreePanel(
                         }
                     }.onFailure {
                         state.notify(
-                            tr("Не удалось удалить {0}: {1}", target.name, it.message ?: it.javaClass.simpleName),
+                            str(Res.string.could_not_delete_x_x, target.name, it.message ?: it.javaClass.simpleName),
                             ToastKind.ERROR,
                         )
                     }
@@ -625,7 +627,21 @@ private fun TreeRow(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         // Expand arrow (dirs only)
-        Tip(if (entry.isDir) (if (isExpanded) tr("Свернуть папку") else tr("Развернуть папку")) else null) {
+        Tip(
+            if (entry.isDir) {
+                (
+                    if (isExpanded) {
+                        stringResource(
+                            Res.string.collapse_the_folder,
+                        )
+                    } else {
+                        stringResource(Res.string.expand_the_folder)
+                    }
+                )
+            } else {
+                null
+            },
+        ) {
             Box(
                 Modifier
                     .size(14.dp)
@@ -813,7 +829,7 @@ internal fun ContextMenuCaption(text: String) {
 /** The "Create" group: a layout, styles, an imageset or a folder. */
 @Composable
 private fun ColumnScope.CreateMenuItems(onPick: (NewFileKind) -> Unit) {
-    ContextMenuCaption(tr("Создать"))
+    ContextMenuCaption(stringResource(Res.string.create))
     NewFileKind.entries.forEach { kind ->
         ContextMenuItem(kind.menuLabel, icon = kind.menuIcon) { onPick(kind) }
     }
@@ -825,7 +841,7 @@ private val NewFileKind.menuLabel: String
             NewFileKind.LAYOUT -> "Layout (.layout)"
             NewFileKind.STYLES -> "Styles (.styles)"
             NewFileKind.IMAGESET -> "Imageset (.imageset)"
-            NewFileKind.FOLDER -> tr("Папка")
+            NewFileKind.FOLDER -> str(Res.string.folder)
         }
 
 private val NewFileKind.menuIcon: AppIcon
@@ -840,10 +856,10 @@ private val NewFileKind.menuIcon: AppIcon
 private val NewFileKind.placeholder: String
     get() =
         when (this) {
-            NewFileKind.LAYOUT -> tr("Имя.layout")
-            NewFileKind.STYLES -> tr("Имя.styles")
-            NewFileKind.IMAGESET -> tr("Имя.imageset")
-            NewFileKind.FOLDER -> tr("Имя папки")
+            NewFileKind.LAYOUT -> str(Res.string.name_layout)
+            NewFileKind.STYLES -> str(Res.string.name_styles)
+            NewFileKind.IMAGESET -> str(Res.string.name_imageset)
+            NewFileKind.FOLDER -> str(Res.string.folder_name)
         }
 
 // ---------------------------------------------------------------------------
@@ -935,7 +951,7 @@ private suspend fun searchTree(
 @Composable
 internal fun SearchField(
     value: String,
-    placeholder: String = tr("Поиск по имени…"),
+    placeholder: String = stringResource(Res.string.search_by_name),
     onChange: (String) -> Unit,
 ) {
     val focus = remember { MutableInteractionSource() }
@@ -969,7 +985,7 @@ internal fun SearchField(
                 }
             }
             if (value.isNotEmpty()) {
-                Tip(tr("Очистить поиск")) {
+                Tip(stringResource(Res.string.clear_the_search)) {
                     Box(
                         Modifier
                             .size(16.dp)
@@ -998,7 +1014,7 @@ private fun RecentFiles(state: LayoutEditorState) {
         Row(Modifier.padding(horizontal = 8.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
             AppIconView(AppIcon.UI_CLOCK, size = 12.dp, tint = GhostlyText)
             Spacer(Modifier.width(6.dp))
-            Text(tr("НЕДАВНЕЕ"), color = GhostlyText, fontSize = 10.sp)
+            Text(stringResource(Res.string.recent), color = GhostlyText, fontSize = 10.sp)
         }
         recent.forEach { path ->
             val name = java.io.File(path).name

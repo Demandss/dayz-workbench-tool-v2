@@ -31,16 +31,17 @@ import androidx.compose.ui.input.key.type
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.github.demandss.dayz_workbench_tool.i18n.tr
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.LayoutEditorState
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.BulkMode
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.bulkReplace
+import com.github.demandss.dayz_workbench_tool.resources.*
 import com.github.demandss.dayz_workbench_tool.ui.components.DarkButton
 import com.github.demandss.dayz_workbench_tool.ui.components.DarkToolButton
 import com.github.demandss.dayz_workbench_tool.ui.theme.DarkenedBorder
 import com.github.demandss.dayz_workbench_tool.ui.theme.FrameBackground
 import com.github.demandss.dayz_workbench_tool.ui.theme.GhostlyText
 import com.github.demandss.dayz_workbench_tool.ui.theme.TextForeground
+import org.jetbrains.compose.resources.stringResource
 
 /** Find and replace over widget names or over one property, for the selected widgets or for the whole layout. */
 @Composable
@@ -66,17 +67,29 @@ fun BulkEditDialog(state: LayoutEditorState) {
     }
 
     FlatDialog(
-        title = if (mode == BulkMode.NAME) tr("Заменить в именах виджетов") else tr("Заменить значение свойства"),
+        title =
+            if (mode ==
+                BulkMode.NAME
+            ) {
+                stringResource(Res.string.replace_in_widget_names)
+            } else {
+                stringResource(Res.string.replace_a_property_value)
+            },
         onDismiss = { state.bulkDialog = null },
         onConfirm = { if (count > 0) apply() },
         buttons = {
-            DarkButton(tr("Отмена"), onClick = { state.bulkDialog = null }, muted = true, modifier = Modifier.width(80.dp))
             DarkButton(
-                tr("Заменить ({0})", count),
+                stringResource(Res.string.cancel),
+                onClick = { state.bulkDialog = null },
+                muted = true,
+                modifier = Modifier.width(80.dp),
+            )
+            DarkButton(
+                stringResource(Res.string.replace_x, count),
                 onClick = ::apply,
                 enabled = count > 0,
                 modifier = Modifier.width(110.dp),
-                tooltip = tr("Сколько виджетов изменится"),
+                tooltip = stringResource(Res.string.how_many_widgets_will_change),
             )
         },
     ) {
@@ -85,25 +98,37 @@ fun BulkEditDialog(state: LayoutEditorState) {
                 androidx.compose.foundation.layout.Arrangement
                     .spacedBy(6.dp),
         ) {
-            DarkToolButton(tr("Выбранные"), { selectedOnly = true }, active = selectedOnly, tooltip = tr("Только выбранные виджеты"))
-            DarkToolButton(tr("Весь layout"), { selectedOnly = false }, active = !selectedOnly, tooltip = tr("Все виджеты файла"))
+            DarkToolButton(stringResource(Res.string.selected_ones), {
+                selectedOnly = true
+            }, active = selectedOnly, tooltip = stringResource(Res.string.selected_widgets_only))
+            DarkToolButton(stringResource(Res.string.whole_layout), {
+                selectedOnly = false
+            }, active = !selectedOnly, tooltip = stringResource(Res.string.all_widgets_of_the_file))
         }
         if (mode ==
             BulkMode.PROPERTY
         ) {
-            Field(tr("Свойство"), key, tr("например style, color, priority"), { key = it }, Modifier.focusRequester(focus), ::apply)
+            Field(stringResource(Res.string.property), key, stringResource(Res.string.for_example_style_color_priority), {
+                key = it
+            }, Modifier.focusRequester(focus), ::apply)
         }
         Field(
-            if (mode == BulkMode.NAME) tr("Что заменить") else tr("Что заменить (пусто: любое значение)"),
+            if (mode ==
+                BulkMode.NAME
+            ) {
+                stringResource(Res.string.what_to_replace)
+            } else {
+                stringResource(Res.string.what_to_replace_empty_any_value)
+            },
             find,
             "",
             { find = it },
             if (mode == BulkMode.NAME) Modifier.focusRequester(focus) else Modifier,
             ::apply,
         )
-        Field(tr("На что"), replace, "", { replace = it }, Modifier, ::apply)
+        Field(stringResource(Res.string.replace_with), replace, "", { replace = it }, Modifier, ::apply)
         Text(
-            if (count == 0) tr("Ничего не подходит") else tr("Изменится виджетов: {0}", count),
+            if (count == 0) stringResource(Res.string.nothing_matches) else stringResource(Res.string.widgets_to_change_x, count),
             color = GhostlyText,
             fontSize = 11.sp,
         )

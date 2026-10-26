@@ -18,9 +18,10 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
-import com.github.demandss.dayz_workbench_tool.i18n.tr
+import com.github.demandss.dayz_workbench_tool.i18n.str
 import com.github.demandss.dayz_workbench_tool.model.ModSide
 import com.github.demandss.dayz_workbench_tool.model.Modification
+import com.github.demandss.dayz_workbench_tool.resources.*
 import com.github.demandss.dayz_workbench_tool.state.AppState
 import com.github.demandss.dayz_workbench_tool.ui.pickDirectory
 import com.github.demandss.dayz_workbench_tool.ui.theme.*
@@ -78,11 +79,11 @@ fun ModChooserRow(
             onDismiss = { showTypeDialog = false },
             onLocal = {
                 showTypeDialog = false
-                scope.launch { pickDirectory(tr("Выберите локальный мод"), localDir)?.let { path = it } }
+                scope.launch { pickDirectory(str(Res.string.select_local_mod), localDir)?.let { path = it } }
             },
             onWorkshop = {
                 showTypeDialog = false
-                scope.launch { pickDirectory(tr("Выберите мод из Workshop"), workshopDir)?.let { path = it } }
+                scope.launch { pickDirectory(str(Res.string.select_workshop_mod), workshopDir)?.let { path = it } }
             },
         )
     }
@@ -104,9 +105,9 @@ private fun ModTypeDialog(
                     .padding(10.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Text(tr("Выберите тип мода"), color = TextForeground, fontSize = 12.sp)
+            Text(str(Res.string.select_modification_type), color = TextForeground, fontSize = 12.sp)
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                DarkButton(tr("Локальный"), onClick = onLocal, modifier = Modifier.weight(1f))
+                DarkButton(str(Res.string.local), onClick = onLocal, modifier = Modifier.weight(1f))
                 DarkButton("Workshop", onClick = onWorkshop, modifier = Modifier.weight(1f))
             }
         }

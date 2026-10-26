@@ -44,7 +44,7 @@ import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.github.demandss.dayz_workbench_tool.i18n.tr
+import com.github.demandss.dayz_workbench_tool.i18n.str
 import com.github.demandss.dayz_workbench_tool.layout.WidgetType
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.LayoutEditorState
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.StylesDocument
@@ -54,6 +54,7 @@ import com.github.demandss.dayz_workbench_tool.layout_editor.ui.imageset.CommitF
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.imageset.LabelRow
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.imageset.PanelHeader
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.DropdownField
+import com.github.demandss.dayz_workbench_tool.resources.*
 import com.github.demandss.dayz_workbench_tool.styles.STYLE_SLOTS
 import com.github.demandss.dayz_workbench_tool.styles.STYLE_STATES
 import com.github.demandss.dayz_workbench_tool.styles.SlotSet
@@ -81,6 +82,7 @@ import com.github.demandss.dayz_workbench_tool.ui.theme.FrameBackground
 import com.github.demandss.dayz_workbench_tool.ui.theme.GhostlyText
 import com.github.demandss.dayz_workbench_tool.ui.theme.SelectColor
 import com.github.demandss.dayz_workbench_tool.ui.theme.TextForeground
+import org.jetbrains.compose.resources.stringResource
 
 /** The editor of a `.styles`: the widget types and their styles on the left, the selected style on the right. */
 @Composable
@@ -101,7 +103,7 @@ fun StylesEditor(
             val style = doc.selectedStyle
             if (style == null) {
                 Box(Modifier.weight(1f).fillMaxHeight(), contentAlignment = Alignment.Center) {
-                    Text(tr("Выберите стиль слева"), color = GhostlyText, fontSize = 12.sp)
+                    Text(stringResource(Res.string.pick_a_style_on_the_left), color = GhostlyText, fontSize = 12.sp)
                 }
             } else {
                 StyleDetail(state, doc, style, Modifier.weight(1f).fillMaxHeight()) { request -> picking = request }
@@ -136,9 +138,14 @@ private fun StylesToolbar(
         horizontalArrangement = Arrangement.spacedBy(2.dp),
     ) {
         Spacer(Modifier.width(4.dp))
-        DarkIconButton(AppIcon.UI_SAVE, tr("Сохранить (Ctrl+S)"), onClick = { state.saveActiveStyles() }, enabled = doc.isModified)
-        DarkIconButton(AppIcon.UI_UNDO, tr("Отменить (Ctrl+Z)"), onClick = { doc.undo() }, enabled = doc.canUndo)
-        DarkIconButton(AppIcon.UI_REDO, tr("Повторить (Ctrl+Y)"), onClick = { doc.redo() }, enabled = doc.canRedo)
+        DarkIconButton(
+            AppIcon.UI_SAVE,
+            stringResource(Res.string.save_ctrl_s),
+            onClick = { state.saveActiveStyles() },
+            enabled = doc.isModified,
+        )
+        DarkIconButton(AppIcon.UI_UNDO, stringResource(Res.string.undo_ctrl_z), onClick = { doc.undo() }, enabled = doc.canUndo)
+        DarkIconButton(AppIcon.UI_REDO, stringResource(Res.string.redo_ctrl_y), onClick = { doc.redo() }, enabled = doc.canRedo)
         Box(
             Modifier
                 .padding(horizontal = 4.dp)
@@ -151,13 +158,15 @@ private fun StylesToolbar(
                 .map { it.className.removeSuffix("Class") }
                 .filter { name -> doc.sheet.widgets.none { it.widget == name } }
         if (unused.isNotEmpty()) {
-            DropdownField(tr("+ Тип"), unused, { it }, tooltip = tr("Добавить тип виджета, для которого будут стили")) { name ->
+            DropdownField(stringResource(Res.string.type), unused, {
+                it
+            }, tooltip = stringResource(Res.string.add_a_widget_type_that_will_have_styles)) { name ->
                 doc.edit { it.copy(widgets = it.widgets + WidgetStyles(name, emptyList())) }
                 doc.select(doc.sheet.widgets.lastIndex, -1)
             }
         }
         DarkToolButton(
-            tr("+ Стиль"),
+            stringResource(Res.string.style),
             {
                 val w = doc.widget.takeIf { it >= 0 } ?: return@DarkToolButton
                 val setName = doc.selectedStyle?.imageSet.orEmpty()
@@ -170,11 +179,11 @@ private fun StylesToolbar(
                 }
                 if (added >= 0) doc.select(w, added)
             },
-            tooltip = tr("Добавить стиль к выбранному типу виджета"),
+            tooltip = stringResource(Res.string.add_a_style_to_the_selected_widget_type),
         )
         DarkIconButton(
             AppIcon.UI_COPY,
-            tr("Дублировать стиль"),
+            stringResource(Res.string.duplicate_the_style),
             onClick = {
                 var added = -1
                 val w = doc.widget
@@ -190,7 +199,7 @@ private fun StylesToolbar(
         )
         DarkIconButton(
             AppIcon.UI_TRASH,
-            tr("Удалить стиль"),
+            stringResource(Res.string.delete_the_style),
             onClick = {
                 val w = doc.widget
                 val s = doc.style
@@ -246,7 +255,7 @@ private fun StyleTree(doc: StylesDocument) {
                         .padding(horizontal = 6.dp),
                     contentAlignment = Alignment.CenterStart,
                 ) {
-                    if (query.isEmpty()) Text(tr("Поиск стиля…"), color = GhostlyText, fontSize = 11.sp)
+                    if (query.isEmpty()) Text(stringResource(Res.string.search_for_a_style), color = GhostlyText, fontSize = 11.sp)
                     inner()
                 }
             },
@@ -329,8 +338,8 @@ private fun StyleDetail(
         )
         StylePreview(state, doc, style, stateIndex)
 
-        PanelHeader(tr("Стиль"), true, {})
-        LabelRow("Name", tr("Имя стиля: его пишут в style у виджета")) {
+        PanelHeader(stringResource(Res.string.style_2), true, {})
+        LabelRow("Name", stringResource(Res.string.the_style_name_it_is_written_in_the)) {
             CommitField(style.name, Modifier.weight(1f)) { v ->
                 val clean = v.trim()
                 val taken =
@@ -340,12 +349,12 @@ private fun StyleDetail(
                         .any { it.index != s && it.value.name == clean }
                 if (clean.isEmpty()) {
                     state.notify(
-                        tr("Имя стиля не может быть пустым"),
+                        str(Res.string.the_style_name_cannot_be_empty),
                         com.github.demandss.dayz_workbench_tool.layout_editor.state.ToastKind.INFO,
                     )
                 } else if (taken) {
                     state.notify(
-                        tr("Стиль «{0}» уже есть у этого виджета", clean),
+                        str(Res.string.the_style_x_is_already_on_this_widget, clean),
                         com.github.demandss.dayz_workbench_tool.layout_editor.state.ToastKind.INFO,
                     )
                 } else {
@@ -353,10 +362,10 @@ private fun StyleDetail(
                 }
             }
         }
-        LabelRow("Font", tr("Путь к шрифту без расширения, например gui/fonts/MetronBook; пусто — шрифт по умолчанию")) {
+        LabelRow("Font", stringResource(Res.string.the_path_to_the_font_without_the)) {
             CommitField(style.font, Modifier.weight(1f), mono = true) { v -> change { it.copy(font = v.trim()) } }
         }
-        LabelRow("ImageSet", tr("Набор картинок, из которого берутся все картинки стиля")) {
+        LabelRow("ImageSet", stringResource(Res.string.the_set_of_images_that_all_the_images_of)) {
             val options = (setNames + style.imageSet).filter { it.isNotEmpty() }.distinct()
             if (options.isEmpty()) {
                 CommitField(style.imageSet, Modifier.weight(1f)) { v -> change { it.copy(imageSet = v.trim()) } }
@@ -369,14 +378,14 @@ private fun StyleDetail(
                 ) { v -> change { it.copy(imageSet = v) } }
             }
         }
-        LabelRow("Color", tr("Цвет стиля AARRGGBB. FFFFFFFF — без изменений, 00000000 — прозрачный, цвет виджета его заменяет")) {
+        LabelRow("Color", stringResource(Res.string.the_colour_of_the_style_as_aarrggbb)) {
             Box(Modifier.size(18.dp).background(styleColorOf(style.color)).border(1.dp, DarkenedBorder))
             Spacer(Modifier.width(6.dp))
             CommitField(styleColorHex(style.color), Modifier.weight(1f), mono = true) { v ->
                 val decimal = styleColorFromHex(v)
                 if (decimal == null) {
                     state.notify(
-                        tr("Цвет пишется как AARRGGBB, например FFFFFFFF"),
+                        str(Res.string.the_colour_is_written_as_aarrggbb_for),
                         com.github.demandss.dayz_workbench_tool.layout_editor.state.ToastKind.INFO,
                     )
                 } else {
@@ -385,7 +394,7 @@ private fun StyleDetail(
             }
         }
 
-        PanelHeader(tr("Состояния"), true, {})
+        PanelHeader(stringResource(Res.string.states), true, {})
         Row(
             Modifier.fillMaxWidth().padding(8.dp),
             horizontalArrangement = Arrangement.spacedBy(4.dp),
@@ -397,18 +406,18 @@ private fun StyleDetail(
                     { doc.stateIndex = i },
                     active = i == stateIndex,
                     primary = true,
-                    tooltip = tr("Показать состояние {0}", st.name),
+                    tooltip = stringResource(Res.string.show_the_state_x, st.name),
                 )
             }
             val missing = STYLE_STATES.filter { name -> style.states.none { it.name == name } }
             if (missing.isNotEmpty()) {
-                DropdownField(tr("+ состояние"), missing, { it }, tooltip = tr("Добавить состояние")) { name ->
+                DropdownField(stringResource(Res.string.state), missing, { it }, tooltip = stringResource(Res.string.add_a_state)) { name ->
                     change { it.withAddedState(name) }
                     doc.stateIndex = doc.selectedStyle?.states?.lastIndex ?: 0
                 }
             }
             if (style.states.size > 1) {
-                DarkIconButton(AppIcon.UI_TRASH, tr("Удалить это состояние"), onClick = {
+                DarkIconButton(AppIcon.UI_TRASH, stringResource(Res.string.delete_this_state), onClick = {
                     change { it.withoutState(stateIndex) }
                     doc.stateIndex = 0
                 })
@@ -418,13 +427,13 @@ private fun StyleDetail(
         val slotSets = remember(style.imageSet, state.workDrivePath) { slotSetsOf(state, style.imageSet, doc.path) }
         if (current != null && slotSets.isNotEmpty()) {
             Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text(tr("Из набора"), color = GhostlyText, fontSize = 10.sp, modifier = Modifier.width(86.dp))
+                Text(stringResource(Res.string.from_the_set), color = GhostlyText, fontSize = 10.sp, modifier = Modifier.width(86.dp))
                 DropdownField(
-                    SlotSet(tr("Заполнить слоты по именам…"), emptyMap()),
+                    SlotSet(stringResource(Res.string.fill_slots_by_names), emptyMap()),
                     slotSets,
                     { if (it.images.isEmpty()) it.label else "${it.label}  (${it.images.size})" },
                     Modifier.weight(1f),
-                    tooltip = tr("Картинки с именами вида Frame + LeftTop, Top, Center… раскладываются по слотам этого состояния"),
+                    tooltip = stringResource(Res.string.images_named_like_frame_lefttop_top),
                 ) { set ->
                     change { st -> set.images.entries.fold(st) { acc, (slot, image) -> acc.withItem(stateIndex, slot, image) } }
                 }
@@ -458,7 +467,12 @@ private fun StyleDetail(
             val free = STYLE_SLOTS.filter { slot -> current.items.none { it.name == slot } }
             if (free.isNotEmpty()) {
                 Row(Modifier.padding(8.dp)) {
-                    DropdownField(tr("+ слот"), free, { it }, tooltip = tr("Добавить слот: LeftTop, Top, Center…")) { slot ->
+                    DropdownField(
+                        stringResource(Res.string.slot),
+                        free,
+                        { it },
+                        tooltip = stringResource(Res.string.add_a_slot_lefttop_top_center),
+                    ) { slot ->
                         change { it.withItem(stateIndex, slot, "") }
                     }
                 }
@@ -481,7 +495,7 @@ private fun ItemRow(
         Text(slot, color = GhostlyText, fontSize = 10.sp, modifier = Modifier.width(86.dp), maxLines = 1)
         // The image is chosen on the atlas, not typed: the field opens the picker
         Box(Modifier.weight(1f)) {
-            Tip(tr("Выбрать картинку на атласе, из списка или набором для всех слотов")) {
+            Tip(stringResource(Res.string.pick_an_image_on_the_atlas_from_the_list)) {
                 Box(
                     Modifier
                         .fillMaxWidth()
@@ -493,7 +507,7 @@ private fun ItemRow(
                     contentAlignment = Alignment.CenterStart,
                 ) {
                     Text(
-                        image.ifEmpty { tr("— нет картинки —") },
+                        image.ifEmpty { stringResource(Res.string.no_image) },
                         color = if (image.isEmpty()) GhostlyText else TextForeground,
                         fontSize = 11.sp,
                         maxLines = 1,
@@ -502,8 +516,13 @@ private fun ItemRow(
                 }
             }
         }
-        DarkIconButton(AppIcon.UI_SEARCH, tr("Выбрать картинку на атласе"), onClick = onPick, enabled = setName.isNotEmpty())
-        DarkIconButton(AppIcon.UI_TRASH, tr("Убрать слот"), onClick = onRemove)
+        DarkIconButton(
+            AppIcon.UI_SEARCH,
+            stringResource(Res.string.pick_an_image_on_the_atlas),
+            onClick = onPick,
+            enabled = setName.isNotEmpty(),
+        )
+        DarkIconButton(AppIcon.UI_TRASH, stringResource(Res.string.remove_the_slot), onClick = onRemove)
         if (!known) AppIconView(AppIcon.UI_WARN, size = 14.dp)
     }
 }
@@ -638,15 +657,15 @@ private fun StylePreview(
                 }
 
                 skin == null -> {
-                    tr("Нет картинок для превью: слоты пусты или набор не найден")
+                    stringResource(Res.string.no_images_for_the_preview_the_slots_are)
                 }
 
                 hidden.isNotEmpty() -> {
-                    tr("Не показано превью: {0}", hidden.joinToString(", "))
+                    stringResource(Res.string.the_preview_is_not_shown_x, hidden.joinToString(", "))
                 }
 
                 interactive -> {
-                    tr("Наведите курсор на превью: Highlight, зажмите кнопку мыши: Pushed")
+                    stringResource(Res.string.move_the_cursor_over_the_preview)
                 }
 
                 else -> {

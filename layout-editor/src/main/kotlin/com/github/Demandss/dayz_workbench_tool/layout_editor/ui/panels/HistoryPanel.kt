@@ -18,13 +18,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.github.demandss.dayz_workbench_tool.i18n.tr
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.LayoutEditorState
+import com.github.demandss.dayz_workbench_tool.resources.*
 import com.github.demandss.dayz_workbench_tool.ui.components.Tip
 import com.github.demandss.dayz_workbench_tool.ui.theme.FrameBackground
 import com.github.demandss.dayz_workbench_tool.ui.theme.GhostlyText
 import com.github.demandss.dayz_workbench_tool.ui.theme.SelectColor
 import com.github.demandss.dayz_workbench_tool.ui.theme.TextForeground
+import org.jetbrains.compose.resources.stringResource
 
 /** The actions of the open layout, newest on top. A click goes to the state right after that action. */
 @Composable
@@ -35,7 +36,7 @@ fun HistoryPanel(
     val doc = state.activeFile
     if (doc == null || (doc.undoLabels.isEmpty() && doc.redoLabels.isEmpty())) {
         Box(modifier.background(FrameBackground).fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text(tr("Действий пока нет"), color = GhostlyText, fontSize = 11.sp)
+            Text(stringResource(Res.string.no_actions_yet), color = GhostlyText, fontSize = 11.sp)
         }
         return
     }
@@ -60,7 +61,7 @@ private fun HistoryRow(
     undone: Boolean,
     onClick: () -> Unit,
 ) {
-    Tip(if (current) tr("Текущее состояние") else tr("Перейти к состоянию после этого действия")) {
+    Tip(if (current) stringResource(Res.string.current_state) else stringResource(Res.string.go_to_the_state_after_this_action)) {
         Row(
             Modifier
                 .fillMaxWidth()

@@ -47,13 +47,13 @@ import androidx.compose.ui.window.DialogWindow
 import androidx.compose.ui.window.rememberDialogState
 import com.github.demandss.dayz_workbench_tool.i18n.I18n
 import com.github.demandss.dayz_workbench_tool.i18n.Language
-import com.github.demandss.dayz_workbench_tool.i18n.tr
-import com.github.demandss.dayz_workbench_tool.i18n.trKey
+import com.github.demandss.dayz_workbench_tool.i18n.str
 import com.github.demandss.dayz_workbench_tool.layout_editor.mcp.McpHost
 import com.github.demandss.dayz_workbench_tool.layout_editor.mcp.McpTools
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.LayoutEditorState
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.Resolution
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.ToastKind
+import com.github.demandss.dayz_workbench_tool.resources.*
 import com.github.demandss.dayz_workbench_tool.ui.components.DarkButton
 import com.github.demandss.dayz_workbench_tool.ui.theme.DarkenedBorder
 import com.github.demandss.dayz_workbench_tool.ui.theme.ElementsBackground
@@ -63,6 +63,7 @@ import com.github.demandss.dayz_workbench_tool.ui.theme.SelectColor
 import com.github.demandss.dayz_workbench_tool.ui.theme.TextForeground
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonPrimitive
+import org.jetbrains.compose.resources.stringResource
 
 /**
  * What the MCP server is doing, read-only: the status, the address and the token, the commands that connect an assistant, the
@@ -75,7 +76,7 @@ fun McpConnectionWindow(state: LayoutEditorState) {
     DialogWindow(
         onCloseRequest = { state.mcpInfoOpen = false },
         state = rememberDialogState(size = DpSize(780.dp, 760.dp)),
-        title = tr("Подключение (MCP)"),
+        title = stringResource(Res.string.connection_mcp),
     ) {
         Column(
             Modifier
@@ -108,12 +109,12 @@ private fun CopyRow(
             ) {
                 Text(text, color = TextForeground, fontSize = 11.sp, fontFamily = FontFamily.Monospace)
             }
-            DarkButton(tr("Копировать"), {
+            DarkButton(stringResource(Res.string.copy), {
                 java.awt.Toolkit
                     .getDefaultToolkit()
                     .systemClipboard
                     .setContents(java.awt.datatransfer.StringSelection(text), null)
-                state.notify(tr("Скопировано"), ToastKind.SUCCESS)
+                state.notify(str(Res.string.copied), ToastKind.SUCCESS)
             })
         }
     }
@@ -122,7 +123,7 @@ private fun CopyRow(
 @Composable
 private fun McpPage(state: LayoutEditorState) {
     val url = McpHost.url
-    Heading(tr("Подключение ассистента (MCP)"))
+    Heading(stringResource(Res.string.connecting_an_assistant_mcp))
     Text(
         "Редактор отдаёт ассистенту, например Claude Code, свои инструменты: читать и править открытый лейаут, " +
             "менять вид и снимать скриншоты. Сервер слушает только этот компьютер.",
@@ -130,30 +131,31 @@ private fun McpPage(state: LayoutEditorState) {
         fontSize = 11.sp,
     )
 
+    val error = McpHost.lastError
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         Box(Modifier.size(9.dp).background(if (url != null) Color(0xFF5CB85C) else Color(0xFFD06A6A)))
         Text(
             when {
-                url != null -> tr("Работает: {0}", url)
-                McpHost.lastError != null -> tr("Не запущен: {0}", McpHost.lastError)
-                else -> tr("Выключен")
+                url != null -> stringResource(Res.string.running_x, url)
+                error != null -> stringResource(Res.string.not_running_x, error)
+                else -> stringResource(Res.string.disabled)
             },
             color = TextForeground,
             fontSize = 12.sp,
         )
     }
     state.openAppSettings?.let { open ->
-        DarkButton(tr("Настройки подключения: вкладка Layout Editor"), { open() })
+        DarkButton(stringResource(Res.string.connection_settings_the_layout_editor), { open() })
     }
 
     if (url != null) {
-        Caption(tr("Подключить"))
+        Caption(stringResource(Res.string.connect))
         val token = McpHost.token.orEmpty()
-        CopyRow(state, tr("Адрес"), url)
-        CopyRow(state, tr("Токен"), token)
+        CopyRow(state, stringResource(Res.string.address), url)
+        CopyRow(state, stringResource(Res.string.token), token)
         CopyRow(
             state,
-            tr("Claude Code, одна команда в терминале"),
+            stringResource(Res.string.claude_code_one_command_in_the_terminal),
             "claude mcp add --transport http dayz-layout-editor $url --header \"Authorization: Bearer $token\"",
         )
         CopyRow(
@@ -163,7 +165,7 @@ private fun McpPage(state: LayoutEditorState) {
         )
     }
 
-    Caption(tr("Инструменты ({0})", McpTools.definitions().size))
+    Caption(stringResource(Res.string.tools_x, McpTools.definitions().size))
     Column(
         Modifier
             .fillMaxWidth()
@@ -195,7 +197,7 @@ private fun McpPage(state: LayoutEditorState) {
         }
     }
 
-    Caption(tr("Последние вызовы"))
+    Caption(stringResource(Res.string.recent_calls))
     Column(
         Modifier
             .fillMaxWidth()
@@ -207,7 +209,7 @@ private fun McpPage(state: LayoutEditorState) {
             .verticalScroll(rememberScrollState()),
     ) {
         if (McpHost.calls.isEmpty()) {
-            Text(tr("Пока не было"), color = GhostlyText, fontSize = 10.sp)
+            Text(stringResource(Res.string.none_yet), color = GhostlyText, fontSize = 10.sp)
         } else {
             McpHost.calls.forEach { Text(it, color = TextForeground, fontSize = 10.sp, fontFamily = FontFamily.Monospace) }
         }

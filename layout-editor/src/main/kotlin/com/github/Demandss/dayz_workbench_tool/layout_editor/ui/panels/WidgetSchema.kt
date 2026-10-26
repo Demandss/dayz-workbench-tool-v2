@@ -2,8 +2,9 @@
 
 package com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels
 
-import com.github.demandss.dayz_workbench_tool.i18n.trKey
 import com.github.demandss.dayz_workbench_tool.layout.WidgetType
+import com.github.demandss.dayz_workbench_tool.resources.*
+import org.jetbrains.compose.resources.StringResource
 
 /** How the value of a property is written in a .layout file and edited in the properties panel. */
 internal enum class PropKind {
@@ -30,7 +31,7 @@ internal enum class PropKind {
 internal class PropSpec(
     val key: String,
     val kind: PropKind,
-    val hint: String,
+    val hint: StringResource,
     val options: List<String> = emptyList(),
     /** What the game does when the file does not set the property; shown as a hint, never written. */
     val default: String = "",
@@ -44,36 +45,36 @@ internal class PropSection(
 
 private fun check(
     key: String,
-    hint: String,
+    hint: StringResource,
     default: String = "0",
 ) = PropSpec(key, PropKind.CHECK, hint, default = default)
 
 private fun number(
     key: String,
-    hint: String,
+    hint: StringResource,
     default: String = "",
 ) = PropSpec(key, PropKind.NUMBER, hint, default = default)
 
 private fun numbers(
     key: String,
-    hint: String,
+    hint: StringResource,
     default: String = "",
 ) = PropSpec(key, PropKind.NUMBERS, hint, default = default)
 
 private fun text(
     key: String,
-    hint: String,
+    hint: StringResource,
 ) = PropSpec(key, PropKind.TEXT, hint)
 
 private fun color(
     key: String,
-    hint: String,
+    hint: StringResource,
     default: String = "",
 ) = PropSpec(key, PropKind.COLOR, hint, default = default)
 
 private fun choice(
     key: String,
-    hint: String,
+    hint: StringResource,
     vararg options: String,
     default: String = "",
 ) = PropSpec(key, PropKind.ENUM, hint, options.toList(), default)
@@ -87,57 +88,57 @@ private val FOCUS =
         listOf(
             check(
                 "no focus",
-                "Вкл: виджет не получает фокус ввода (клавиатура и геймпад обходят его).\nВыкл: виджет может получить фокус.",
+                Res.string.hint_on_the_widget_does_not_get_the_input,
             ),
-            text("next up", "Имя виджета, который получает фокус при нажатии «вверх» (навигация геймпадом и стрелками)"),
-            text("next down", "Имя виджета, который получает фокус при нажатии «вниз»"),
-            text("next left", "Имя виджета, который получает фокус при нажатии «влево»"),
-            text("next right", "Имя виджета, который получает фокус при нажатии «вправо»"),
+            text("next up", Res.string.hint_name_of_the_widget_that_gets_the_focus),
+            text("next down", Res.string.hint_name_of_the_widget_that_gets_the_focus_2),
+            text("next left", Res.string.hint_name_of_the_widget_that_gets_the_focus_3),
+            text("next right", Res.string.hint_name_of_the_widget_that_gets_the_focus_4),
         ),
     )
 
 private val FONT =
     listOf(
-        text("font", "Путь к шрифту без расширения, например gui/fonts/MetronBook; пусто — шрифт по умолчанию"),
+        text("font", Res.string.the_path_to_the_font_without_the),
         check(
             "exact text",
-            "Вкл: размер шрифта задан в пикселях (exact text size).\nВыкл: размер считается долей высоты виджета (text_proportion).",
+            Res.string.hint_on_the_font_size_is_given_in_pixels,
         ),
-        number("exact text size", trKey("Размер шрифта в пикселях при включённом exact text")),
-        number("text_proportion", "Размер шрифта как доля высоты виджета, когда exact text выключен", "1"),
-        check("bold text", trKey("Вкл: жирный шрифт.")),
-        check("italic text", trKey("Вкл: курсив.")),
-        number("text sharpness", "Резкость контура шрифта: больше значит резче"),
+        number("exact text size", Res.string.font_size_in_pixels_when_exact_text_is),
+        number("text_proportion", Res.string.hint_font_size_as_a_share_of_the_widget, "1"),
+        check("bold text", Res.string.on_bold_font),
+        check("italic text", Res.string.on_italic_font),
+        number("text sharpness", Res.string.hint_sharpness_of_the_font_edge_larger_is),
     )
 
 private val TEXT_LOOK =
     listOf(
-        choice("text halign", "Выравнивание текста по горизонтали внутри виджета", *ALIGN_H, default = "left"),
-        choice("text valign", "Выравнивание текста по вертикали внутри виджета", *ALIGN_V, default = "top"),
-        numbers("text offset", trKey("Сдвиг текста от края в пикселях: «x y»")),
-        numbers("text spacing", "Дополнительный интервал между символами и строками: «x y»"),
-        check("size to text h", trKey("Вкл: ширина виджета подгоняется под текст.")),
-        check("size to text v", trKey("Вкл: высота виджета подгоняется под текст.")),
-        check("wrap", trKey("Вкл: длинный текст переносится на следующую строку.")),
-        number("shadow size", trKey("Размер тени текста в пикселях; 0 — без тени")),
-        color("shadow color", trKey("Цвет тени текста: r g b a от 0 до 1")),
-        numbers("shadow offset", trKey("Смещение тени: «x y»")),
-        number("shadow opacity", trKey("Непрозрачность тени от 0 до 1")),
-        number("outline size", "Толщина обводки текста в пикселях; 0 — без обводки"),
-        color("outline color", "Цвет обводки текста: r g b a от 0 до 1"),
+        choice("text halign", Res.string.hint_horizontal_alignment_of_the_text_inside, *ALIGN_H, default = "left"),
+        choice("text valign", Res.string.hint_vertical_alignment_of_the_text_inside, *ALIGN_V, default = "top"),
+        numbers("text offset", Res.string.offset_of_the_text_from_the_edge_in),
+        numbers("text spacing", Res.string.hint_extra_spacing_between_characters_and),
+        check("size to text h", Res.string.on_the_width_of_the_widget_fits_the_text),
+        check("size to text v", Res.string.on_the_height_of_the_widget_fits_the),
+        check("wrap", Res.string.on_long_text_wraps_onto_the_next_line),
+        number("shadow size", Res.string.the_size_of_the_text_shadow_in_pixels_0),
+        color("shadow color", Res.string.the_text_shadow_colour_r_g_b_a_from_0_to),
+        numbers("shadow offset", Res.string.offset_of_the_shadow_x_y),
+        number("shadow opacity", Res.string.opacity_of_the_shadow_from_0_to_1),
+        number("outline size", Res.string.hint_thickness_of_the_text_outline_in_pixels),
+        color("outline color", Res.string.hint_color_of_the_text_outline_r_g_b_a_from_0),
     )
 
 private val RICH_EXTRA =
     listOf(
-        check("condense whitespace", "Вкл: подряд идущие пробелы сворачиваются в один."),
-        check("strip newlines", "Вкл: переводы строк в тексте убираются."),
-        numbers("content offset", "Сдвиг всего содержимого: «x y»"),
+        check("condense whitespace", Res.string.hint_on_consecutive_spaces_are_collapsed_into),
+        check("strip newlines", Res.string.hint_on_line_breaks_in_the_text_are_removed),
+        numbers("content offset", Res.string.hint_offset_of_the_whole_content_x_y),
     )
 
 private val STATE_COLORS =
     listOf(
-        color("text color", trKey("Цвет текста: r g b a от 0 до 1")),
-        color("disabled text color", trKey("Цвет текста выключенного виджета (disabled)")),
+        color("text color", Res.string.the_text_colour_r_g_b_a_from_0_to_1),
+        color("disabled text color", Res.string.text_colour_of_a_disabled_widget),
     )
 
 private fun focusable(
@@ -155,8 +156,8 @@ internal fun schemaFor(
             listOf(
                 PropSection(
                     "Text",
-                    listOf(text("text", "Текст виджета; строка вида #ключ берётся из stringtable")) + FONT + TEXT_LOOK +
-                        listOf(color("text color", trKey("Цвет текста; если не задан, берётся color"))),
+                    listOf(text("text", Res.string.hint_text_of_the_widget_a_string_like_key_is)) + FONT + TEXT_LOOK +
+                        listOf(color("text color", Res.string.the_text_colour_when_it_is_not_set_color)),
                 ),
             )
         }
@@ -165,7 +166,7 @@ internal fun schemaFor(
             listOf(
                 PropSection(
                     "Text",
-                    listOf(text("text", "Текст виджета; строка вида #ключ берётся из stringtable")) + FONT + TEXT_LOOK + RICH_EXTRA +
+                    listOf(text("text", Res.string.hint_text_of_the_widget_a_string_like_key_is)) + FONT + TEXT_LOOK + RICH_EXTRA +
                         STATE_COLORS,
                 ),
             )
@@ -175,7 +176,7 @@ internal fun schemaFor(
             listOf(
                 PropSection(
                     "Text",
-                    listOf(text("text", "Текст виджета; строка вида #ключ берётся из stringtable")) + FONT + TEXT_LOOK + RICH_EXTRA +
+                    listOf(text("text", Res.string.hint_text_of_the_widget_a_string_like_key_is)) + FONT + TEXT_LOOK + RICH_EXTRA +
                         STATE_COLORS,
                 ),
             )
@@ -184,107 +185,107 @@ internal fun schemaFor(
         WidgetType.BUTTON -> {
             focusable(
                 "Button",
-                text("text", "Подпись кнопки; строка вида #ключ берётся из stringtable"),
+                text("text", Res.string.hint_caption_of_the_button_a_string_like_key),
                 choice(
                     "switch",
-                    "Как кнопка нажимается: normal — обычная, once — срабатывает один раз, toggle — держит нажатое состояние",
+                    Res.string.hint_how_the_button_is_pressed_normal_is,
                     "normal",
                     "once",
                     "toggle",
                     default = "normal",
                 ),
-                text("font", "Путь к шрифту без расширения, например gui/fonts/MetronBook; пусто — шрифт по умолчанию"),
+                text("font", Res.string.the_path_to_the_font_without_the),
                 check(
                     "exact text",
-                    "Вкл: размер шрифта задан в пикселях (exact text size).\nВыкл: размер считается долей высоты кнопки (text_proportion).",
+                    Res.string.hint_on_the_font_size_is_given_in_pixels_2,
                 ),
-                number("exact text size", trKey("Размер шрифта в пикселях при включённом exact text")),
-                number("text_proportion", "Размер шрифта как доля высоты кнопки, когда exact text выключен", "1"),
-                choice("text_halign", "Выравнивание подписи по горизонтали", *ALIGN_H, default = "center"),
-                choice("text_valign", "Выравнивание подписи по вертикали", *ALIGN_V, default = "center"),
-                numbers("text_offset", trKey("Сдвиг подписи от края в пикселях: «x y»")),
-                check("bold text", trKey("Вкл: жирный шрифт.")),
-                check("italic text", trKey("Вкл: курсив.")),
-                number("text sharpness", "Резкость контура шрифта: больше значит резче"),
-                color("text color", trKey("Цвет подписи: r g b a от 0 до 1")),
-                color("disabled text color", trKey("Цвет подписи выключенной кнопки (disabled)")),
-                color("text outline color", "Цвет обводки подписи"),
-                color("text shadow color", trKey("Цвет тени подписи")),
+                number("exact text size", Res.string.font_size_in_pixels_when_exact_text_is),
+                number("text_proportion", Res.string.hint_font_size_as_a_share_of_the_button, "1"),
+                choice("text_halign", Res.string.hint_horizontal_alignment_of_the_caption, *ALIGN_H, default = "center"),
+                choice("text_valign", Res.string.hint_vertical_alignment_of_the_caption, *ALIGN_V, default = "center"),
+                numbers("text_offset", Res.string.offset_of_the_caption_from_the_edge_in),
+                check("bold text", Res.string.on_bold_font),
+                check("italic text", Res.string.on_italic_font),
+                number("text sharpness", Res.string.hint_sharpness_of_the_font_edge_larger_is),
+                color("text color", Res.string.the_caption_colour_r_g_b_a_from_0_to_1),
+                color("disabled text color", Res.string.caption_colour_of_a_disabled_button),
+                color("text outline color", Res.string.hint_color_of_the_caption_outline),
+                color("text shadow color", Res.string.caption_shadow_colour),
             )
         }
 
         WidgetType.CHECKBOX, WidgetType.THREE_STATE_CHECKBOX -> {
             focusable(
                 "CheckBox",
-                check("checked", trKey("Вкл: флажок отмечен при показе.")),
-                text("text", trKey("Подпись рядом с флажком")),
-                text("font", "Путь к шрифту без расширения"),
-                color("text color", trKey("Цвет подписи: r g b a от 0 до 1")),
-                number("text outline size", "Толщина обводки подписи в пикселях"),
-                color("text outline color", "Цвет обводки подписи"),
-                color("text shadow color", trKey("Цвет тени подписи")),
+                check("checked", Res.string.on_the_box_is_checked_when_shown),
+                text("text", Res.string.the_caption_next_to_the_box),
+                text("font", Res.string.hint_path_to_the_font_without_the_extension),
+                color("text color", Res.string.the_caption_colour_r_g_b_a_from_0_to_1),
+                number("text outline size", Res.string.hint_thickness_of_the_caption_outline_in),
+                color("text outline color", Res.string.hint_color_of_the_caption_outline),
+                color("text shadow color", Res.string.caption_shadow_colour),
             )
         }
 
         WidgetType.EDIT_BOX, WidgetType.PASSWORD_EDIT_BOX -> {
             focusable(
                 if (type == WidgetType.EDIT_BOX) "EditBox" else "PasswordEditBox",
-                text("text", trKey("Текст в поле при показе")),
-                check("Use default text", trKey("Вкл: пока поле пусто, показывается подсказка из text цветом Default text color.")),
-                check("limit visible", trKey("Вкл: видимая часть строки ограничена шириной поля.")),
+                text("text", Res.string.the_text_in_the_field_when_shown),
+                check("Use default text", Res.string.on_while_the_field_is_empty_the_hint),
+                check("limit visible", Res.string.on_the_visible_part_of_the_line_is),
                 *(
                     if (type ==
                         WidgetType.PASSWORD_EDIT_BOX
                     ) {
-                        arrayOf(check("hide text", trKey("Вкл: символы заменяются точками.")))
+                        arrayOf(check("hide text", Res.string.on_characters_are_replaced_by_dots))
                     } else {
                         emptyArray()
                     }
                 ),
-                text("font", "Путь к шрифту без расширения"),
-                check("exact text", trKey("Вкл: размер шрифта задан в пикселях (exact text size).")),
-                number("exact text size", trKey("Размер шрифта в пикселях при включённом exact text")),
-                choice("text halign", "Выравнивание текста по горизонтали", *ALIGN_H, default = "left"),
-                choice("text valign", "Выравнивание текста по вертикали", *ALIGN_V, default = "top"),
-                check("bold text", trKey("Вкл: жирный шрифт.")),
-                number("text sharpness", "Резкость контура шрифта: больше значит резче"),
-                color("text color", trKey("Цвет вводимого текста: r g b a от 0 до 1")),
-                color("Default text color", trKey("Цвет подсказки пустого поля")),
-                color("disabled text color", trKey("Цвет текста выключенного поля (disabled)")),
-                color("text outline color", "Цвет обводки текста"),
+                text("font", Res.string.hint_path_to_the_font_without_the_extension),
+                check("exact text", Res.string.on_the_font_size_is_given_in_pixels),
+                number("exact text size", Res.string.font_size_in_pixels_when_exact_text_is),
+                choice("text halign", Res.string.hint_horizontal_alignment_of_the_text, *ALIGN_H, default = "left"),
+                choice("text valign", Res.string.hint_vertical_alignment_of_the_text, *ALIGN_V, default = "top"),
+                check("bold text", Res.string.on_bold_font),
+                number("text sharpness", Res.string.hint_sharpness_of_the_font_edge_larger_is),
+                color("text color", Res.string.the_colour_of_the_typed_text_r_g_b_a),
+                color("Default text color", Res.string.the_colour_of_the_hint_of_an_empty_field),
+                color("disabled text color", Res.string.text_colour_of_a_disabled_field),
+                color("text outline color", Res.string.hint_color_of_the_text_outline),
             )
         }
 
         WidgetType.MULTILINE_EDIT_BOX -> {
             focusable(
                 "MultilineEditBox",
-                text("text", trKey("Текст в поле при показе")),
-                number("lines", "Сколько строк видно в поле"),
-                check("limit visible", trKey("Вкл: видимая часть ограничена размером поля.")),
-                check("size to text v", trKey("Вкл: высота поля подгоняется под текст.")),
-                check("size to text h", trKey("Вкл: ширина поля подгоняется под текст.")),
-                text("font", "Путь к шрифту без расширения"),
-                number("exact text size", trKey("Размер шрифта в пикселях")),
-                number("text_proportion", "Размер шрифта как доля высоты виджета"),
-                check("bold text", trKey("Вкл: жирный шрифт.")),
-                check("italic text", trKey("Вкл: курсив.")),
-                color("text color", trKey("Цвет текста: r g b a от 0 до 1")),
+                text("text", Res.string.the_text_in_the_field_when_shown),
+                number("lines", Res.string.hint_how_many_lines_are_visible_in_the_field),
+                check("limit visible", Res.string.on_the_visible_part_is_limited_by_the),
+                check("size to text v", Res.string.on_the_height_of_the_field_fits_the_text),
+                check("size to text h", Res.string.on_the_width_of_the_field_fits_the_text),
+                text("font", Res.string.hint_path_to_the_font_without_the_extension),
+                number("exact text size", Res.string.font_size_in_pixels),
+                number("text_proportion", Res.string.hint_font_size_as_a_share_of_the_widget_2),
+                check("bold text", Res.string.on_bold_font),
+                check("italic text", Res.string.on_italic_font),
+                color("text color", Res.string.the_text_colour_r_g_b_a_from_0_to_1),
             )
         }
 
         WidgetType.SLIDER -> {
             focusable(
                 "Slider",
-                number("minimum", "Наименьшее значение ползунка", "0"),
-                number("maximum", trKey("Наибольшее значение ползунка"), "1"),
-                number("current", "Значение ползунка при показе"),
-                number("step", trKey("Шаг изменения значения; 0 — плавно")),
-                check("vertical", trKey("Вкл: ползунок вертикальный.")),
-                check("flipped", trKey("Вкл: направление значений обратное.")),
-                check("fill in", "Вкл: пройденная часть полосы закрашена."),
-                check("draw marker", trKey("Вкл: на полосе рисуется маркер текущего значения.")),
-                number("marker thickness", "Толщина маркера как доля длины полосы"),
-                check("listen to input", "Вкл: ползунок реагирует на ввод мыши и геймпада.", default = "1"),
+                number("minimum", Res.string.hint_the_smallest_value_of_the_slider, "0"),
+                number("maximum", Res.string.the_largest_value_of_the_slider, "1"),
+                number("current", Res.string.hint_value_of_the_slider_when_shown),
+                number("step", Res.string.the_step_of_the_value_0_means_smooth),
+                check("vertical", Res.string.on_the_slider_is_vertical),
+                check("flipped", Res.string.on_the_values_run_in_the_opposite),
+                check("fill in", Res.string.hint_on_the_passed_part_of_the_bar_is_filled),
+                check("draw marker", Res.string.on_a_marker_of_the_current_value_is),
+                number("marker thickness", Res.string.hint_thickness_of_the_marker_as_a_share_of),
+                check("listen to input", Res.string.hint_on_the_slider_reacts_to_the_mouse_and, default = "1"),
             )
         }
 
@@ -293,11 +294,11 @@ internal fun schemaFor(
                 PropSection(
                     "ProgressBar",
                     listOf(
-                        number("minimum", "Значение, при котором полоса пуста", "0"),
-                        number("maximum", trKey("Значение, при котором полоса полна"), "100"),
-                        number("current", "Текущее значение при показе"),
-                        check("vertical", trKey("Вкл: полоса растёт снизу вверх.")),
-                        check("flipped", trKey("Вкл: полоса растёт в обратную сторону.")),
+                        number("minimum", Res.string.hint_the_value_at_which_the_bar_is_empty, "0"),
+                        number("maximum", Res.string.the_value_at_which_the_bar_is_full, "100"),
+                        number("current", Res.string.hint_the_current_value_when_shown),
+                        check("vertical", Res.string.on_the_bar_grows_from_the_bottom_up),
+                        check("flipped", Res.string.on_the_bar_grows_in_the_opposite),
                     ),
                 ),
             )
@@ -306,13 +307,13 @@ internal fun schemaFor(
         WidgetType.XCOMBO_BOX -> {
             focusable(
                 "XComboBox",
-                text("items", trKey("Пункты списка через точку с запятой: «Alpha;Beta;Gamma»")),
-                number("current item", "Номер выбранного пункта при показе, с нуля"),
-                text("text", trKey("Подпись, пока ничего не выбрано")),
-                text("font", "Путь к шрифту без расширения"),
-                color("text color", trKey("Цвет текста: r g b a от 0 до 1")),
-                check("bold text", trKey("Вкл: жирный шрифт.")),
-                number("text sharpness", "Резкость контура шрифта"),
+                text("items", Res.string.list_items_separated_by_semicolons_alpha),
+                number("current item", Res.string.hint_number_of_the_selected_item_when_shown),
+                text("text", Res.string.the_caption_while_nothing_is_selected),
+                text("font", Res.string.hint_path_to_the_font_without_the_extension),
+                color("text color", Res.string.the_text_colour_r_g_b_a_from_0_to_1),
+                check("bold text", Res.string.on_bold_font),
+                number("text sharpness", Res.string.hint_sharpness_of_the_font_edge),
             )
         }
 
@@ -326,8 +327,8 @@ internal fun schemaFor(
             val grid =
                 if (type == WidgetType.GRID_SPACER) {
                     listOf(
-                        number("Columns", "Сколько колонок в сетке"),
-                        number("Rows", trKey("Сколько рядов в сетке")),
+                        number("Columns", Res.string.hint_how_many_columns_the_grid_has),
+                        number("Rows", Res.string.how_many_rows_in_the_grid),
                     )
                 } else {
                     emptyList()
@@ -337,8 +338,8 @@ internal fun schemaFor(
                     emptyList()
                 } else {
                     listOf(
-                        choice("content_halign", "Как строка детей выравнивается по горизонтали", *ALIGN_H, default = "left"),
-                        choice("content_valign", "Как строка детей выравнивается по вертикали", *ALIGN_V, default = "top"),
+                        choice("content_halign", Res.string.hint_how_the_row_of_children_is_aligned, *ALIGN_H, default = "left"),
+                        choice("content_valign", Res.string.hint_how_the_row_of_children_is_aligned_2, *ALIGN_V, default = "top"),
                     )
                 }
             listOf(
@@ -346,11 +347,11 @@ internal fun schemaFor(
                     title,
                     grid +
                         listOf(
-                            number("Padding", "Отступ от края виджета до детей в пикселях"),
-                            number("Margin", "Расстояние между детьми в пикселях"),
-                            check("Size To Content H", "Вкл: ширина виджета подгоняется под детей."),
-                            check("Size To Content V", "Вкл: высота виджета подгоняется под детей."),
-                            check("Ignore invisible", "Вкл: скрытые дети не занимают места."),
+                            number("Padding", Res.string.hint_padding_from_the_edge_of_the_widget_to),
+                            number("Margin", Res.string.hint_distance_between_the_children_in_pixels),
+                            check("Size To Content H", Res.string.hint_on_the_width_of_the_widget_fits_the),
+                            check("Size To Content V", Res.string.hint_on_the_height_of_the_widget_fits_the),
+                            check("Ignore invisible", Res.string.hint_on_hidden_children_take_no_space),
                         ) + content,
                 ),
             )
@@ -361,10 +362,10 @@ internal fun schemaFor(
                 PropSection(
                     "Scroll",
                     listOf(
-                        check("Scrollbar V", trKey("Вкл: показывается вертикальная полоса прокрутки.")),
-                        check("Scrollbar H", trKey("Вкл: показывается горизонтальная полоса прокрутки.")),
-                        check("Scrollbar V Left", trKey("Вкл: вертикальная полоса стоит слева.")),
-                        check("Ignore invisible", "Вкл: скрытые дети не входят в размер прокрутки."),
+                        check("Scrollbar V", Res.string.on_the_vertical_scroll_bar_is_shown),
+                        check("Scrollbar H", Res.string.on_the_horizontal_scroll_bar_is_shown),
+                        check("Scrollbar V Left", Res.string.on_the_vertical_bar_is_on_the_left),
+                        check("Ignore invisible", Res.string.hint_on_hidden_children_are_not_part_of_the),
                     ),
                 ),
             )
@@ -375,9 +376,9 @@ internal fun schemaFor(
                 PropSection(
                     "Window",
                     listOf(
-                        check("title visible", trKey("Вкл: показывается заголовок окна.")),
-                        text("text", trKey("Заголовок окна")),
-                        text("font", "Путь к шрифту без расширения"),
+                        check("title visible", Res.string.on_the_title_of_the_window_is_shown),
+                        text("text", Res.string.title_of_the_window),
+                        text("font", Res.string.hint_path_to_the_font_without_the_extension),
                     ) + STATE_COLORS,
                 ),
             )
@@ -386,14 +387,14 @@ internal fun schemaFor(
         WidgetType.TEXT_LISTBOX, WidgetType.SERVER_BROWSER -> {
             focusable(
                 if (type == WidgetType.TEXT_LISTBOX) "TextListbox" else "ServerBrowser",
-                check("title visible", trKey("Вкл: показывается строка заголовков.")),
-                number("colums", trKey("Сколько колонок (так в файле, с опечаткой)")),
-                number("lines", "Сколько строк видно"),
+                check("title visible", Res.string.on_the_row_of_titles_is_shown),
+                number("colums", Res.string.how_many_columns_spelled_so_in_the_file),
+                number("lines", Res.string.hint_how_many_lines_are_visible),
                 *(
                     if (type == WidgetType.TEXT_LISTBOX) {
                         arrayOf(
-                            check("highlight row", trKey("Вкл: строка под курсором подсвечивается.")),
-                            color("text color", trKey("Цвет текста: r g b a от 0 до 1")),
+                            check("highlight row", Res.string.on_the_row_under_the_cursor_is),
+                            color("text color", Res.string.the_text_colour_r_g_b_a_from_0_to_1),
                         )
                     } else {
                         emptyArray()
@@ -403,7 +404,7 @@ internal fun schemaFor(
         }
 
         WidgetType.HTML -> {
-            listOf(PropSection("Html", listOf(check("wrap", trKey("Вкл: длинный текст переносится.")))))
+            listOf(PropSection("Html", listOf(check("wrap", Res.string.on_long_text_wraps))))
         }
 
         WidgetType.EMBEDDED -> {
@@ -411,15 +412,15 @@ internal fun schemaFor(
                 PropSection(
                     "Embedded",
                     listOf(
-                        text("layout", trKey("Путь к .layout, который показывается внутри виджета")),
-                        text("Caption", "Подпись, которую получает вложенный лайаут"),
+                        text("layout", Res.string.the_path_to_the_layout_shown_inside_the),
+                        text("Caption", Res.string.hint_the_caption_that_the_embedded_layout),
                     ),
                 ),
             )
         }
 
         WidgetType.ITEM_PREVIEW -> {
-            listOf(PropSection("ItemPreview", listOf(check("force flip enable", "Вкл: предмет можно переворачивать."))))
+            listOf(PropSection("ItemPreview", listOf(check("force flip enable", Res.string.hint_on_the_item_can_be_flipped))))
         }
 
         WidgetType.VIDEO -> {
@@ -427,13 +428,13 @@ internal fun schemaFor(
                 PropSection(
                     "Video",
                     listOf(
-                        text("text", trKey("Подпись поверх видео")),
-                        color("text color", trKey("Цвет подписи")),
-                        numbers("text offset", trKey("Сдвиг подписи: «x y»")),
-                        color("text background", "Цвет фона подписи"),
-                        color("background color", "Цвет фона видео"),
-                        number("outline size", "Толщина обводки в пикселях"),
-                        color("outline color", "Цвет обводки"),
+                        text("text", Res.string.a_caption_over_the_video),
+                        color("text color", Res.string.caption_colour),
+                        numbers("text offset", Res.string.offset_of_the_caption_x_y),
+                        color("text background", Res.string.hint_background_color_of_the_caption),
+                        color("background color", Res.string.hint_background_color_of_the_video),
+                        number("outline size", Res.string.hint_thickness_of_the_outline_in_pixels),
+                        color("outline color", Res.string.hint_color_of_the_outline),
                     ),
                 ),
             )
@@ -445,9 +446,9 @@ internal fun schemaFor(
                     PropSection(
                         "SimpleProgressBar",
                         listOf(
-                            number("minimum", "Значение, при котором полоса пуста", "0"),
-                            number("maximum", trKey("Значение, при котором полоса полна"), "100"),
-                            number("current", "Текущее значение при показе"),
+                            number("minimum", Res.string.hint_the_value_at_which_the_bar_is_empty, "0"),
+                            number("maximum", Res.string.the_value_at_which_the_bar_is_full, "100"),
+                            number("current", Res.string.hint_the_current_value_when_shown),
                         ),
                     ),
                 )

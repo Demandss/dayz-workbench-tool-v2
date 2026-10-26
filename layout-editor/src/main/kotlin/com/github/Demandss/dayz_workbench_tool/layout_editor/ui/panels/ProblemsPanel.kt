@@ -20,16 +20,17 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.github.demandss.dayz_workbench_tool.i18n.tr
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.LayoutEditorState
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.Severity
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.findProblems
+import com.github.demandss.dayz_workbench_tool.resources.*
 import com.github.demandss.dayz_workbench_tool.ui.components.Tip
 import com.github.demandss.dayz_workbench_tool.ui.icons.AppIcon
 import com.github.demandss.dayz_workbench_tool.ui.icons.AppIconView
 import com.github.demandss.dayz_workbench_tool.ui.theme.FrameBackground
 import com.github.demandss.dayz_workbench_tool.ui.theme.GhostlyText
 import com.github.demandss.dayz_workbench_tool.ui.theme.TextForeground
+import org.jetbrains.compose.resources.stringResource
 
 /** What looks wrong in the open layout. A click selects the widget. */
 @Composable
@@ -42,13 +43,23 @@ fun ProblemsPanel(
 
     if (problems.isEmpty()) {
         Box(modifier.background(FrameBackground).fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text(if (doc == null) tr("Нет открытых файлов") else tr("Проблем не найдено"), color = GhostlyText, fontSize = 11.sp)
+            Text(
+                if (doc ==
+                    null
+                ) {
+                    stringResource(Res.string.no_open_files)
+                } else {
+                    stringResource(Res.string.no_problems_found)
+                },
+                color = GhostlyText,
+                fontSize = 11.sp,
+            )
         }
         return
     }
     LazyColumn(modifier.background(FrameBackground)) {
         items(problems) { p ->
-            Tip(tr("Выбрать виджет «{0}»", p.widgetName)) {
+            Tip(stringResource(Res.string.select_the_widget_x, p.widgetName)) {
                 Row(
                     Modifier
                         .fillMaxWidth()

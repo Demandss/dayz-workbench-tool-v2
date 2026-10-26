@@ -16,7 +16,7 @@ import com.github.demandss.dayz_workbench_tool.font.FontInfo
 import com.github.demandss.dayz_workbench_tool.font.GameFontFile
 import com.github.demandss.dayz_workbench_tool.font.GlyphRanges
 import com.github.demandss.dayz_workbench_tool.i18n.I18n
-import com.github.demandss.dayz_workbench_tool.i18n.tr
+import com.github.demandss.dayz_workbench_tool.i18n.str
 import com.github.demandss.dayz_workbench_tool.imageset.ImageSetFormat
 import com.github.demandss.dayz_workbench_tool.layout.LayoutParser
 import com.github.demandss.dayz_workbench_tool.layout.LayoutSerializer
@@ -79,6 +79,7 @@ import com.github.demandss.dayz_workbench_tool.pbo.fileAt
 import com.github.demandss.dayz_workbench_tool.pbo.inRoot
 import com.github.demandss.dayz_workbench_tool.pbo.readBytesOf
 import com.github.demandss.dayz_workbench_tool.pbo.readTextOf
+import com.github.demandss.dayz_workbench_tool.resources.*
 import com.github.demandss.dayz_workbench_tool.stringtable.StringtableCatalog
 import com.github.demandss.dayz_workbench_tool.stringtable.StringtableCsv
 import com.github.demandss.dayz_workbench_tool.stringtable.StringtableEntry
@@ -665,7 +666,7 @@ class LayoutEditorState(
             selectLayout(openFiles.lastIndex)
             File(normalized).parentFile?.toPath()?.let { watchDirectory(it) }
         }.onFailure {
-            notify(tr("Не удалось открыть {0}: {1}", File(path).name, it.message ?: it.javaClass.simpleName), ToastKind.ERROR)
+            notify(str(Res.string.could_not_open_x_x, File(path).name, it.message ?: it.javaClass.simpleName), ToastKind.ERROR)
         }
     }
 
@@ -687,7 +688,7 @@ class LayoutEditorState(
         val idx = activeFileIndex
         val doc = openFiles.getOrNull(idx) ?: return
         if (PboFile.resolve(doc.path) != null) {
-            notify(tr("Файл игры только для чтения: сохраните копию в свой мод"), ToastKind.ERROR)
+            notify(str(Res.string.the_game_file_is_read_only_save_a_copy), ToastKind.ERROR)
             return
         }
         ownWrites[doc.path] = System.currentTimeMillis()
@@ -695,9 +696,9 @@ class LayoutEditorState(
             File(doc.path).writeText(LayoutSerializer.serialize(doc.root.toWidgetNode()))
             openFiles[idx] = doc.copy(isModified = false)
         }.onSuccess {
-            notify(tr("Сохранено: {0}", doc.fileName), ToastKind.SUCCESS)
+            notify(str(Res.string.saved_x, doc.fileName), ToastKind.SUCCESS)
         }.onFailure {
-            notify(tr("Не удалось сохранить {0}: {1}", doc.fileName, it.message ?: it.javaClass.simpleName), ToastKind.ERROR)
+            notify(str(Res.string.could_not_save_x_x, doc.fileName, it.message ?: it.javaClass.simpleName), ToastKind.ERROR)
         }
     }
 
@@ -847,9 +848,19 @@ class LayoutEditorState(
         val scope = if (selectedOnly) selectedIds.toSet() else null
         val (root, changed) = bulkReplace(doc.root, scope, mode, key, find, replace)
         if (changed == 0) return
-        pushUndo(idx, doc.root, if (mode == BulkMode.NAME) tr("Замена в именах ({0})", changed) else tr("Замена {0} ({1})", key, changed))
+        pushUndo(
+            idx,
+            doc.root,
+            if (mode ==
+                BulkMode.NAME
+            ) {
+                str(Res.string.replace_in_names_x, changed)
+            } else {
+                str(Res.string.replace_x_x, key, changed)
+            },
+        )
         updateActiveRoot(root)
-        notify(tr("Изменено виджетов: {0}", changed), ToastKind.SUCCESS)
+        notify(str(Res.string.widgets_changed_x, changed), ToastKind.SUCCESS)
     }
 
     /** Puts Enforce Script that declares and finds the selected widgets on the clipboard. */
@@ -860,10 +871,10 @@ class LayoutEditorState(
         runCatching {
             Toolkit.getDefaultToolkit().systemClipboard.setContents(java.awt.datatransfer.StringSelection(scriptSnippet(nodes)), null)
         }.onFailure {
-            notify(tr("Не удалось скопировать: {0}", it.message ?: it.javaClass.simpleName), ToastKind.ERROR)
+            notify(str(Res.string.could_not_copy_x, it.message ?: it.javaClass.simpleName), ToastKind.ERROR)
             return
         }
-        notify(tr("Код доступа скопирован: {0}", nodes.size), ToastKind.SUCCESS)
+        notify(str(Res.string.access_code_copied_x, nodes.size), ToastKind.SUCCESS)
     }
 
     /** The path the game finds the layout [path] by: from the work drive, else from the folder of its mod (`Mod/GUI/layout/x.layout`). */
@@ -925,10 +936,10 @@ class LayoutEditorState(
         runCatching {
             Toolkit.getDefaultToolkit().systemClipboard.setContents(java.awt.datatransfer.StringSelection(text), null)
         }.onFailure {
-            notify(tr("Не удалось скопировать: {0}", it.message ?: it.javaClass.simpleName), ToastKind.ERROR)
+            notify(str(Res.string.could_not_copy_x, it.message ?: it.javaClass.simpleName), ToastKind.ERROR)
             return
         }
-        notify(tr("Шаблон скопирован: {0}", kind.title), ToastKind.SUCCESS)
+        notify(str(Res.string.template_copied_x, kind.title), ToastKind.SUCCESS)
     }
 
     // The look copied with "Copy properties"
@@ -947,10 +958,10 @@ class LayoutEditorState(
         val name = uniqueName(label, doc.root.allNames())
         val result = wrapped(doc.root, ids, layout, type, name)
         if (result == null) {
-            notify(tr("Не удалось сгруппировать выбранные виджеты"), ToastKind.INFO)
+            notify(str(Res.string.could_not_group_the_selected_widgets), ToastKind.INFO)
             return
         }
-        pushUndo(idx, doc.root, tr("Группировка в {0}", name))
+        pushUndo(idx, doc.root, str(Res.string.group_into_x, name))
         updateActiveRoot(result.first)
         selectedIds.clear()
         selectedIds.add(result.second)
@@ -962,10 +973,10 @@ class LayoutEditorState(
         val id = selectedIds.singleOrNull()?.takeIf { it != doc.root.id } ?: return
         val result = ungrouped(doc.root, id, layoutTree(doc.root, screenRect(this)))
         if (result == null) {
-            notify(tr("Разгруппировать можно контейнер с виджетами внутри"), ToastKind.INFO)
+            notify(str(Res.string.only_a_container_with_widgets_inside_can), ToastKind.INFO)
             return
         }
-        pushUndo(idx, doc.root, tr("Разгруппировка"))
+        pushUndo(idx, doc.root, str(Res.string.ungrouping))
         updateActiveRoot(result.first)
         selectedIds.clear()
         selectedIds.addAll(result.second)
@@ -984,7 +995,7 @@ class LayoutEditorState(
             root = reordered(root, id, how)?.also { changed = true } ?: root
         }
         if (!changed) return
-        pushUndo(idx, doc.root, tr("Порядок отрисовки"))
+        pushUndo(idx, doc.root, str(Res.string.drawing_order))
         updateActiveRoot(root)
     }
 
@@ -993,11 +1004,11 @@ class LayoutEditorState(
         val doc = openFiles.getOrNull(idx) ?: return
         val ids = selectedIds.filter { it != doc.root.id }
         if (ids.size < 3) {
-            notify(tr("Для равных интервалов нужно выбрать три виджета и больше"), ToastKind.INFO)
+            notify(str(Res.string.select_three_widgets_or_more_for_equal), ToastKind.INFO)
             return
         }
         val result = distributed(doc.root, ids, layoutTree(doc.root, screenRect(this)), horizontal)
-        pushUndo(idx, doc.root, if (horizontal) tr("Интервалы по горизонтали") else tr("Интервалы по вертикали"))
+        pushUndo(idx, doc.root, if (horizontal) str(Res.string.horizontal_spacing) else str(Res.string.vertical_spacing))
         updateActiveRoot(result)
     }
 
@@ -1010,27 +1021,27 @@ class LayoutEditorState(
         val idx = activeFileIndex
         val doc = openFiles.getOrNull(idx) ?: return
         val result = reanchored(doc.root, id, halign, valign)
-        pushUndo(idx, doc.root, tr("Якорь {0}, {1}", halign, valign))
+        pushUndo(idx, doc.root, str(Res.string.anchor_x_x, halign, valign))
         updateActiveRoot(result)
     }
 
     fun copyAppearance() {
         val node = selectedIds.firstOrNull()?.let { id -> activeFile?.root?.findNode(id) } ?: return
         copiedAppearance = node.appearance()
-        notify(tr("Свойства скопированы: {0}", node.node.name))
+        notify(str(Res.string.properties_copied_x, node.node.name))
     }
 
     fun pasteAppearance() {
         val look = copiedAppearance
         if (look == null) {
-            notify(tr("Сначала скопируйте свойства (Ctrl+Alt+C)"), ToastKind.INFO)
+            notify(str(Res.string.copy_the_properties_first_ctrl_alt_c), ToastKind.INFO)
             return
         }
         val idx = activeFileIndex
         val doc = openFiles.getOrNull(idx) ?: return
         val ids = selectedIds.filter { it != doc.root.id }
         if (ids.isEmpty()) return
-        pushUndo(idx, doc.root, tr("Вставка свойств"))
+        pushUndo(idx, doc.root, str(Res.string.paste_of_properties))
         updateActiveRoot(ids.fold(doc.root) { acc, id -> acc.updateNode(id) { it.withAppearance(look) } })
     }
 
@@ -1114,10 +1125,10 @@ class LayoutEditorState(
         runCatching {
             Toolkit.getDefaultToolkit().systemClipboard.setContents(java.awt.datatransfer.StringSelection(clipboardText(nodes)), null)
         }.onFailure {
-            notify(tr("Не удалось скопировать: {0}", it.message ?: it.javaClass.simpleName), ToastKind.ERROR)
+            notify(str(Res.string.could_not_copy_x, it.message ?: it.javaClass.simpleName), ToastKind.ERROR)
             return false
         }
-        notify(if (nodes.size == 1) tr("Скопировано: {0}", nodes[0].node.name) else tr("Скопировано виджетов: {0}", nodes.size))
+        notify(if (nodes.size == 1) str(Res.string.copied_x, nodes[0].node.name) else str(Res.string.widgets_copied_x, nodes.size))
         return true
     }
 
@@ -1135,7 +1146,7 @@ class LayoutEditorState(
             }.getOrNull().orEmpty()
         val pasted = parseClipboard(text)
         if (pasted == null) {
-            notify(tr("В буфере нет виджетов"), ToastKind.INFO)
+            notify(str(Res.string.there_are_no_widgets_on_the_clipboard), ToastKind.INFO)
             return
         }
         val target = selectedIds.firstOrNull()?.takeIf { it != doc.root.id }?.let { doc.root.parentOf(it) } ?: doc.root
@@ -1151,7 +1162,7 @@ class LayoutEditorState(
         val parentRect = layoutTree(root, screen).rects[target.id] ?: screen
         // Shifted, so that a copy pasted over the original does not hide it
         for (n in named) root = root.movedBy(n.id, 10f, 10f, parentRect)
-        pushUndo(idx, doc.root, if (named.size == 1) tr("Вставка {0}", named[0].node.name) else tr("Вставка ({0})", named.size))
+        pushUndo(idx, doc.root, if (named.size == 1) str(Res.string.paste_x_2, named[0].node.name) else str(Res.string.paste_x, named.size))
         updateActiveRoot(root)
         selectedIds.clear()
         selectedIds.addAll(named.map { it.id })
@@ -1169,8 +1180,8 @@ class LayoutEditorState(
             if (ids.size ==
                 1
             ) {
-                tr(
-                    "Удаление {0}",
+                str(
+                    Res.string.history_deleting_x,
                     doc.root
                         .findNode(ids[0])
                         ?.node
@@ -1178,7 +1189,7 @@ class LayoutEditorState(
                         .orEmpty(),
                 ).trim()
             } else {
-                tr("Удаление {0} виджетов", ids.size)
+                str(Res.string.delete_x_widgets, ids.size)
             }
         pushUndo(idx, doc.root, label)
         updateActiveRoot(ids.fold(doc.root) { acc, id -> acc.removeNode(id) })
@@ -1201,7 +1212,7 @@ class LayoutEditorState(
             copies += copyId
         }
         if (copies.isEmpty()) return
-        pushUndo(idx, doc.root, if (copies.size == 1) tr("Дубликат") else tr("Дубликаты ({0})", copies.size))
+        pushUndo(idx, doc.root, if (copies.size == 1) str(Res.string.duplicate) else str(Res.string.duplicates_x, copies.size))
         updateActiveRoot(root)
         selectedIds.clear()
         selectedIds.addAll(copies)
@@ -1214,7 +1225,7 @@ class LayoutEditorState(
         if (ids.size < 2) return
         val layout = layoutTree(doc.root, screenRect(this))
         val aligned = alignedRoot(doc.root, ids, layout, mode)
-        pushUndo(idx, doc.root, tr("Выравнивание"))
+        pushUndo(idx, doc.root, str(Res.string.alignment))
         updateActiveRoot(aligned)
     }
 
@@ -1244,7 +1255,7 @@ class LayoutEditorState(
     fun pushUndo(
         index: Int,
         snapshot: EditorWidgetNode,
-        label: String = tr("Изменение"),
+        label: String = str(Res.string.change),
     ) {
         val doc = openFiles.getOrNull(index) ?: return
         doc.undoStack.addLast(snapshot)
@@ -1344,7 +1355,7 @@ class LayoutEditorState(
         val targetId = parentId ?: selectedIds.firstOrNull() ?: doc.root.id
         val usePixel = worldPos != null
         val cleanName = sanitizeWidgetName(name)
-        if (cleanName != name.trim()) notify(tr("Имя виджета записано латиницей: {0}", cleanName), ToastKind.INFO)
+        if (cleanName != name.trim()) notify(str(Res.string.the_widget_name_is_written_in_latin, cleanName), ToastKind.INFO)
         val newNode =
             EditorWidgetNode(
                 node =
@@ -1366,7 +1377,7 @@ class LayoutEditorState(
                             },
                     ),
             )
-        pushUndo(idx, doc.root, tr("Добавление {0}", cleanName))
+        pushUndo(idx, doc.root, str(Res.string.add_x, cleanName))
         val newRoot =
             doc.root.updateNode(targetId) { n ->
                 n.copy(children = (n.children + newNode).toMutableList())
@@ -1386,7 +1397,7 @@ class LayoutEditorState(
         if (doc.root.id == nodeId) return
         val movingNode = doc.root.findNode(nodeId) ?: return
         if (movingNode.containsId(newParentId)) return
-        pushUndo(idx, doc.root, tr("Перенос {0}", movingNode.node.name.ifEmpty { "виджета" }))
+        pushUndo(idx, doc.root, str(Res.string.move_x, movingNode.node.name.ifEmpty { "виджета" }))
         val stripped = doc.root.removeNode(nodeId)
         val newRoot =
             stripped.updateNode(newParentId) { n ->
@@ -1884,7 +1895,8 @@ class LayoutEditorState(
         val set = parsed.getOrNull()
         if (set == null) {
             notify(
-                tr("Не удалось открыть {0}: ", File(path).name) + (parsed.exceptionOrNull()?.message ?: tr("это не imageset")),
+                str(Res.string.could_not_open_x, File(path).name) +
+                    (parsed.exceptionOrNull()?.message ?: str(Res.string.this_is_not_an_imageset)),
                 ToastKind.ERROR,
             )
             return
@@ -1906,9 +1918,9 @@ class LayoutEditorState(
         if (doc.isModified) {
             confirmation =
                 Confirmation(
-                    title = tr("Закрыть {0}?", doc.fileName),
-                    message = tr("Есть несохранённые изменения, они пропадут."),
-                    confirmLabel = tr("Закрыть"),
+                    title = str(Res.string.close_x, doc.fileName),
+                    message = str(Res.string.there_are_unsaved_changes_they_will_be),
+                    confirmLabel = str(Res.string.close),
                     danger = true,
                 ) { dropImageSet(index) }
         } else {
@@ -1942,7 +1954,8 @@ class LayoutEditorState(
         val sheet = parsed.getOrNull()
         if (sheet == null) {
             notify(
-                tr("Не удалось открыть {0}: ", File(path).name) + (parsed.exceptionOrNull()?.message ?: tr("это не .styles")),
+                str(Res.string.could_not_open_x, File(path).name) +
+                    (parsed.exceptionOrNull()?.message ?: str(Res.string.this_is_not_a_styles)),
                 ToastKind.ERROR,
             )
             return
@@ -1963,9 +1976,9 @@ class LayoutEditorState(
         if (doc.isModified) {
             confirmation =
                 Confirmation(
-                    title = tr("Закрыть {0}?", doc.fileName),
-                    message = tr("Есть несохранённые изменения, они пропадут."),
-                    confirmLabel = tr("Закрыть"),
+                    title = str(Res.string.close_x, doc.fileName),
+                    message = str(Res.string.there_are_unsaved_changes_they_will_be),
+                    confirmLabel = str(Res.string.close),
                     danger = true,
                 ) { dropStyles(index) }
         } else {
@@ -1993,9 +2006,9 @@ class LayoutEditorState(
         }.onSuccess {
             doc.markSaved()
             refreshVanillaStyles()
-            notify(tr("Сохранено: {0}", doc.fileName), ToastKind.SUCCESS)
+            notify(str(Res.string.saved_x, doc.fileName), ToastKind.SUCCESS)
         }.onFailure {
-            notify(tr("Не удалось сохранить {0}: {1}", doc.fileName, it.message ?: it.javaClass.simpleName), ToastKind.ERROR)
+            notify(str(Res.string.could_not_save_x_x, doc.fileName, it.message ?: it.javaClass.simpleName), ToastKind.ERROR)
         }
     }
 
@@ -2016,9 +2029,9 @@ class LayoutEditorState(
             File(doc.path).writeText(ImageSetFormat.serialize(doc.model.toImageSet()))
         }.onSuccess {
             doc.markSaved()
-            notify(tr("Сохранено: {0}", doc.fileName), ToastKind.SUCCESS)
+            notify(str(Res.string.saved_x, doc.fileName), ToastKind.SUCCESS)
         }.onFailure {
-            notify(tr("Не удалось сохранить {0}: {1}", doc.fileName, it.message ?: it.javaClass.simpleName), ToastKind.ERROR)
+            notify(str(Res.string.could_not_save_x_x, doc.fileName, it.message ?: it.javaClass.simpleName), ToastKind.ERROR)
         }
     }
 
@@ -2073,7 +2086,7 @@ class LayoutEditorState(
                     }.onFailure { error ->
                         withContext(Dispatchers.Main) {
                             notify(
-                                tr("Не удалось прочитать текстуру {0}: {1}", file.name, error.message ?: error.javaClass.simpleName),
+                                str(Res.string.could_not_read_the_texture_x_x, file.name, error.message ?: error.javaClass.simpleName),
                                 ToastKind.ERROR,
                             )
                         }
@@ -2621,7 +2634,7 @@ class LayoutEditorState(
                     } else {
                         val image =
                             ImageIO.read(java.io.ByteArrayInputStream(readBytesOf(file)))
-                                ?: error(tr("Неподдерживаемый формат изображения"))
+                                ?: error(str(Res.string.unsupported_image_format))
                         TextureDocument(path, image, file.extension.uppercase(), 1, file.length(), loading = false)
                     }
                 } catch (e: Exception) {
@@ -2630,7 +2643,7 @@ class LayoutEditorState(
             withContext(Dispatchers.Main) {
                 val idx = openTextures.indexOfFirst { it.path == path }
                 if (idx >= 0) openTextures[idx] = loaded
-                loaded.error?.let { notify(tr("Не удалось прочитать {0}: {1}", file.name, it), ToastKind.ERROR) }
+                loaded.error?.let { notify(str(Res.string.could_not_read_x_x, file.name, it), ToastKind.ERROR) }
             }
         }
     }

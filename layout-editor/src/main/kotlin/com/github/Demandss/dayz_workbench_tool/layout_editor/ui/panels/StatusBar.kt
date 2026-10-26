@@ -15,15 +15,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.github.demandss.dayz_workbench_tool.i18n.tr
+import com.github.demandss.dayz_workbench_tool.i18n.str
 import com.github.demandss.dayz_workbench_tool.layout_editor.EditorWidgetNode
 import com.github.demandss.dayz_workbench_tool.layout_editor.pathTo
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.LayoutEditorState
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.layoutTree
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.screenRect
+import com.github.demandss.dayz_workbench_tool.resources.*
 import com.github.demandss.dayz_workbench_tool.ui.icons.AppIcon
 import com.github.demandss.dayz_workbench_tool.ui.icons.AppIconView
 import com.github.demandss.dayz_workbench_tool.ui.theme.SubSelectColor
+import org.jetbrains.compose.resources.stringResource
 import kotlin.math.roundToInt
 
 private val OnAccent = Color.White
@@ -48,7 +50,7 @@ fun StatusBar(state: LayoutEditorState) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             AppIconView(AppIcon.UI_CLOCK, size = 14.dp, tint = OnAccent)
             Spacer(Modifier.width(5.dp))
-            Text(tr("Сессия сохранена"), color = OnAccent, fontSize = 11.sp)
+            Text(stringResource(Res.string.session_saved), color = OnAccent, fontSize = 11.sp)
         }
     }
 }
@@ -57,22 +59,22 @@ private fun leftText(state: LayoutEditorState): String {
     state.activeStyles?.let { doc ->
         val styles = doc.sheet.widgets.sumOf { it.styles.size }
         val picked = doc.selectedStyle
-        return if (picked == null) tr("{0} стилей", styles) else tr("Стиль: {0} · {1}", picked.name, picked.imageSet)
+        return if (picked == null) str(Res.string.x_styles, styles) else str(Res.string.style_x_x, picked.name, picked.imageSet)
     }
     state.activeImageSet?.let { doc ->
         val picked = doc.selected.mapNotNull { doc.model.entry(it) }
         return when (picked.size) {
             0 -> {
-                tr("{0} картинок · RefSize {1} × {2}", doc.model.entries.size, doc.model.refWidth, doc.model.refHeight)
+                str(Res.string.x_images_refsize_x_x, doc.model.entries.size, doc.model.refWidth, doc.model.refHeight)
             }
 
             1 -> {
                 val d = picked[0].def
-                tr("Выбрано: {0} · {1}, {2} · {3} × {4}", d.name, d.x, d.y, d.width, d.height)
+                str(Res.string.selected_x_x_x_x_x, d.name, d.x, d.y, d.width, d.height)
             }
 
             else -> {
-                tr("Выбрано: {0}", picked.size)
+                str(Res.string.selected_x, picked.size)
             }
         }
     }
@@ -83,7 +85,7 @@ private fun leftText(state: LayoutEditorState): String {
     val doc = state.activeFile ?: return "Нет открытых файлов"
     return when (state.selectedIds.size) {
         0 -> {
-            tr("Ничего не выбрано")
+            str(Res.string.nothing_selected_2)
         }
 
         1 -> {
@@ -93,12 +95,12 @@ private fun leftText(state: LayoutEditorState): String {
             if (rect == null) {
                 node
             } else {
-                tr("Выбрано: {0} · {1} × {2}", node, rect.width.roundToInt(), rect.height.roundToInt())
+                str(Res.string.selected_x_x_x, node, rect.width.roundToInt(), rect.height.roundToInt())
             }
         }
 
         else -> {
-            tr("Выбрано: {0}", state.selectedIds.size)
+            str(Res.string.selected_x, state.selectedIds.size)
         }
     }
 }

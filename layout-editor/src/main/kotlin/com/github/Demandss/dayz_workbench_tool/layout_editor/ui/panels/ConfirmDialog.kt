@@ -6,10 +6,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.github.demandss.dayz_workbench_tool.i18n.tr
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.LayoutEditorState
+import com.github.demandss.dayz_workbench_tool.resources.*
 import com.github.demandss.dayz_workbench_tool.ui.components.DarkButton
 import com.github.demandss.dayz_workbench_tool.ui.theme.GhostlyText
+import org.jetbrains.compose.resources.stringResource
 
 /** The confirmation of [LayoutEditorState.confirmation] as a flat dialog. */
 @Composable
@@ -24,7 +25,12 @@ fun ConfirmDialog(state: LayoutEditorState) {
         },
         width = 340.dp,
         buttons = {
-            DarkButton(tr("Отмена"), onClick = { state.confirmation = null }, muted = true, modifier = Modifier.width(80.dp))
+            DarkButton(
+                stringResource(Res.string.cancel),
+                onClick = { state.confirmation = null },
+                muted = true,
+                modifier = Modifier.width(80.dp),
+            )
             DarkButton(
                 question.confirmLabel,
                 onClick = {

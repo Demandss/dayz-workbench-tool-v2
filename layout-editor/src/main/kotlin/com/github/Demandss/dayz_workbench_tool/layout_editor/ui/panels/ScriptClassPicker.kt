@@ -40,7 +40,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
-import com.github.demandss.dayz_workbench_tool.i18n.tr
 import com.github.demandss.dayz_workbench_tool.layout_editor.EditorWidgetNode
 import com.github.demandss.dayz_workbench_tool.layout_editor.behavior.EDITOR
 import com.github.demandss.dayz_workbench_tool.layout_editor.behavior.ScriptClassIndex
@@ -50,6 +49,7 @@ import com.github.demandss.dayz_workbench_tool.layout_editor.behavior.exportScri
 import com.github.demandss.dayz_workbench_tool.layout_editor.behavior.kind
 import com.github.demandss.dayz_workbench_tool.layout_editor.behavior.useBehavior
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.LayoutEditorState
+import com.github.demandss.dayz_workbench_tool.resources.*
 import com.github.demandss.dayz_workbench_tool.ui.components.Tip
 import com.github.demandss.dayz_workbench_tool.ui.icons.AppIconView
 import com.github.demandss.dayz_workbench_tool.ui.theme.DarkenedBorder
@@ -59,6 +59,7 @@ import com.github.demandss.dayz_workbench_tool.ui.theme.GhostlyText
 import com.github.demandss.dayz_workbench_tool.ui.theme.SelectColor
 import com.github.demandss.dayz_workbench_tool.ui.theme.SubSelectColor
 import com.github.demandss.dayz_workbench_tool.ui.theme.TextForeground
+import org.jetbrains.compose.resources.stringResource
 
 private sealed interface Line {
     data class Caption(
@@ -89,8 +90,8 @@ internal fun RowScope.ScriptClassPicker(
         state.scriptClasses.firstOrNull { it.name == current }
             ?: state.scriptClasses.firstOrNull { it.source == EDITOR && current.isNotEmpty() && current.endsWith(it.name) }
     val fieldTip =
-        known?.let { ScriptClassIndex.tooltip(it) + System.lineSeparator() + tr("Клик: выбрать другой класс") }
-            ?: tr("Скрипт-класс виджета: выбрать из классов игры, модов и редактора")
+        known?.let { ScriptClassIndex.tooltip(it) + System.lineSeparator() + stringResource(Res.string.click_pick_another_class) }
+            ?: stringResource(Res.string.the_script_class_of_the_widget_pick_from)
     Box(Modifier.weight(1f)) {
         Tip(fieldTip) {
             Box(
@@ -105,7 +106,7 @@ internal fun RowScope.ScriptClassPicker(
             ) {
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        current.ifEmpty { tr("— (нет)") },
+                        current.ifEmpty { stringResource(Res.string.none) },
                         color = if (current.isEmpty()) GhostlyText else TextForeground,
                         fontSize = 11.sp,
                         fontFamily = FontFamily.Monospace,
@@ -127,9 +128,7 @@ internal fun RowScope.ScriptClassPicker(
         }
     }
     Tip(
-        tr(
-            "Скопировать выбранный скрипт-класс: для классов редактора скрипт, фрагмент layout и строки для лайаута, для остальных исходник",
-        ),
+        stringResource(Res.string.copy_script_class_hint),
     ) {
         Box(
             Modifier
@@ -140,7 +139,7 @@ internal fun RowScope.ScriptClassPicker(
                 .padding(horizontal = 6.dp),
             contentAlignment = Alignment.Center,
         ) {
-            Text(tr("Экспорт"), color = if (current.isEmpty()) GhostlyText else TextForeground, fontSize = 10.sp)
+            Text(stringResource(Res.string.export), color = if (current.isEmpty()) GhostlyText else TextForeground, fontSize = 10.sp)
         }
     }
 }
@@ -203,7 +202,13 @@ private fun ScriptClassPopup(
                             .border(1.dp, DarkenedBorder)
                             .padding(horizontal = 6.dp, vertical = 3.dp),
                     ) {
-                        if (query.isEmpty()) Text(tr("Поиск по названию или источнику"), color = GhostlyText, fontSize = 11.sp)
+                        if (query.isEmpty()) {
+                            Text(
+                                stringResource(Res.string.search_by_name_or_source),
+                                color = GhostlyText,
+                                fontSize = 11.sp,
+                            )
+                        }
                         inner()
                     }
                 },
@@ -244,7 +249,12 @@ private fun ScriptClassPopup(
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.SpaceBetween,
                                 ) {
-                                    Text(info?.name ?: tr("— (нет)"), color = TextForeground, fontSize = 11.sp, maxLines = 1)
+                                    Text(
+                                        info?.name ?: stringResource(Res.string.none),
+                                        color = TextForeground,
+                                        fontSize = 11.sp,
+                                        maxLines = 1,
+                                    )
                                     Row(
                                         verticalAlignment = Alignment.CenterVertically,
                                         horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -296,9 +306,9 @@ private fun KindLegend() {
                 AppIconView(kind.icon, size = 12.dp, tint = kindColor(kind))
                 Text(
                     when (kind) {
-                        ScriptKind.CUSTOM -> tr("редактора")
-                        ScriptKind.VANILLA -> tr("игры")
-                        ScriptKind.MOD -> tr("мода")
+                        ScriptKind.CUSTOM -> stringResource(Res.string.editor)
+                        ScriptKind.VANILLA -> stringResource(Res.string.game)
+                        ScriptKind.MOD -> stringResource(Res.string.mod)
                     },
                     color = GhostlyText,
                     fontSize = 9.sp,

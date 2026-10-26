@@ -20,7 +20,6 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.github.demandss.dayz_workbench_tool.i18n.tr
 import com.github.demandss.dayz_workbench_tool.layout_editor.EditorWidgetNode
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.DragSession
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.DragSource
@@ -30,11 +29,13 @@ import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.hasBareCe
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.parentOf
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.selectBy
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.selectMode
+import com.github.demandss.dayz_workbench_tool.resources.*
 import com.github.demandss.dayz_workbench_tool.ui.components.Tip
 import com.github.demandss.dayz_workbench_tool.ui.icons.AppIcon
 import com.github.demandss.dayz_workbench_tool.ui.icons.AppIconView
 import com.github.demandss.dayz_workbench_tool.ui.icons.widgetIcon
 import com.github.demandss.dayz_workbench_tool.ui.theme.*
+import org.jetbrains.compose.resources.stringResource
 import java.util.UUID
 
 private fun buildFlatList(
@@ -93,11 +94,11 @@ fun HierarchyPanel(
         ) {
             Text("Hierarchy", color = GhostlyText, fontSize = 10.sp)
         }
-        SearchField(query, tr("Поиск виджета…")) { query = it }
+        SearchField(query, stringResource(Res.string.search_for_a_widget)) { query = it }
 
         if (doc == null) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text(tr("Нет открытых файлов"), color = GhostlyText, fontSize = 11.sp)
+                Text(stringResource(Res.string.no_open_files), color = GhostlyText, fontSize = 11.sp)
             }
             return@Column
         }
@@ -306,13 +307,13 @@ private fun HierarchyRow(
         if (node.hasBareCenter()) AppIconView(AppIcon.UI_WARN, size = 13.dp, modifier = Modifier.padding(end = 2.dp))
         RowToggle(
             if (isHidden) AppIcon.UI_EYEOFF else AppIcon.UI_EYE,
-            tr("Скрыть на холсте (только в редакторе)"),
+            stringResource(Res.string.hide_on_the_canvas_editor_only),
             isHidden,
             onToggleHidden,
         )
         RowToggle(
             if (isLocked) AppIcon.UI_LOCK else AppIcon.UI_UNLOCK,
-            tr("Заблокировать выбор на холсте (только в редакторе)"),
+            stringResource(Res.string.lock_selection_on_the_canvas_editor_only),
             isLocked,
             onToggleLocked,
         )

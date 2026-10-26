@@ -41,13 +41,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.github.demandss.dayz_workbench_tool.font.GameFontFile
 import com.github.demandss.dayz_workbench_tool.font.GameFontHeader
-import com.github.demandss.dayz_workbench_tool.i18n.tr
 import com.github.demandss.dayz_workbench_tool.layout.WidgetNode
 import com.github.demandss.dayz_workbench_tool.layout.WidgetType
 import com.github.demandss.dayz_workbench_tool.layout_editor.EditorWidgetNode
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.LayoutEditorState
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.TextureDocument
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.ColorPickerPopup
+import com.github.demandss.dayz_workbench_tool.resources.*
 import com.github.demandss.dayz_workbench_tool.ui.theme.DarkenedBorder
 import com.github.demandss.dayz_workbench_tool.ui.theme.ElementsBackground
 import com.github.demandss.dayz_workbench_tool.ui.theme.FrameBackground
@@ -55,6 +55,7 @@ import com.github.demandss.dayz_workbench_tool.ui.theme.GhostlyText
 import com.github.demandss.dayz_workbench_tool.ui.theme.SelectColor
 import com.github.demandss.dayz_workbench_tool.ui.theme.SubSelectColor
 import com.github.demandss.dayz_workbench_tool.ui.theme.TextForeground
+import org.jetbrains.compose.resources.stringResource
 import java.io.File
 import java.util.UUID
 
@@ -168,7 +169,7 @@ fun FontViewer(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                Label(tr("Размер"))
+                Label(stringResource(Res.string.size))
                 Slider(
                     value = size,
                     onValueChange = { size = it.coerceIn(6f, 200f) },
@@ -178,9 +179,9 @@ fun FontViewer(
                 )
                 Label("${size.toInt()}")
                 ColorBox(colorHex) { colorHex = it }
-                Toggle(tr("Жирный"), bold, sdf) { bold = it }
-                Toggle(tr("Курсив"), italic, sdf) { italic = it }
-                Label(tr("Обводка"))
+                Toggle(stringResource(Res.string.bold), bold, sdf) { bold = it }
+                Toggle(stringResource(Res.string.italic), italic, sdf) { italic = it }
+                Label(stringResource(Res.string.outline))
                 Slider(
                     value = outline,
                     onValueChange = { outline = it },
@@ -190,7 +191,7 @@ fun FontViewer(
                     colors = sliderColors(),
                 )
                 ColorBox(outlineHex, enabled = sdf) { outlineHex = it }
-                Label(tr("Тень"))
+                Label(stringResource(Res.string.shadow))
                 Slider(
                     value = shadow,
                     onValueChange = { shadow = it },
@@ -199,7 +200,7 @@ fun FontViewer(
                     colors = sliderColors(),
                 )
                 ColorBox(shadowHex, enabled = sdf) { shadowHex = it }
-                Label(tr("Смещение"))
+                Label(stringResource(Res.string.offset))
                 SmallField(offsetX, sdf) { offsetX = it }
                 SmallField(offsetY, sdf) { offsetY = it }
             }
@@ -306,25 +307,45 @@ fun FontViewer(
                     Modifier.size(14.dp).background(if (allCharacters) SubSelectColor else DarkenedBorder).border(1.dp, Color(0xFF3A3C40)),
                     contentAlignment = Alignment.Center,
                 ) { if (allCharacters) Text("✓", color = Color.White, fontSize = 10.sp, lineHeight = 10.sp) }
-                Text(tr("Показать все символы шрифта"), color = TextForeground, fontSize = 11.sp)
+                Text(stringResource(Res.string.show_all_characters_of_the_font), color = TextForeground, fontSize = 11.sp)
             }
             Box(Modifier.fillMaxWidth().height(1.dp).background(DarkenedBorder))
             val h = facts.header
             val lines =
                 listOf(
-                    tr("Файл: {0} КБ", "%.2f".format(facts.fontBytes / 1024.0)),
-                    tr("Версия: {0}", h?.kind ?: "?"),
-                    tr("Тип: {0}", if (sdf) "sdf" else "bitmap"),
-                    tr("Обводка: {0}", if (sdf) tr("да") else tr("нет")),
-                    tr("Тень: {0}", if (sdf) tr("да") else tr("старая (без смещения и цвета)")),
-                    tr("Жирный и курсив в игре: {0}", if (sdf) tr("да") else tr("нет")),
-                    tr("Атлас: {0} КБ, {1} × {2}", "%.2f".format(facts.atlasBytes / 1024.0), facts.atlasWidth, facts.atlasHeight),
-                    tr("Высота строки: {0} px", facts.lineHeight),
-                    tr("Символов: {0}", h?.ranges?.count ?: 0),
-                    tr("Кириллица: {0}", if (h?.ranges?.has(0x0416) == true) tr("да") else tr("нет")),
+                    stringResource(Res.string.file_x_kb, "%.2f".format(facts.fontBytes / 1024.0)),
+                    stringResource(Res.string.version_x, h?.kind ?: "?"),
+                    stringResource(Res.string.type_x_2, if (sdf) "sdf" else "bitmap"),
+                    stringResource(Res.string.outline_x, if (sdf) stringResource(Res.string.yes) else stringResource(Res.string.text_no)),
+                    stringResource(
+                        Res.string.shadow_x,
+                        if (sdf) stringResource(Res.string.yes) else stringResource(Res.string.legacy_without_offset_and_colour),
+                    ),
+                    stringResource(
+                        Res.string.bold_and_italic_in_the_game_x,
+                        if (sdf) stringResource(Res.string.yes) else stringResource(Res.string.text_no),
+                    ),
+                    stringResource(
+                        Res.string.atlas_x_kb_x_x,
+                        "%.2f".format(facts.atlasBytes / 1024.0),
+                        facts.atlasWidth,
+                        facts.atlasHeight,
+                    ),
+                    stringResource(Res.string.line_height_x_px, facts.lineHeight),
+                    stringResource(Res.string.characters_x, h?.ranges?.count ?: 0),
+                    stringResource(
+                        Res.string.cyrillic_x,
+                        if (h?.ranges?.has(0x0416) ==
+                            true
+                        ) {
+                            stringResource(Res.string.yes)
+                        } else {
+                            stringResource(Res.string.text_no)
+                        },
+                    ),
                 )
             lines.forEach { Text(it, color = GhostlyText, fontSize = 11.sp) }
-            if (font == null) Text(tr("Шрифт не удалось прочитать"), color = Color(0xFFD06A6A), fontSize = 11.sp)
+            if (font == null) Text(stringResource(Res.string.the_font_could_not_be_read), color = Color(0xFFD06A6A), fontSize = 11.sp)
         }
     }
 }

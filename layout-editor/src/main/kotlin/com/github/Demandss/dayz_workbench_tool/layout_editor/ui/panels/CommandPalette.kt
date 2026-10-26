@@ -40,7 +40,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.github.demandss.dayz_workbench_tool.i18n.tr
+import com.github.demandss.dayz_workbench_tool.i18n.str
 import com.github.demandss.dayz_workbench_tool.layout.WidgetType
 import com.github.demandss.dayz_workbench_tool.layout_editor.mcp.McpHost
 import com.github.demandss.dayz_workbench_tool.layout_editor.mcp.copyMcpAddress
@@ -50,6 +50,7 @@ import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.AlignMode
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.BulkMode
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.Reorder
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.TemplateKind
+import com.github.demandss.dayz_workbench_tool.resources.*
 import com.github.demandss.dayz_workbench_tool.ui.icons.AppIcon
 import com.github.demandss.dayz_workbench_tool.ui.icons.AppIconView
 import com.github.demandss.dayz_workbench_tool.ui.icons.fileIcon
@@ -59,6 +60,7 @@ import com.github.demandss.dayz_workbench_tool.ui.theme.FrameBackground
 import com.github.demandss.dayz_workbench_tool.ui.theme.GhostlyText
 import com.github.demandss.dayz_workbench_tool.ui.theme.SelectColor
 import com.github.demandss.dayz_workbench_tool.ui.theme.TextForeground
+import org.jetbrains.compose.resources.stringResource
 import java.io.File
 
 /** One entry of the palette. A disabled one is shown dimmed and does nothing. */
@@ -84,88 +86,116 @@ fun buildCommands(
         icon: AppIcon,
         on: Boolean,
         flip: () -> Unit,
-    ) = Command((if (on) tr("Выключить: ") else tr("Включить: ")) + title, icon, run = flip)
+    ) = Command((if (on) str(Res.string.turn_off) else str(Res.string.turn_on)) + title, icon, run = flip)
 
     return buildList {
-        add(Command(tr("Открыть файл…"), AppIcon.FOLDER_OPEN, run = openFileDialog))
-        add(Command(tr("Сохранить"), AppIcon.UI_SAVE, "Ctrl+S", hasDoc) { state.saveActiveFile() })
-        add(Command(tr("Отменить"), AppIcon.UI_UNDO, "Ctrl+Z", hasDoc) { state.undo(state.activeFileIndex) })
-        add(Command(tr("Повторить"), AppIcon.UI_REDO, "Ctrl+Y", hasDoc) { state.redo(state.activeFileIndex) })
-        add(Command(tr("Дублировать выбранное"), AppIcon.UI_COPY, "Ctrl+D", hasSelection) { state.duplicateSelected() })
-        add(Command(tr("Удалить выбранное"), AppIcon.UI_TRASH, "Delete", hasSelection) { state.deleteSelected() })
-        add(Command(tr("Вписать в окно"), AppIcon.UI_FIT, "Shift+1", hasDoc) { state.centerView() })
-        add(Command(tr("Масштаб по выделению"), AppIcon.UI_ZOOMIN, "Shift+2", hasSelection) { state.zoomToSelection() })
-        add(Command(tr("Сгруппировать в Frame"), AppIcon.UI_LAYERS, "Ctrl+G", hasSelection) { state.groupSelected() })
+        add(Command(str(Res.string.open_file), AppIcon.FOLDER_OPEN, run = openFileDialog))
+        add(Command(str(Res.string.save), AppIcon.UI_SAVE, "Ctrl+S", hasDoc) { state.saveActiveFile() })
+        add(Command(str(Res.string.undo), AppIcon.UI_UNDO, "Ctrl+Z", hasDoc) { state.undo(state.activeFileIndex) })
+        add(Command(str(Res.string.redo), AppIcon.UI_REDO, "Ctrl+Y", hasDoc) { state.redo(state.activeFileIndex) })
+        add(Command(str(Res.string.duplicate_the_selection), AppIcon.UI_COPY, "Ctrl+D", hasSelection) { state.duplicateSelected() })
+        add(Command(str(Res.string.delete_the_selection), AppIcon.UI_TRASH, "Delete", hasSelection) { state.deleteSelected() })
+        add(Command(str(Res.string.fit_to_window), AppIcon.UI_FIT, "Shift+1", hasDoc) { state.centerView() })
+        add(Command(str(Res.string.zoom_to_selection), AppIcon.UI_ZOOMIN, "Shift+2", hasSelection) { state.zoomToSelection() })
+        add(Command(str(Res.string.group_into_a_frame), AppIcon.UI_LAYERS, "Ctrl+G", hasSelection) { state.groupSelected() })
         add(
-            Command(tr("Сгруппировать в WrapSpacer"), AppIcon.WIDGET_WRAP, "Shift+A", hasSelection) {
+            Command(str(Res.string.group_into_a_wrapspacer), AppIcon.WIDGET_WRAP, "Shift+A", hasSelection) {
                 state.groupSelected(WidgetType.WRAP_SPACER, "Auto")
             },
         )
-        add(Command(tr("Разгруппировать"), AppIcon.UI_LAYERS, "Ctrl+Shift+G", hasSelection) { state.ungroupSelected() })
-        add(Command(tr("Выше в порядке отрисовки"), AppIcon.UI_DOWN, "]", hasSelection) { state.reorderSelected(Reorder.FORWARD) })
-        add(Command(tr("Ниже в порядке отрисовки"), AppIcon.UI_DOWN, "[", hasSelection) { state.reorderSelected(Reorder.BACKWARD) })
-        add(Command(tr("На самый верх"), AppIcon.UI_DOWN, "Ctrl+]", hasSelection) { state.reorderSelected(Reorder.FRONT) })
-        add(Command(tr("На самый низ"), AppIcon.UI_DOWN, "Ctrl+[", hasSelection) { state.reorderSelected(Reorder.BACK) })
-        add(Command(tr("Равные интервалы по горизонтали"), AppIcon.UI_ALIGNCH, enabled = several) { state.distributeSelected(true) })
-        add(Command(tr("Равные интервалы по вертикали"), AppIcon.UI_ALIGNMV, enabled = several) { state.distributeSelected(false) })
-        add(Command(tr("Копировать свойства"), AppIcon.UI_COPY, "Ctrl+Alt+C", hasSelection) { state.copyAppearance() })
-        add(Command(tr("Вставить свойства"), AppIcon.UI_COPY, "Ctrl+Alt+V", hasSelection) { state.pasteAppearance() })
-        add(Command(tr("Переименовать"), AppIcon.UI_SEARCH, "F2", hasSelection) { state.requestRename() })
-        TemplateKind.entries.forEach { kind ->
-            add(Command(tr("Шаблон скрипта: {0}", kind.title), AppIcon.UI_COPY, tr("в буфер"), hasDoc) { state.copyScriptTemplate(kind) })
-        }
-        add(Command(tr("Импорт шрифта…"), AppIcon.UI_COPY, "") { state.fontImportOpen = true })
-        state.openAppSettings?.let { open -> add(Command(tr("Настройки"), AppIcon.UI_GEAR, "Ctrl+,") { open() }) }
-        McpHost.url?.let { address ->
-            add(Command(tr("Скопировать адрес MCP сервера"), AppIcon.UI_CMD, address) { state.copyMcpAddress(address) })
-        }
-        add(Command(tr("Скопировать код доступа к виджету"), AppIcon.UI_CMD, "Enforce Script", hasSelection) { state.copyScriptSnippet() })
-        add(Command(tr("Заменить в именах виджетов…"), AppIcon.UI_SEARCH, enabled = hasDoc) { state.bulkDialog = BulkMode.NAME })
-        add(Command(tr("Заменить значение свойства…"), AppIcon.UI_SEARCH, enabled = hasDoc) { state.bulkDialog = BulkMode.PROPERTY })
+        add(Command(str(Res.string.ungroup), AppIcon.UI_LAYERS, "Ctrl+Shift+G", hasSelection) { state.ungroupSelected() })
         add(
-            toggle(tr("сравнение разрешений"), AppIcon.UI_PIXEL, state.compareResolutions) {
+            Command(
+                str(Res.string.higher_in_the_drawing_order),
+                AppIcon.UI_DOWN,
+                "]",
+                hasSelection,
+            ) { state.reorderSelected(Reorder.FORWARD) },
+        )
+        add(
+            Command(
+                str(Res.string.lower_in_the_drawing_order),
+                AppIcon.UI_DOWN,
+                "[",
+                hasSelection,
+            ) { state.reorderSelected(Reorder.BACKWARD) },
+        )
+        add(Command(str(Res.string.to_the_very_top), AppIcon.UI_DOWN, "Ctrl+]", hasSelection) { state.reorderSelected(Reorder.FRONT) })
+        add(Command(str(Res.string.to_the_very_bottom), AppIcon.UI_DOWN, "Ctrl+[", hasSelection) { state.reorderSelected(Reorder.BACK) })
+        add(Command(str(Res.string.equal_horizontal_spacing), AppIcon.UI_ALIGNCH, enabled = several) { state.distributeSelected(true) })
+        add(Command(str(Res.string.equal_vertical_spacing), AppIcon.UI_ALIGNMV, enabled = several) { state.distributeSelected(false) })
+        add(Command(str(Res.string.copy_properties), AppIcon.UI_COPY, "Ctrl+Alt+C", hasSelection) { state.copyAppearance() })
+        add(Command(str(Res.string.paste_properties), AppIcon.UI_COPY, "Ctrl+Alt+V", hasSelection) { state.pasteAppearance() })
+        add(Command(str(Res.string.rename), AppIcon.UI_SEARCH, "F2", hasSelection) { state.requestRename() })
+        TemplateKind.entries.forEach { kind ->
+            add(
+                Command(str(Res.string.script_template_x, kind.title), AppIcon.UI_COPY, str(Res.string.to_the_clipboard), hasDoc) {
+                    state.copyScriptTemplate(kind)
+                },
+            )
+        }
+        add(Command(str(Res.string.import_a_font_2), AppIcon.UI_COPY, "") { state.fontImportOpen = true })
+        state.openAppSettings?.let { open -> add(Command(str(Res.string.settings), AppIcon.UI_GEAR, "Ctrl+,") { open() }) }
+        McpHost.url?.let { address ->
+            add(Command(str(Res.string.copy_the_address_of_the_mcp_server), AppIcon.UI_CMD, address) { state.copyMcpAddress(address) })
+        }
+        add(
+            Command(str(Res.string.copy_the_code_that_accesses_the_widget), AppIcon.UI_CMD, "Enforce Script", hasSelection) {
+                state.copyScriptSnippet()
+            },
+        )
+        add(Command(str(Res.string.replace_in_widget_names_2), AppIcon.UI_SEARCH, enabled = hasDoc) { state.bulkDialog = BulkMode.NAME })
+        add(
+            Command(
+                str(Res.string.replace_a_property_value_2),
+                AppIcon.UI_SEARCH,
+                enabled = hasDoc,
+            ) { state.bulkDialog = BulkMode.PROPERTY },
+        )
+        add(
+            toggle(str(Res.string.the_resolution_comparison), AppIcon.UI_PIXEL, state.compareResolutions) {
                 state.compareResolutions =
                     !state.compareResolutions
             },
         )
         add(
-            Command(tr("Масштаб 100%"), AppIcon.UI_ZOOMIN, "Ctrl+0", hasDoc) { state.zoomActual() },
+            Command(str(Res.string.zoom_100), AppIcon.UI_ZOOMIN, "Ctrl+0", hasDoc) { state.zoomActual() },
         )
         add(
             toggle(
-                tr("Цвета как в Workbench 1.30 (F6)"),
+                str(Res.string.colours_as_in_workbench_1_30_f6),
                 AppIcon.UI_LAYERS,
                 state.workbenchColors,
             ) { state.workbenchColors = !state.workbenchColors },
         )
         add(
-            toggle(tr("подписи виджетов (F7)"), AppIcon.UI_INFO, state.showWidgetNames) {
+            toggle(str(Res.string.widget_labels_f7), AppIcon.UI_INFO, state.showWidgetNames) {
                 state.showWidgetNames = !state.showWidgetNames
                 state.savePreferences()
             },
         )
         add(toggle("Live Preview (F5)", AppIcon.UI_PLAY, state.livePreview) { state.livePreview = !state.livePreview })
-        add(toggle(tr("сетку"), AppIcon.UI_GRID, state.showGrid) { state.showGrid = !state.showGrid })
-        add(toggle(tr("привязку к сетке"), AppIcon.UI_MAGNET, state.snapToGrid) { state.snapToGrid = !state.snapToGrid })
-        add(toggle(tr("рамки виджетов"), AppIcon.UI_GRID, state.showBorders) { state.showBorders = !state.showBorders })
-        add(toggle(tr("безопасную зону"), AppIcon.UI_SAFE, state.showSafeFrame) { state.showSafeFrame = !state.showSafeFrame })
-        add(toggle(tr("расстояния"), AppIcon.UI_MEASURE, state.showMeasure) { state.showMeasure = !state.showMeasure })
-        add(toggle(tr("эталон"), AppIcon.UI_COMPARE, state.showReference) { state.showReference = !state.showReference })
-        add(toggle(tr("линейки"), AppIcon.UI_RULER, state.showRulers) { state.showRulers = !state.showRulers })
-        add(toggle(tr("миникарту"), AppIcon.UI_FIT, state.showMinimap) { state.showMinimap = !state.showMinimap })
+        add(toggle(str(Res.string.the_grid), AppIcon.UI_GRID, state.showGrid) { state.showGrid = !state.showGrid })
+        add(toggle(str(Res.string.snapping_to_the_grid), AppIcon.UI_MAGNET, state.snapToGrid) { state.snapToGrid = !state.snapToGrid })
+        add(toggle(str(Res.string.widget_borders), AppIcon.UI_GRID, state.showBorders) { state.showBorders = !state.showBorders })
+        add(toggle(str(Res.string.the_safe_zone), AppIcon.UI_SAFE, state.showSafeFrame) { state.showSafeFrame = !state.showSafeFrame })
+        add(toggle(str(Res.string.the_distances), AppIcon.UI_MEASURE, state.showMeasure) { state.showMeasure = !state.showMeasure })
+        add(toggle(str(Res.string.the_reference), AppIcon.UI_COMPARE, state.showReference) { state.showReference = !state.showReference })
+        add(toggle(str(Res.string.the_rulers), AppIcon.UI_RULER, state.showRulers) { state.showRulers = !state.showRulers })
+        add(toggle(str(Res.string.the_minimap), AppIcon.UI_FIT, state.showMinimap) { state.showMinimap = !state.showMinimap })
         for ((title, icon, mode) in listOf(
-            Triple(tr("Выровнять по левому краю"), AppIcon.UI_ALIGNL, AlignMode.LEFT),
-            Triple(tr("Выровнять по центру по горизонтали"), AppIcon.UI_ALIGNCH, AlignMode.CENTER_H),
-            Triple(tr("Выровнять по правому краю"), AppIcon.UI_ALIGNR, AlignMode.RIGHT),
-            Triple(tr("Выровнять по верхнему краю"), AppIcon.UI_ALIGNT, AlignMode.TOP),
-            Triple(tr("Выровнять по центру по вертикали"), AppIcon.UI_ALIGNMV, AlignMode.CENTER_V),
-            Triple(tr("Выровнять по нижнему краю"), AppIcon.UI_ALIGNB, AlignMode.BOTTOM),
+            Triple(str(Res.string.align_to_the_left_edge), AppIcon.UI_ALIGNL, AlignMode.LEFT),
+            Triple(str(Res.string.align_to_the_horizontal_centre), AppIcon.UI_ALIGNCH, AlignMode.CENTER_H),
+            Triple(str(Res.string.align_to_the_right_edge), AppIcon.UI_ALIGNR, AlignMode.RIGHT),
+            Triple(str(Res.string.align_to_the_top_edge), AppIcon.UI_ALIGNT, AlignMode.TOP),
+            Triple(str(Res.string.align_to_the_vertical_centre), AppIcon.UI_ALIGNMV, AlignMode.CENTER_V),
+            Triple(str(Res.string.align_to_the_bottom_edge), AppIcon.UI_ALIGNB, AlignMode.BOTTOM),
         )) {
             add(Command(title, icon, enabled = several) { state.alignSelected(mode) })
         }
         for (path in state.recentFiles) {
             val name = File(path).name
-            add(Command(tr("Открыть: {0}", name), fileIcon(name), File(path).parentFile?.name.orEmpty()) { state.openAny(path) })
+            add(Command(str(Res.string.open_x, name), fileIcon(name), File(path).parentFile?.name.orEmpty()) { state.openAny(path) })
         }
     }
 }
@@ -277,9 +307,9 @@ fun CommandPalette(
                     if (query.isEmpty()) {
                         Text(
                             when (mode) {
-                                PaletteMode.COMMANDS -> tr("Команда…")
-                                PaletteMode.FILES -> tr("Файл по имени…")
-                                PaletteMode.WIDGETS -> tr("Виджет по имени…")
+                                PaletteMode.COMMANDS -> stringResource(Res.string.command)
+                                PaletteMode.FILES -> stringResource(Res.string.file_by_name)
+                                PaletteMode.WIDGETS -> stringResource(Res.string.widget_by_name)
                             },
                             color = GhostlyText,
                             fontSize = 13.sp,
@@ -331,7 +361,7 @@ fun CommandPalette(
             }
             Box(Modifier.fillMaxWidth().height(1.dp).background(DarkenedBorder))
             if (matches.isEmpty()) {
-                Text(tr("Ничего не найдено"), color = GhostlyText, fontSize = 12.sp, modifier = Modifier.padding(12.dp))
+                Text(stringResource(Res.string.nothing_found), color = GhostlyText, fontSize = 12.sp, modifier = Modifier.padding(12.dp))
             } else {
                 LazyColumn(Modifier.heightIn(max = 340.dp), state = list) {
                     itemsIndexed(matches) { i, command ->

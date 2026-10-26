@@ -4,6 +4,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.window.application
+import com.github.demandss.dayz_workbench_tool.i18n.I18n
 import com.github.demandss.dayz_workbench_tool.layout_editor.LayoutEditorWindow
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.LayoutEditorState
 import com.github.demandss.dayz_workbench_tool.manager.ModificationManager
@@ -14,6 +15,7 @@ import com.github.demandss.dayz_workbench_tool.ui.MainWindow
 import com.github.demandss.dayz_workbench_tool.ui.theme.resolveTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.util.Locale
 
 fun main() =
     application {
@@ -42,6 +44,10 @@ fun main() =
             }
         }
 
+        // The strings of the resources follow the default locale: set it from the language of the app (MainWindow draws its
+        // content again when the language changes)
+        val language = I18n.language
+        remember(language) { Locale.setDefault(Locale.forLanguageTag(language.code)) }
         MainWindow(state, onCloseRequest = ::exitApplication)
 
         if (state.showLayoutEditor) {

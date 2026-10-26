@@ -17,12 +17,13 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
-import com.github.demandss.dayz_workbench_tool.i18n.tr
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.LayoutEditorState
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.layoutTree
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas.screenRect
+import com.github.demandss.dayz_workbench_tool.resources.*
 import com.github.demandss.dayz_workbench_tool.ui.components.Tip
 import com.github.demandss.dayz_workbench_tool.ui.theme.DarkenedBorder
+import org.jetbrains.compose.resources.stringResource
 
 private val Back = Color(0xE61E1F22)
 private val Shape = Color(0xFF6F737A)
@@ -43,7 +44,7 @@ fun Minimap(
     // The rectangles of the widgets change with the tree and the selection only, so they are a layer of their own and are not
     // drawn again while the view is dragged; the layer above holds the rectangle of the view
     val layout = remember(doc.root, screen) { layoutTree(doc.root, screen) }
-    Tip(tr("Миникарта: клик или перетаскивание переносит вид")) {
+    Tip(stringResource(Res.string.minimap_a_click_or_a_drag_moves_the_view)) {
         Box(
             modifier
                 .size(width, height)

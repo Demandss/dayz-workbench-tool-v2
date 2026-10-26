@@ -48,7 +48,6 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.github.demandss.dayz_workbench_tool.i18n.tr
 import com.github.demandss.dayz_workbench_tool.imageset.ImageDef
 import com.github.demandss.dayz_workbench_tool.imageset.ImageSet
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.LayoutEditorState
@@ -56,6 +55,7 @@ import com.github.demandss.dayz_workbench_tool.layout_editor.ui.imageset.CHEQUER
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.imageset.ImageSetView
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.imageset.thumbnailOf
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.FlatDialog
+import com.github.demandss.dayz_workbench_tool.resources.*
 import com.github.demandss.dayz_workbench_tool.styles.SlotSet
 import com.github.demandss.dayz_workbench_tool.ui.components.DarkButton
 import com.github.demandss.dayz_workbench_tool.ui.theme.DarkenedBorder
@@ -64,6 +64,7 @@ import com.github.demandss.dayz_workbench_tool.ui.theme.FrameBackground
 import com.github.demandss.dayz_workbench_tool.ui.theme.GhostlyText
 import com.github.demandss.dayz_workbench_tool.ui.theme.SelectColor
 import com.github.demandss.dayz_workbench_tool.ui.theme.TextForeground
+import org.jetbrains.compose.resources.stringResource
 import kotlin.math.roundToInt
 
 private val OutlineColor = Color(0x885BC0EB)
@@ -117,21 +118,21 @@ fun ImagePickerDialog(
     }
 
     FlatDialog(
-        title = tr("Картинка для {0} · {1}", slot, setName),
+        title = stringResource(Res.string.image_for_x_x, slot, setName),
         onDismiss = onDismiss,
         onConfirm = { confirm() },
         width = 820.dp,
         buttons = {
-            DarkButton(tr("Без картинки"), onClick = {
+            DarkButton(stringResource(Res.string.no_image_2), onClick = {
                 onPick("")
                 onDismiss()
             }, muted = true, modifier = Modifier.width(120.dp))
-            DarkButton(tr("Отмена"), onClick = onDismiss, muted = true, modifier = Modifier.width(80.dp))
-            DarkButton(tr("Выбрать"), onClick = { confirm() }, modifier = Modifier.width(90.dp))
+            DarkButton(stringResource(Res.string.cancel), onClick = onDismiss, muted = true, modifier = Modifier.width(80.dp))
+            DarkButton(stringResource(Res.string.select), onClick = { confirm() }, modifier = Modifier.width(90.dp))
         },
     ) {
         if (set == null) {
-            Text(tr("Набор «{0}» не найден рядом с этим .styles", setName), color = GhostlyText, fontSize = 12.sp)
+            Text(stringResource(Res.string.the_set_x_was_not_found_next_to_this, setName), color = GhostlyText, fontSize = 12.sp)
             return@FlatDialog
         }
         Row(Modifier.fillMaxWidth().height(440.dp)) {
@@ -153,7 +154,7 @@ fun ImagePickerDialog(
                                 .padding(horizontal = 6.dp),
                             contentAlignment = Alignment.CenterStart,
                         ) {
-                            if (query.isEmpty()) Text(tr("Поиск по имени…"), color = GhostlyText, fontSize = 11.sp)
+                            if (query.isEmpty()) Text(stringResource(Res.string.search_by_name), color = GhostlyText, fontSize = 11.sp)
                             inner()
                         }
                     },
@@ -166,7 +167,7 @@ fun ImagePickerDialog(
                     if (shownSets.isNotEmpty()) {
                         item(key = "sets") {
                             Text(
-                                tr("НАБОРЫ ДЛЯ ВСЕХ СЛОТОВ"),
+                                stringResource(Res.string.sets_for_all_slots),
                                 color = GhostlyText,
                                 fontSize = 10.sp,
                                 modifier =
@@ -196,7 +197,7 @@ fun ImagePickerDialog(
                                     overflow = TextOverflow.Ellipsis,
                                     modifier = Modifier.weight(1f),
                                 )
-                                Text(tr("{0} слотов", set.images.size), color = GhostlyText, fontSize = 10.sp)
+                                Text(stringResource(Res.string.x_slots, set.images.size), color = GhostlyText, fontSize = 10.sp)
                             }
                         }
                     }
@@ -268,7 +269,7 @@ fun ImagePickerDialog(
                     }
                 }
                 Text(
-                    hover ?: pickedSet?.label ?: picked.ifEmpty { tr("ничего не выбрано") },
+                    hover ?: pickedSet?.label ?: picked.ifEmpty { stringResource(Res.string.nothing_selected) },
                     color = TextForeground,
                     fontSize = 11.sp,
                     modifier =

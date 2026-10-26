@@ -23,7 +23,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.github.demandss.dayz_workbench_tool.i18n.tr
+import com.github.demandss.dayz_workbench_tool.i18n.str
 import com.github.demandss.dayz_workbench_tool.layout_editor.behavior.BehaviorCatalogue
 import com.github.demandss.dayz_workbench_tool.layout_editor.behavior.useBehavior
 import com.github.demandss.dayz_workbench_tool.layout_editor.mcp.McpHost
@@ -34,12 +34,14 @@ import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.ContextMe
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.ContextMenuCaption
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.ContextMenuItem
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.DropdownPopup
+import com.github.demandss.dayz_workbench_tool.resources.*
 import com.github.demandss.dayz_workbench_tool.ui.components.DarkButton
 import com.github.demandss.dayz_workbench_tool.ui.components.DarkIconButton
 import com.github.demandss.dayz_workbench_tool.ui.components.DarkToolButton
 import com.github.demandss.dayz_workbench_tool.ui.components.Tip
 import com.github.demandss.dayz_workbench_tool.ui.icons.AppIcon
 import com.github.demandss.dayz_workbench_tool.ui.theme.*
+import org.jetbrains.compose.resources.stringResource
 import kotlin.math.roundToInt
 
 @Composable
@@ -60,20 +62,20 @@ fun Toolbar(
         Spacer(Modifier.width(4.dp))
 
         // File
-        DarkIconButton(AppIcon.FOLDER_OPEN, tr("Открыть layout…"), onClick = onOpenFile)
+        DarkIconButton(AppIcon.FOLDER_OPEN, stringResource(Res.string.open_layout), onClick = onOpenFile)
 
         Divider()
 
         // Zoom controls
-        DarkIconButton(AppIcon.UI_ZOOMOUT, tr("Уменьшить"), onClick = {
+        DarkIconButton(AppIcon.UI_ZOOMOUT, stringResource(Res.string.zoom_out), onClick = {
             state.zoom = (state.zoom * 0.9f).coerceIn(0.1f, 8f)
         })
-        Tip(tr("Текущий масштаб холста")) { ZoomLabel(state.zoom) }
-        DarkIconButton(AppIcon.UI_ZOOMIN, tr("Увеличить"), onClick = {
+        Tip(stringResource(Res.string.current_canvas_zoom)) { ZoomLabel(state.zoom) }
+        DarkIconButton(AppIcon.UI_ZOOMIN, stringResource(Res.string.zoom_in), onClick = {
             state.zoom = (state.zoom * 1.1f).coerceIn(0.1f, 8f)
         })
-        DarkIconButton(AppIcon.UI_FIT, tr("Вписать в окно"), onClick = { state.centerView() })
-        DarkButton("100%", onClick = { state.zoomActual() }, tooltip = tr("Масштаб 100%"))
+        DarkIconButton(AppIcon.UI_FIT, stringResource(Res.string.fit_to_window), onClick = { state.centerView() })
+        DarkButton("100%", onClick = { state.zoomActual() }, tooltip = stringResource(Res.string.zoom_100))
 
         Divider()
 
@@ -88,13 +90,13 @@ fun Toolbar(
         // View toggles
         DarkIconButton(
             AppIcon.WIDGET_FRAME,
-            tr("Рамки виджетов"),
+            stringResource(Res.string.widget_borders_2),
             onClick = { state.showBorders = !state.showBorders },
             active = state.showBorders,
         )
         DarkIconButton(
             AppIcon.UI_INFO,
-            tr("Подписи виджетов на холсте (F7)"),
+            stringResource(Res.string.widget_labels_on_the_canvas_f7),
             onClick = {
                 state.showWidgetNames = !state.showWidgetNames
                 state.savePreferences()
@@ -103,63 +105,73 @@ fun Toolbar(
         )
         DarkIconButton(
             AppIcon.UI_GRID,
-            tr("Показать сетку"),
+            stringResource(Res.string.show_the_grid),
             onClick = { state.showGrid = !state.showGrid },
             active = state.showGrid,
         )
         if (state.showGrid || state.snapToGrid) GridSizeField(state)
         DarkIconButton(
             AppIcon.UI_MAGNET,
-            tr("Привязка к сетке при перемещении (Ctrl отключает)"),
+            stringResource(Res.string.snap_to_the_grid_when_moving_ctrl_turns),
             onClick = { state.snapToGrid = !state.snapToGrid },
             active = state.snapToGrid,
         )
         DarkIconButton(
             AppIcon.UI_SAFE,
-            tr("Безопасная зона"),
+            stringResource(Res.string.safe_zone),
             onClick = { state.showSafeFrame = !state.showSafeFrame },
             active = state.showSafeFrame,
         )
         DarkIconButton(
             AppIcon.UI_MEASURE,
-            tr("Расстояния до краёв"),
+            stringResource(Res.string.distances_to_the_edges),
             onClick = { state.showMeasure = !state.showMeasure },
             active = state.showMeasure,
         )
         DarkIconButton(
             AppIcon.UI_COMPARE,
-            tr("Эталон Workbench"),
+            stringResource(Res.string.workbench_reference),
             onClick = { state.showReference = !state.showReference },
             active = state.showReference,
         )
 
-        DarkIconButton(AppIcon.UI_RULER, tr("Линейки"), onClick = { state.showRulers = !state.showRulers }, active = state.showRulers)
-        DarkIconButton(AppIcon.UI_FIT, tr("Миникарта"), onClick = { state.showMinimap = !state.showMinimap }, active = state.showMinimap)
-        DarkIconButton(AppIcon.UI_PIXEL, tr("Сравнить 4:3, 5:4 и 16:9"), onClick = {
+        DarkIconButton(AppIcon.UI_RULER, stringResource(Res.string.rulers), onClick = {
+            state.showRulers = !state.showRulers
+        }, active = state.showRulers)
+        DarkIconButton(AppIcon.UI_FIT, stringResource(Res.string.minimap), onClick = {
+            state.showMinimap = !state.showMinimap
+        }, active = state.showMinimap)
+        DarkIconButton(AppIcon.UI_PIXEL, stringResource(Res.string.compare_4_3_5_4_and_16_9), onClick = {
             state.compareResolutions = !state.compareResolutions
         }, active = state.compareResolutions)
 
         Spacer(Modifier.weight(1f))
         DarkIconButton(
             AppIcon.UI_UNDO,
-            tr("Отменить (Ctrl+Z)"),
+            stringResource(Res.string.undo_ctrl_z),
             onClick = { state.undo(state.activeFileIndex) },
             enabled = state.activeFile?.undoStack?.isNotEmpty() == true,
         )
         DarkIconButton(
             AppIcon.UI_REDO,
-            tr("Повторить (Ctrl+Y)"),
+            stringResource(Res.string.redo_ctrl_y),
             onClick = { state.redo(state.activeFileIndex) },
             enabled = state.activeFile?.redoStack?.isNotEmpty() == true,
         )
-        DarkIconButton(AppIcon.UI_SAVE, tr("Сохранить (Ctrl+S)"), onClick = { state.saveActiveFile() }, enabled = state.activeFile != null)
+        DarkIconButton(
+            AppIcon.UI_SAVE,
+            stringResource(Res.string.save_ctrl_s),
+            onClick = { state.saveActiveFile() },
+            enabled =
+                state.activeFile != null,
+        )
         ScriptTemplateButton(state)
         Spacer(Modifier.width(4.dp))
         BehaviorButton(state)
         Spacer(Modifier.width(4.dp))
         DarkToolButton(
             "Live Preview",
-            tooltip = tr("Чистый вид без рамок, подписей и выделения (F5)"),
+            tooltip = stringResource(Res.string.a_clean_view_without_borders_labels_and),
             onClick = { state.livePreview = !state.livePreview },
             icon = AppIcon.UI_PLAY,
             active = state.livePreview,
@@ -169,7 +181,7 @@ fun Toolbar(
         // The MCP connection has its own button: lit when the server works, opens the page with its address
         DarkToolButton(
             "MCP",
-            tooltip = tr("Подключение (MCP)") + if (McpHost.url != null) tr("  ·  MCP работает") else "",
+            tooltip = stringResource(Res.string.connection_mcp) + if (McpHost.url != null) stringResource(Res.string.mcp_running) else "",
             onClick = { state.mcpInfoOpen = true },
             dot =
                 when {
@@ -178,11 +190,13 @@ fun Toolbar(
                     else -> Color(0xFF777777)
                 },
         )
-        state.openAppSettings?.let { open -> DarkIconButton(AppIcon.UI_GEAR, tr("Настройки (Ctrl+,)"), onClick = { open() }) }
+        state.openAppSettings?.let { open ->
+            DarkIconButton(AppIcon.UI_GEAR, stringResource(Res.string.settings_ctrl), onClick = { open() })
+        }
         Spacer(Modifier.width(4.dp))
         DarkToolButton(
             "WB 1.30",
-            tooltip = tr("Как Workbench 1.30: color читается как линейный свет и смешивается в нём. Выключено: как в игре (F6)"),
+            tooltip = stringResource(Res.string.like_workbench_1_30_color_is_read_as),
             onClick = { state.workbenchColors = !state.workbenchColors },
             icon = AppIcon.UI_LAYERS,
             active = state.workbenchColors,
@@ -198,13 +212,13 @@ private fun ScriptTemplateButton(state: LayoutEditorState) {
     Box {
         DarkIconButton(
             AppIcon.UI_COPY,
-            tr("Скопировать шаблон скрипта для лайаута"),
+            stringResource(Res.string.copy_a_script_template_for_the_layout),
             onClick = { open = true },
             enabled = state.activeFile != null,
         )
         if (open) {
             ContextMenu(IntOffset(0, with(LocalDensity.current) { 28.dp.roundToPx() }), onDismiss = { open = false }) {
-                ContextMenuCaption(tr("Шаблон скрипта в буфер"))
+                ContextMenuCaption(str(Res.string.script_template_to_the_clipboard))
                 TemplateKind.entries.forEach { kind ->
                     ContextMenuItem(kind.title, icon = AppIcon.UI_COPY) {
                         open = false
@@ -232,7 +246,7 @@ private fun GridSizeField(state: LayoutEditorState) {
             state.gridSize = number
         }
     }
-    Tip(tr("Шаг сетки в пикселях")) {
+    Tip(stringResource(Res.string.grid_step_in_pixels)) {
         Row(
             Modifier
                 .height(22.dp)
@@ -297,7 +311,11 @@ private fun ResolutionPicker(
 ) {
     var expanded by remember { mutableStateOf(false) }
     Box {
-        DarkButton(selected.label, onClick = { expanded = true }, tooltip = tr("Разрешение, на котором рисуется layout"))
+        DarkButton(
+            selected.label,
+            onClick = { expanded = true },
+            tooltip = stringResource(Res.string.the_resolution_the_layout_is_drawn_at),
+        )
         if (expanded) {
             DropdownPopup(
                 selected,
@@ -318,13 +336,13 @@ private fun BehaviorButton(state: LayoutEditorState) {
     Box {
         DarkIconButton(
             AppIcon.UI_ANCHOR,
-            tr("Поведения: поставить скрипт-класс на выбранный виджет и скопировать скрипт"),
+            stringResource(Res.string.behaviours_put_a_script_class_on_the),
             onClick = { open = true },
             enabled = state.activeFile != null,
         )
         if (open) {
             ContextMenu(IntOffset(0, with(LocalDensity.current) { 28.dp.roundToPx() }), onDismiss = { open = false }) {
-                ContextMenuCaption(tr("Скрипт-класс на выбранный виджет и в буфер"))
+                ContextMenuCaption(str(Res.string.a_script_class_onto_the_selected_widget))
                 BehaviorCatalogue.entries.groupBy { it.group }.forEach { (group, entries) ->
                     ContextMenuCaption(group)
                     entries.forEach { entry ->

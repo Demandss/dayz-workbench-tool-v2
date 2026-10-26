@@ -1,11 +1,12 @@
 package com.github.demandss.dayz_workbench_tool.layout_editor.behavior
 
-import com.github.demandss.dayz_workbench_tool.i18n.tr
+import com.github.demandss.dayz_workbench_tool.i18n.str
 import com.github.demandss.dayz_workbench_tool.layout_editor.EditorWidgetNode
 import com.github.demandss.dayz_workbench_tool.layout_editor.findNode
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.LayoutEditorState
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.ToastKind
 import com.github.demandss.dayz_workbench_tool.layout_editor.updateNode
+import com.github.demandss.dayz_workbench_tool.resources.*
 import java.awt.Toolkit
 import java.awt.datatransfer.StringSelection
 
@@ -22,7 +23,7 @@ internal class BehaviorEntry(
 internal object BehaviorCatalogue {
     private val groups =
         linkedMapOf(
-            tr("Наведение и нажатие") to
+            str(Res.string.hover_and_press) to
                 listOf(
                     "HoverScale",
                     "PressScale",
@@ -125,9 +126,9 @@ internal fun LayoutEditorState.useBehavior(name: String) {
         if (widget !=
             null
         ) {
-            tr("{0} поставлен на «{1}», скрипт в буфере", className, widget.node.name)
+            str(Res.string.x_put_on_x_the_script_is_on_the, className, widget.node.name)
         } else {
-            tr("Скрипт {0} в буфере", className)
+            str(Res.string.the_script_x_is_on_the_clipboard, className)
         },
     )
 }
@@ -138,7 +139,7 @@ private fun LayoutEditorState.copyToClipboard(
 ) {
     runCatching { Toolkit.getDefaultToolkit().systemClipboard.setContents(StringSelection(text), null) }
         .onFailure {
-            notify(tr("Не удалось скопировать: {0}", it.message ?: it.javaClass.simpleName), ToastKind.ERROR)
+            notify(str(Res.string.could_not_copy_x, it.message ?: it.javaClass.simpleName), ToastKind.ERROR)
             return
         }
     notify(message, ToastKind.SUCCESS)
@@ -157,14 +158,17 @@ internal fun LayoutEditorState.exportScriptClass(node: EditorWidgetNode) {
             ?: BehaviorCatalogue.entries.firstOrNull { className.endsWith(it.name) && scriptClasses.none { c -> c.name == className } }
     if (entry != null) {
         val mod = gameLayoutPath(doc.path).takeIf { '/' in it }?.substringBefore('/') ?: "MyMod"
-        copyToClipboard(behaviorExportText(entry, className, node.node.scriptParams.orEmpty(), mod), tr("Скрипт {0} в буфере", className))
+        copyToClipboard(
+            behaviorExportText(entry, className, node.node.scriptParams.orEmpty(), mod),
+            str(Res.string.the_script_x_is_on_the_clipboard, className),
+        )
         return
     }
     val info = scriptClasses.firstOrNull { it.name == className }
     val source = info?.let { ScriptClassIndex.sourceOf(it, gameFolderPath()) }
     if (source == null) {
-        notify(tr("Исходник класса {0} не найден среди скриптов игры и подключённых модов", className), ToastKind.INFO)
+        notify(str(Res.string.the_source_of_the_class_x_was_not_found, className), ToastKind.INFO)
         return
     }
-    copyToClipboard(source, tr("Исходник {0} в буфере ({1})", className, info.source))
+    copyToClipboard(source, str(Res.string.the_source_of_x_is_on_the_clipboard_x, className, info.source))
 }

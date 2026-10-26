@@ -35,13 +35,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.github.demandss.dayz_workbench_tool.config.LayoutEditorConfig
-import com.github.demandss.dayz_workbench_tool.i18n.tr
+import com.github.demandss.dayz_workbench_tool.i18n.str
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.Resolution
+import com.github.demandss.dayz_workbench_tool.resources.*
 import com.github.demandss.dayz_workbench_tool.ui.theme.DarkenedBorder
 import com.github.demandss.dayz_workbench_tool.ui.theme.FrameBackground
 import com.github.demandss.dayz_workbench_tool.ui.theme.GhostlyText
 import com.github.demandss.dayz_workbench_tool.ui.theme.SelectColor
 import com.github.demandss.dayz_workbench_tool.ui.theme.TextForeground
+import org.jetbrains.compose.resources.stringResource
 
 /*
  * The settings of the layout editor as forms of a [LayoutEditorConfig]. The same forms are in the preferences window of the editor
@@ -68,35 +70,43 @@ fun LayoutEditorGeneralSection(
     config: LayoutEditorConfig,
     onChange: (LayoutEditorConfig) -> Unit,
 ) {
-    Heading(tr("Общие"))
+    Heading(stringResource(Res.string.general))
 
-    Caption(tr("Открытие лайаута"))
+    Caption(stringResource(Res.string.opening_a_layout))
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        Text(tr("Масштаб при открытии"), color = TextForeground, fontSize = 12.sp)
+        Text(stringResource(Res.string.zoom_on_open), color = TextForeground, fontSize = 12.sp)
         DropdownField(
             config.zoomOnOpen,
             listOf("actual", "fit"),
-            { if (it == "fit") tr("Вписать в окно") else tr("100%") },
+            { if (it == "fit") str(Res.string.fit_to_window) else str(Res.string.n_100) },
         ) { onChange(config.copy(zoomOnOpen = it)) }
     }
 
-    Caption(tr("Окно"))
-    Check(tr("Запоминать размер окна"), config.rememberWindow) { onChange(config.copy(rememberWindow = it)) }
-    Text(tr("Размер сохраняется при изменении и возвращается при следующем запуске."), color = GhostlyText, fontSize = 10.sp)
+    Caption(stringResource(Res.string.window))
+    Check(stringResource(Res.string.remember_the_window_size), config.rememberWindow) { onChange(config.copy(rememberWindow = it)) }
+    Text(stringResource(Res.string.the_size_is_saved_when_it_changes_and), color = GhostlyText, fontSize = 10.sp)
 
-    Caption(tr("Правка"))
+    Caption(stringResource(Res.string.edit))
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        Text(tr("Шагов в истории (отмена и возврат)"), color = TextForeground, fontSize = 12.sp)
+        Text(stringResource(Res.string.steps_in_the_history_undo_and_redo), color = TextForeground, fontSize = 12.sp)
         NumberField(config.undoLimit, 1..200) { onChange(config.copy(undoLimit = it)) }
     }
     val resolution = Resolution.entries.firstOrNull { it.label == config.defaultResolution } ?: Resolution.R1920x1080
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        Text(tr("Разрешение при запуске"), color = TextForeground, fontSize = 12.sp)
-        DropdownField(resolution, Resolution.entries.toList(), { if (it == Resolution.FIT) tr("Вписать в окно") else it.label }) {
+        Text(stringResource(Res.string.resolution_at_start), color = TextForeground, fontSize = 12.sp)
+        DropdownField(resolution, Resolution.entries.toList(), {
+            if (it ==
+                Resolution.FIT
+            ) {
+                str(Res.string.fit_to_window)
+            } else {
+                it.label
+            }
+        }) {
             onChange(config.copy(defaultResolution = it.label))
         }
     }
-    Text(tr("Разрешение применяется при следующем запуске редактора."), color = GhostlyText, fontSize = 10.sp)
+    Text(stringResource(Res.string.the_resolution_is_applied_the_next_time), color = GhostlyText, fontSize = 10.sp)
 }
 
 /** Colours, the names on the canvas and the grid. */
@@ -105,21 +115,24 @@ fun LayoutEditorViewSection(
     config: LayoutEditorConfig,
     onChange: (LayoutEditorConfig) -> Unit,
 ) {
-    Heading(tr("Отображение"))
-    Caption(tr("Цвета"))
-    Check(tr("Цвета как в Workbench 1.30 (F6)"), config.workbenchColors) { onChange(config.copy(workbenchColors = it)) }
+    Heading(stringResource(Res.string.view))
+    Caption(stringResource(Res.string.colours))
+    Check(
+        stringResource(Res.string.colours_as_in_workbench_1_30_f6),
+        config.workbenchColors,
+    ) { onChange(config.copy(workbenchColors = it)) }
     Text(
-        tr("Выключено: числа color читаются как sRGB, как в игре. Включено: как линейный свет, как в Workbench 1.30."),
+        stringResource(Res.string.off_the_numbers_of_color_are_read_as),
         color = GhostlyText,
         fontSize = 10.sp,
     )
-    Caption(tr("Холст"))
-    Check(tr("Подписи виджетов (F7)"), config.showWidgetNames) { onChange(config.copy(showWidgetNames = it)) }
-    Caption(tr("Сетка"))
-    Check(tr("Показывать сетку"), config.showGrid) { onChange(config.copy(showGrid = it)) }
-    Check(tr("Привязывать перемещаемые виджеты к сетке"), config.snapToGrid) { onChange(config.copy(snapToGrid = it)) }
+    Caption(stringResource(Res.string.canvas))
+    Check(stringResource(Res.string.widget_labels_f7_2), config.showWidgetNames) { onChange(config.copy(showWidgetNames = it)) }
+    Caption(stringResource(Res.string.grid))
+    Check(stringResource(Res.string.show_the_grid_2), config.showGrid) { onChange(config.copy(showGrid = it)) }
+    Check(stringResource(Res.string.snap_the_widgets_being_moved_to_the_grid), config.snapToGrid) { onChange(config.copy(snapToGrid = it)) }
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(tr("Шаг сетки, пикселей"), color = TextForeground, fontSize = 12.sp)
+        Text(stringResource(Res.string.grid_step_pixels), color = TextForeground, fontSize = 12.sp)
         NumberField(config.gridSize, 1..512) { onChange(config.copy(gridSize = it)) }
     }
 }
@@ -130,12 +143,12 @@ fun LayoutEditorMcpSection(
     config: LayoutEditorConfig,
     onChange: (LayoutEditorConfig) -> Unit,
 ) {
-    Heading(tr("Подключение ассистента (MCP)"))
-    Check(tr("Включить сервер"), config.mcpEnabled) { onChange(config.copy(mcpEnabled = it)) }
+    Heading(stringResource(Res.string.connecting_an_assistant_mcp))
+    Check(stringResource(Res.string.enable_the_server), config.mcpEnabled) { onChange(config.copy(mcpEnabled = it)) }
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(tr("Порт"), color = TextForeground, fontSize = 12.sp)
+        Text(stringResource(Res.string.port), color = TextForeground, fontSize = 12.sp)
         NumberField(config.mcpPort, 1024..65000) { onChange(config.copy(mcpPort = it)) }
-        Text(tr("Если порт занят, берётся следующий свободный"), color = GhostlyText, fontSize = 10.sp)
+        Text(stringResource(Res.string.if_the_port_is_busy_the_next_free_one_is), color = GhostlyText, fontSize = 10.sp)
     }
 }
 

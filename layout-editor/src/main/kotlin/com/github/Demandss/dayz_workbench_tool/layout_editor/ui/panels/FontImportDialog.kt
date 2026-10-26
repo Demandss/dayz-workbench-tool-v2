@@ -26,8 +26,9 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.github.demandss.dayz_workbench_tool.font.FontImporter
-import com.github.demandss.dayz_workbench_tool.i18n.tr
+import com.github.demandss.dayz_workbench_tool.i18n.str
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.LayoutEditorState
+import com.github.demandss.dayz_workbench_tool.resources.*
 import com.github.demandss.dayz_workbench_tool.ui.components.DarkButton
 import com.github.demandss.dayz_workbench_tool.ui.components.DarkToolButton
 import com.github.demandss.dayz_workbench_tool.ui.pickDirectory
@@ -39,6 +40,7 @@ import com.github.demandss.dayz_workbench_tool.ui.theme.TextForeground
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.jetbrains.compose.resources.stringResource
 import java.io.File
 
 /** The sets of characters a font can be made with, as the importer names them. */
@@ -82,67 +84,75 @@ fun FontImportDialog(state: LayoutEditorState) {
                 .onSuccess {
                     state.forgetFonts()
                     val path = state.fontPathFor(File(folder), name.trim())
-                    state.notify(tr("Шрифт создан: {0}", path))
+                    state.notify(str(Res.string.font_made_x, path))
                     state.fontImportOpen = false
-                }.onFailure { message = tr("Не удалось создать шрифт: {0}", it.message.orEmpty()) }
+                }.onFailure { message = str(Res.string.could_not_make_the_font_x, it.message.orEmpty()) }
         }
     }
 
     FlatDialog(
-        title = tr("Импорт шрифта"),
+        title = stringResource(Res.string.import_a_font),
         onDismiss = { state.fontImportOpen = false },
         onConfirm = ::create,
         width = 460.dp,
         buttons = {
-            DarkButton(tr("Отмена"), onClick = { state.fontImportOpen = false }, muted = true, modifier = Modifier.width(80.dp))
             DarkButton(
-                if (busy) tr("Создаю…") else tr("Создать"),
+                stringResource(Res.string.cancel),
+                onClick = { state.fontImportOpen = false },
+                muted = true,
+                modifier = Modifier.width(80.dp),
+            )
+            DarkButton(
+                if (busy) stringResource(Res.string.making) else stringResource(Res.string.create),
                 onClick = ::create,
                 enabled = ready,
                 modifier = Modifier.width(100.dp),
-                tooltip = tr("Сделать .fnt и .edds для каждого размера"),
+                tooltip = stringResource(Res.string.make_a_fnt_and_an_edds_for_each_size),
             )
         },
     ) {
         Text(
-            tr("Из .ttf или .otf делаются bitmap-шрифты игры: по файлу .fnt с атласом .edds на каждый размер и описание семейства .xml."),
+            stringResource(Res.string.a_ttf_or_otf_becomes_the_bitmap_fonts_of),
             color = GhostlyText,
             fontSize = 11.sp,
         )
-        PathRow(tr("Файл шрифта"), source, tr("Выбрать…"), { source = it }) {
+        PathRow(stringResource(Res.string.font_file), source, stringResource(Res.string.choose), { source = it }) {
             scope.launch {
-                pickFile(tr("Выбрать файл шрифта"), "ttf;*.otf", "C:\\Windows\\Fonts")?.let {
+                pickFile(str(Res.string.choose_a_font_file), "ttf;*.otf", "C:\\Windows\\Fonts")?.let {
                     source = it
                     if (name.isBlank()) name = File(it).nameWithoutExtension.replace(Regex("[^A-Za-z0-9_-]"), "_").trim('_')
                 }
             }
         }
-        TextRow(tr("Имя"), name, tr("файлы называются имя + размер, например Roboto22.fnt")) { name = it }
-        TextRow(tr("Размеры, пикселей"), sizes, tr("высота строки, от 6 до 200, через запятую")) { sizes = it }
-        Text(tr("Символы"), color = GhostlyText, fontSize = 11.sp)
+        TextRow(stringResource(Res.string.name), name, stringResource(Res.string.files_are_named_name_size_for_example)) { name = it }
+        TextRow(stringResource(Res.string.sizes_pixels), sizes, stringResource(Res.string.height_of_a_line_6_to_200_separated_by)) {
+            sizes =
+                it
+        }
+        Text(stringResource(Res.string.characters), color = GhostlyText, fontSize = 11.sp)
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             for (set in CHARSETS) {
                 DarkToolButton(
                     when (set) {
                         "ascii" -> "ASCII"
-                        "latin" -> tr("Латиница")
-                        "cyrillic" -> tr("Латиница и кириллица")
-                        else -> tr("Всё нужное")
+                        "latin" -> stringResource(Res.string.latin)
+                        "cyrillic" -> stringResource(Res.string.latin_and_cyrillic)
+                        else -> stringResource(Res.string.everything_usual)
                     },
                     { charset = set },
                     active = charset == set,
                     tooltip =
                         when (set) {
-                            "ascii" -> tr("Только символы ASCII")
-                            "latin" -> tr("Латиница с диакритикой, знаки и валюты")
-                            "cyrillic" -> tr("Латиница, кириллица, ₽ и №")
-                            else -> tr("Латиница, кириллица, знаки, валюты и стрелки")
+                            "ascii" -> stringResource(Res.string.ascii_characters_only)
+                            "latin" -> stringResource(Res.string.latin_with_diacritics_signs_and)
+                            "cyrillic" -> stringResource(Res.string.latin_cyrillic_and)
+                            else -> stringResource(Res.string.latin_cyrillic_signs_currencies_and)
                         },
                 )
             }
         }
-        PathRow(tr("Папка"), folder, tr("Выбрать…"), { folder = it }) {
-            scope.launch { pickDirectory(tr("Папка для шрифтов"), folder.ifBlank { null })?.let { folder = it } }
+        PathRow(stringResource(Res.string.folder), folder, stringResource(Res.string.choose), { folder = it }) {
+            scope.launch { pickDirectory(str(Res.string.folder_for_the_fonts), folder.ifBlank { null })?.let { folder = it } }
         }
         message?.let { Text(it, color = Color(0xFFD06A6A), fontSize = 11.sp) }
     }

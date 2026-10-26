@@ -37,7 +37,7 @@ import androidx.compose.ui.text.*
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.sp
-import com.github.demandss.dayz_workbench_tool.i18n.tr
+import com.github.demandss.dayz_workbench_tool.i18n.str
 import com.github.demandss.dayz_workbench_tool.layout.WidgetType
 import com.github.demandss.dayz_workbench_tool.layout_editor.EditorWidgetNode
 import com.github.demandss.dayz_workbench_tool.layout_editor.behavior.BehaviorEffect
@@ -57,6 +57,7 @@ import com.github.demandss.dayz_workbench_tool.layout_editor.state.LayoutEditorS
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.Resolution
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.WidgetSkin
 import com.github.demandss.dayz_workbench_tool.layout_editor.updateNode
+import com.github.demandss.dayz_workbench_tool.resources.*
 import kotlinx.coroutines.delay
 import java.awt.Cursor
 import java.util.UUID
@@ -971,7 +972,7 @@ fun LayoutCanvas(
                                             val handle = resizeHandle!!
                                             val start = resizeStart!!
                                             if (!resizePushed && (pos - resizeStartScreen).getDistance() >= DRAG_THRESHOLD) {
-                                                resizeRoot?.let { state.pushUndo(state.activeFileIndex, it, tr("Изменение размера")) }
+                                                resizeRoot?.let { state.pushUndo(state.activeFileIndex, it, str(Res.string.resize)) }
                                                 resizePushed = true
                                             }
                                             if (resizePushed) {
@@ -1013,9 +1014,9 @@ fun LayoutCanvas(
                                                         if (dragInfos.size >
                                                             1
                                                         ) {
-                                                            tr("Перемещение {0} виджетов", dragInfos.size)
+                                                            str(Res.string.move_x_widgets, dragInfos.size)
                                                         } else {
-                                                            tr("Перемещение")
+                                                            str(Res.string.move)
                                                         },
                                                     )
                                                 }

@@ -35,8 +35,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.github.demandss.dayz_workbench_tool.i18n.I18n
-import com.github.demandss.dayz_workbench_tool.i18n.tr
+import com.github.demandss.dayz_workbench_tool.i18n.str
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.LayoutEditorState
+import com.github.demandss.dayz_workbench_tool.resources.*
 import com.github.demandss.dayz_workbench_tool.stringtable.StringtableEntry
 import com.github.demandss.dayz_workbench_tool.stringtable.StringtableRegistry
 import com.github.demandss.dayz_workbench_tool.stringtable.textIn
@@ -46,6 +47,7 @@ import com.github.demandss.dayz_workbench_tool.ui.theme.FrameBackground
 import com.github.demandss.dayz_workbench_tool.ui.theme.GhostlyText
 import com.github.demandss.dayz_workbench_tool.ui.theme.SelectColor
 import com.github.demandss.dayz_workbench_tool.ui.theme.TextForeground
+import org.jetbrains.compose.resources.stringResource
 
 /** The value of the source filter that lets every table through, and the one of the vanilla table. */
 private const val ALL = "*"
@@ -54,8 +56,8 @@ private const val GAME = "game"
 /** What the source filter shows for a value: all tables, the vanilla table of the game, or a mod by its folder name. */
 private fun sourceLabel(origin: String) =
     when (origin) {
-        ALL -> tr("Все источники")
-        GAME -> tr("Ваниль (игра)")
+        ALL -> str(Res.string.all_sources)
+        GAME -> str(Res.string.vanilla_game)
         else -> origin
     }
 
@@ -101,24 +103,29 @@ fun StringPickerDialog(state: LayoutEditorState) {
     }
 
     FlatDialog(
-        title = tr("Строки из stringtable"),
+        title = stringResource(Res.string.strings_from_the_stringtable),
         onDismiss = { state.stringPicker = null },
         onConfirm = { selected?.let(::choose) },
         width = 620.dp,
         buttons = {
-            DarkButton(tr("Отмена"), onClick = { state.stringPicker = null }, muted = true, modifier = Modifier.width(80.dp))
             DarkButton(
-                tr("Вставить"),
+                stringResource(Res.string.cancel),
+                onClick = { state.stringPicker = null },
+                muted = true,
+                modifier = Modifier.width(80.dp),
+            )
+            DarkButton(
+                stringResource(Res.string.insert),
                 onClick = { selected?.let(::choose) },
                 enabled = selected != null,
                 modifier = Modifier.width(100.dp),
-                tooltip = tr("Записать ключ в текст виджета как #КЛЮЧ"),
+                tooltip = stringResource(Res.string.write_the_key_into_the_text_of_the),
             )
         },
     ) {
         if (all.isEmpty()) {
             Text(
-                tr("Таблицы строк не найдены: укажите папку игры в настройках и подключите моды."),
+                stringResource(Res.string.no_string_tables_found_set_the_game),
                 color = GhostlyText,
                 fontSize = 11.sp,
             )
@@ -141,15 +148,18 @@ fun StringPickerDialog(state: LayoutEditorState) {
                             .padding(horizontal = 6.dp),
                         contentAlignment = Alignment.CenterStart,
                     ) {
-                        if (query.isEmpty()) Text(tr("Поиск по ключу и тексту"), color = GhostlyText, fontSize = 12.sp)
+                        if (query.isEmpty()) Text(stringResource(Res.string.search_by_key_and_text), color = GhostlyText, fontSize = 12.sp)
                         inner()
                     }
                 },
             )
-            DropdownField(source, listOf(ALL) + origins, ::sourceLabel, tooltip = tr("Источник строк")) { source = it }
+            DropdownField(source, listOf(ALL) + origins, ::sourceLabel, tooltip = stringResource(Res.string.source_of_the_strings)) {
+                source =
+                    it
+            }
         }
         Text(
-            tr("Найдено: {0}. Текст показан на языке редактора: {1}.", shown.size, I18n.language.nativeName),
+            stringResource(Res.string.found_x_the_text_is_shown_in_the, shown.size, I18n.language.nativeName),
             color = GhostlyText,
             fontSize = 10.sp,
         )

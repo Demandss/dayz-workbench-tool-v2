@@ -40,7 +40,8 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.WindowPlacement
 import androidx.compose.ui.window.rememberWindowState
-import com.github.demandss.dayz_workbench_tool.i18n.tr
+import com.github.demandss.dayz_workbench_tool.i18n.I18n
+import com.github.demandss.dayz_workbench_tool.i18n.str
 import com.github.demandss.dayz_workbench_tool.layout_editor.mcp.McpHost
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.DragSession
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.DragSource
@@ -81,6 +82,7 @@ import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.ToastHost
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.ViewportChips
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.styles.StylesEditor
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.toolbar.Toolbar
+import com.github.demandss.dayz_workbench_tool.resources.*
 import com.github.demandss.dayz_workbench_tool.ui.components.DarkButton
 import com.github.demandss.dayz_workbench_tool.ui.components.DarkTabRow
 import com.github.demandss.dayz_workbench_tool.ui.components.Tip
@@ -94,6 +96,7 @@ import com.github.demandss.dayz_workbench_tool.ui.theme.BuiltinThemes
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.stringResource
 import javax.imageio.ImageIO
 import kotlin.math.roundToInt
 
@@ -183,313 +186,320 @@ fun LayoutEditorWindow(
             }
         }
         AppTheme(themeColors) {
-            Box(
-                Modifier
-                    .fillMaxSize()
-                    .background(FrameBackground)
-                    .onPreviewKeyEvent { event ->
-                        if (event.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
-                        if (event.key == Key.F3) {
-                            state.debugOverlay = !state.debugOverlay
-                            return@onPreviewKeyEvent true
-                        }
-                        if (event.key == Key.F5) {
-                            state.livePreview = !state.livePreview
-                            return@onPreviewKeyEvent true
-                        }
-                        if (event.key == Key.F7) {
-                            state.showWidgetNames = !state.showWidgetNames
-                            state.savePreferences()
-                            return@onPreviewKeyEvent true
-                        }
-                        if (event.key == Key.F6) {
-                            state.workbenchColors = !state.workbenchColors
-                            return@onPreviewKeyEvent true
-                        }
-                        if (event.key == Key.F1) {
-                            state.shortcutsOpen = !state.shortcutsOpen
-                            return@onPreviewKeyEvent true
-                        }
-                        if (handleGlobalKey(state, event)) return@onPreviewKeyEvent true
-                        val styles = state.activeStyles
-                        if (styles != null && !state.commandPaletteOpen) {
-                            return@onPreviewKeyEvent when {
-                                event.isCtrlPressed && event.key == Key.S -> {
-                                    state.saveActiveStyles()
-                                    true
-                                }
-
-                                event.isCtrlPressed && event.key == Key.Z -> {
-                                    styles.undo()
-                                    true
-                                }
-
-                                event.isCtrlPressed && event.key == Key.Y -> {
-                                    styles.redo()
-                                    true
-                                }
-
-                                event.isCtrlPressed && event.key == Key.W -> {
-                                    state.closeStyles(state.activeStylesIndex)
-                                    true
-                                }
-
-                                else -> {
-                                    false
-                                }
-                            }
-                        }
-                        val imageSet = state.activeImageSet
-                        if (imageSet != null && !state.commandPaletteOpen) {
-                            return@onPreviewKeyEvent when {
-                                event.isCtrlPressed && event.key == Key.S -> {
-                                    state.saveActiveImageSet()
-                                    true
-                                }
-
-                                event.isCtrlPressed && event.key == Key.Z -> {
-                                    imageSet.undo()
-                                    true
-                                }
-
-                                event.isCtrlPressed && event.key == Key.Y -> {
-                                    imageSet.redo()
-                                    true
-                                }
-
-                                event.isCtrlPressed && event.key == Key.W -> {
-                                    state.closeImageSet(state.activeImageSetIndex)
-                                    true
-                                }
-
-                                else -> {
-                                    false
-                                }
-                            }
-                        }
-                        if (state.activeTexture != null) {
-                            // The viewport shows a texture: only closing the tab applies
-                            if (event.isCtrlPressed && event.key == Key.W) {
-                                state.closeTexture(state.activeTextureIndex)
+            // The strings of the resources are read once: a new language draws the content again, not the window
+            key(I18n.language) {
+                Box(
+                    Modifier
+                        .fillMaxSize()
+                        .background(FrameBackground)
+                        .onPreviewKeyEvent { event ->
+                            if (event.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
+                            if (event.key == Key.F3) {
+                                state.debugOverlay = !state.debugOverlay
                                 return@onPreviewKeyEvent true
                             }
-                            return@onPreviewKeyEvent false
-                        }
-                        when {
-                            state.commandPaletteOpen -> {
-                                false
+                            if (event.key == Key.F5) {
+                                state.livePreview = !state.livePreview
+                                return@onPreviewKeyEvent true
                             }
-
-                            event.isCtrlPressed && event.key == Key.D -> {
-                                state.duplicateSelected()
-                                true
+                            if (event.key == Key.F7) {
+                                state.showWidgetNames = !state.showWidgetNames
+                                state.savePreferences()
+                                return@onPreviewKeyEvent true
                             }
-
-                            event.isCtrlPressed && !event.isShiftPressed && event.key == Key.S -> {
-                                state.saveActiveFile()
-                                true
+                            if (event.key == Key.F6) {
+                                state.workbenchColors = !state.workbenchColors
+                                return@onPreviewKeyEvent true
                             }
-
-                            event.isCtrlPressed && event.key == Key.Z -> {
-                                state.undo(state.activeFileIndex)
-                                true
+                            if (event.key == Key.F1) {
+                                state.shortcutsOpen = !state.shortcutsOpen
+                                return@onPreviewKeyEvent true
                             }
-
-                            event.isCtrlPressed && event.key == Key.Y -> {
-                                state.redo(state.activeFileIndex)
-                                true
-                            }
-
-                            event.isCtrlPressed && event.key == Key.W -> {
-                                val idx = state.activeFileIndex
-                                if (idx >= 0) state.closeFile(idx)
-                                true
-                            }
-
-                            else -> {
-                                false
-                            }
-                        }
-                    }
-                    // Drag interceptor on the root itself — parent Initial pass sees events
-                    // before children's Main pass, and never consumes, so clicks work normally
-                    .pointerInput(Unit) {
-                        awaitPointerEventScope {
-                            while (true) {
-                                val event = awaitPointerEvent(PointerEventPass.Initial)
-                                val pos = event.changes.firstOrNull()?.position ?: continue
-                                when (event.type) {
-                                    PointerEventType.Move -> {
-                                        if (state.dragSession != null) {
-                                            state.dragScreenPos = pos
-                                            state.dragHoverNodeId =
-                                                state.hierarchyRowBounds
-                                                    .entries
-                                                    .firstOrNull { (_, rect) -> rect.contains(pos) }
-                                                    ?.key
-                                        }
-                                    }
-
-                                    PointerEventType.Release -> {
-                                        val session = state.dragSession
-                                        if (session != null) {
-                                            handleDrop(state, session, pos)
-                                            state.dragSession = null
-                                            state.dragHoverNodeId = null
-                                        }
-                                    }
-
-                                    else -> {}
-                                }
-                                // Never consume — just observe
-                            }
-                        }
-                    },
-            ) {
-                // ── Main layout ───────────────────────────────────────────
-                Column(Modifier.fillMaxSize()) {
-                    Row(Modifier.weight(1f).fillMaxWidth()) {
-                        var treeWidth by remember { mutableStateOf(220.dp) }
-                        if (state.showFileTree) {
-                            FileTreePanel(state, width = treeWidth)
-
-                            ResizeDivider { delta -> treeWidth = (treeWidth + delta).coerceIn(160.dp, 600.dp) }
-                        }
-
-                        Column(Modifier.weight(1f).fillMaxHeight()) {
-                            FileTabBar(state)
-
-                            val texture = state.activeTexture
-                            val imageSet = state.activeImageSet
+                            if (handleGlobalKey(state, event)) return@onPreviewKeyEvent true
                             val styles = state.activeStyles
-                            if (state.openFiles.isEmpty() && state.openTextures.isEmpty() && state.openImageSets.isEmpty() &&
-                                state.openStyles.isEmpty()
-                            ) {
-                                EmptyState(state, Modifier.weight(1f).fillMaxWidth()) {
-                                    scope.launch {
-                                        pickFile(tr("Открыть файл"), "*", state.workDrivePath.ifBlank { null })?.let { state.openAny(it) }
+                            if (styles != null && !state.commandPaletteOpen) {
+                                return@onPreviewKeyEvent when {
+                                    event.isCtrlPressed && event.key == Key.S -> {
+                                        state.saveActiveStyles()
+                                        true
+                                    }
+
+                                    event.isCtrlPressed && event.key == Key.Z -> {
+                                        styles.undo()
+                                        true
+                                    }
+
+                                    event.isCtrlPressed && event.key == Key.Y -> {
+                                        styles.redo()
+                                        true
+                                    }
+
+                                    event.isCtrlPressed && event.key == Key.W -> {
+                                        state.closeStyles(state.activeStylesIndex)
+                                        true
+                                    }
+
+                                    else -> {
+                                        false
                                     }
                                 }
-                            } else if (styles != null) {
-                                StylesEditor(state, styles, Modifier.weight(1f).fillMaxWidth())
-                            } else if (imageSet != null) {
-                                ImageSetEditor(state, imageSet, Modifier.weight(1f).fillMaxWidth())
-                            } else if (texture != null && texture.path.endsWith(".fnt", ignoreCase = true)) {
-                                FontViewer(state, texture, Modifier.weight(1f).fillMaxWidth())
-                            } else if (texture != null) {
-                                TextureViewer(state, texture, Modifier.weight(1f).fillMaxWidth())
-                            } else {
-                                Toolbar(state) {
-                                    scope.launch {
-                                        val path =
+                            }
+                            val imageSet = state.activeImageSet
+                            if (imageSet != null && !state.commandPaletteOpen) {
+                                return@onPreviewKeyEvent when {
+                                    event.isCtrlPressed && event.key == Key.S -> {
+                                        state.saveActiveImageSet()
+                                        true
+                                    }
+
+                                    event.isCtrlPressed && event.key == Key.Z -> {
+                                        imageSet.undo()
+                                        true
+                                    }
+
+                                    event.isCtrlPressed && event.key == Key.Y -> {
+                                        imageSet.redo()
+                                        true
+                                    }
+
+                                    event.isCtrlPressed && event.key == Key.W -> {
+                                        state.closeImageSet(state.activeImageSetIndex)
+                                        true
+                                    }
+
+                                    else -> {
+                                        false
+                                    }
+                                }
+                            }
+                            if (state.activeTexture != null) {
+                                // The viewport shows a texture: only closing the tab applies
+                                if (event.isCtrlPressed && event.key == Key.W) {
+                                    state.closeTexture(state.activeTextureIndex)
+                                    return@onPreviewKeyEvent true
+                                }
+                                return@onPreviewKeyEvent false
+                            }
+                            when {
+                                state.commandPaletteOpen -> {
+                                    false
+                                }
+
+                                event.isCtrlPressed && event.key == Key.D -> {
+                                    state.duplicateSelected()
+                                    true
+                                }
+
+                                event.isCtrlPressed && !event.isShiftPressed && event.key == Key.S -> {
+                                    state.saveActiveFile()
+                                    true
+                                }
+
+                                event.isCtrlPressed && event.key == Key.Z -> {
+                                    state.undo(state.activeFileIndex)
+                                    true
+                                }
+
+                                event.isCtrlPressed && event.key == Key.Y -> {
+                                    state.redo(state.activeFileIndex)
+                                    true
+                                }
+
+                                event.isCtrlPressed && event.key == Key.W -> {
+                                    val idx = state.activeFileIndex
+                                    if (idx >= 0) state.closeFile(idx)
+                                    true
+                                }
+
+                                else -> {
+                                    false
+                                }
+                            }
+                        }
+                        // Drag interceptor on the root itself — parent Initial pass sees events
+                        // before children's Main pass, and never consumes, so clicks work normally
+                        .pointerInput(Unit) {
+                            awaitPointerEventScope {
+                                while (true) {
+                                    val event = awaitPointerEvent(PointerEventPass.Initial)
+                                    val pos = event.changes.firstOrNull()?.position ?: continue
+                                    when (event.type) {
+                                        PointerEventType.Move -> {
+                                            if (state.dragSession != null) {
+                                                state.dragScreenPos = pos
+                                                state.dragHoverNodeId =
+                                                    state.hierarchyRowBounds
+                                                        .entries
+                                                        .firstOrNull { (_, rect) -> rect.contains(pos) }
+                                                        ?.key
+                                            }
+                                        }
+
+                                        PointerEventType.Release -> {
+                                            val session = state.dragSession
+                                            if (session != null) {
+                                                handleDrop(state, session, pos)
+                                                state.dragSession = null
+                                                state.dragHoverNodeId = null
+                                            }
+                                        }
+
+                                        else -> {}
+                                    }
+                                    // Never consume — just observe
+                                }
+                            }
+                        },
+                ) {
+                    // ── Main layout ───────────────────────────────────────────
+                    Column(Modifier.fillMaxSize()) {
+                        Row(Modifier.weight(1f).fillMaxWidth()) {
+                            var treeWidth by remember { mutableStateOf(220.dp) }
+                            if (state.showFileTree) {
+                                FileTreePanel(state, width = treeWidth)
+
+                                ResizeDivider { delta -> treeWidth = (treeWidth + delta).coerceIn(160.dp, 600.dp) }
+                            }
+
+                            Column(Modifier.weight(1f).fillMaxHeight()) {
+                                FileTabBar(state)
+
+                                val texture = state.activeTexture
+                                val imageSet = state.activeImageSet
+                                val styles = state.activeStyles
+                                if (state.openFiles.isEmpty() && state.openTextures.isEmpty() && state.openImageSets.isEmpty() &&
+                                    state.openStyles.isEmpty()
+                                ) {
+                                    EmptyState(state, Modifier.weight(1f).fillMaxWidth()) {
+                                        scope.launch {
                                             pickFile(
-                                                tr("Открыть layout-файл"),
-                                                "layout",
+                                                str(Res.string.open_a_file),
+                                                "*",
                                                 state.workDrivePath.ifBlank { null },
+                                            )?.let { state.openAny(it) }
+                                        }
+                                    }
+                                } else if (styles != null) {
+                                    StylesEditor(state, styles, Modifier.weight(1f).fillMaxWidth())
+                                } else if (imageSet != null) {
+                                    ImageSetEditor(state, imageSet, Modifier.weight(1f).fillMaxWidth())
+                                } else if (texture != null && texture.path.endsWith(".fnt", ignoreCase = true)) {
+                                    FontViewer(state, texture, Modifier.weight(1f).fillMaxWidth())
+                                } else if (texture != null) {
+                                    TextureViewer(state, texture, Modifier.weight(1f).fillMaxWidth())
+                                } else {
+                                    Toolbar(state) {
+                                        scope.launch {
+                                            val path =
+                                                pickFile(
+                                                    str(Res.string.open_a_layout_file),
+                                                    "layout",
+                                                    state.workDrivePath.ifBlank { null },
+                                                )
+                                            if (path != null) state.openFile(path)
+                                        }
+                                    }
+
+                                    val changedPath =
+                                        state.activeFile
+                                            ?.path
+                                            ?.takeIf { state.filesChangedOnDisk.contains(it) }
+                                    if (changedPath != null) {
+                                        ChangedOnDiskBanner(
+                                            onReload = { state.reloadFile(changedPath) },
+                                            onIgnore = { state.dismissChangedNotification(changedPath) },
+                                        )
+                                    }
+
+                                    Breadcrumbs(state)
+
+                                    Row(Modifier.weight(1f).fillMaxWidth()) {
+                                        Box(Modifier.weight(1f).fillMaxHeight()) {
+                                            LayoutCanvas(
+                                                state,
+                                                Modifier
+                                                    .fillMaxSize()
+                                                    .onGloballyPositioned { coords ->
+                                                        state.canvasBoundsInWindow = coords.boundsInWindow()
+                                                    },
                                             )
-                                        if (path != null) state.openFile(path)
-                                    }
-                                }
-
-                                val changedPath =
-                                    state.activeFile
-                                        ?.path
-                                        ?.takeIf { state.filesChangedOnDisk.contains(it) }
-                                if (changedPath != null) {
-                                    ChangedOnDiskBanner(
-                                        onReload = { state.reloadFile(changedPath) },
-                                        onIgnore = { state.dismissChangedNotification(changedPath) },
-                                    )
-                                }
-
-                                Breadcrumbs(state)
-
-                                Row(Modifier.weight(1f).fillMaxWidth()) {
-                                    Box(Modifier.weight(1f).fillMaxHeight()) {
-                                        LayoutCanvas(
-                                            state,
-                                            Modifier
-                                                .fillMaxSize()
-                                                .onGloballyPositioned { coords ->
-                                                    state.canvasBoundsInWindow = coords.boundsInWindow()
-                                                },
-                                        )
-                                        CanvasContextMenu(state)
-                                        ReferencePanel(state, Modifier.align(Alignment.TopEnd).padding(12.dp))
-                                        if (state.showRulers && !state.livePreview) Rulers(state)
-                                        if (state.showMinimap &&
-                                            !state.livePreview
-                                        ) {
-                                            Minimap(state, Modifier.align(Alignment.BottomEnd).padding(10.dp))
+                                            CanvasContextMenu(state)
+                                            ReferencePanel(state, Modifier.align(Alignment.TopEnd).padding(12.dp))
+                                            if (state.showRulers && !state.livePreview) Rulers(state)
+                                            if (state.showMinimap &&
+                                                !state.livePreview
+                                            ) {
+                                                Minimap(state, Modifier.align(Alignment.BottomEnd).padding(10.dp))
+                                            }
+                                            if (state.compareResolutions && !state.livePreview) {
+                                                ResolutionCompare(state, Modifier.align(Alignment.BottomCenter).padding(bottom = 10.dp))
+                                            }
+                                            ViewportChips(
+                                                state,
+                                                Modifier
+                                                    .align(
+                                                        Alignment.BottomStart,
+                                                    ).padding(10.dp)
+                                                    .let { if (state.showRulers) it.padding(start = 18.dp) else it },
+                                            )
+                                            SelectionBar(state, Modifier.align(Alignment.TopCenter).padding(top = 10.dp))
                                         }
-                                        if (state.compareResolutions && !state.livePreview) {
-                                            ResolutionCompare(state, Modifier.align(Alignment.BottomCenter).padding(bottom = 10.dp))
-                                        }
-                                        ViewportChips(
-                                            state,
-                                            Modifier
-                                                .align(
-                                                    Alignment.BottomStart,
-                                                ).padding(10.dp)
-                                                .let { if (state.showRulers) it.padding(start = 18.dp) else it },
-                                        )
-                                        SelectionBar(state, Modifier.align(Alignment.TopCenter).padding(top = 10.dp))
+
+                                        Box(Modifier.width(1.dp).fillMaxHeight().background(DarkenedBorder))
+
+                                        RightPanel(state)
                                     }
-
-                                    Box(Modifier.width(1.dp).fillMaxHeight().background(DarkenedBorder))
-
-                                    RightPanel(state)
                                 }
                             }
                         }
+
+                        StatusBar(state)
                     }
 
-                    StatusBar(state)
-                }
+                    // ── Drag ghost ────────────────────────────────────────────
+                    val drag = state.dragSession
+                    if (drag != null) {
+                        val label =
+                            when (val src = drag.source) {
+                                is DragSource.FromPalette -> {
+                                    src.type.className.removeSuffix("WidgetClass")
+                                }
 
-                // ── Drag ghost ────────────────────────────────────────────
-                val drag = state.dragSession
-                if (drag != null) {
-                    val label =
-                        when (val src = drag.source) {
-                            is DragSource.FromPalette -> {
-                                src.type.className.removeSuffix("WidgetClass")
+                                is DragSource.FromHierarchy -> {
+                                    state.activeFile?.root?.findNode(src.nodeId)?.node?.let { n ->
+                                        n.type.className.removeSuffix("WidgetClass") +
+                                            if (n.name.isNotEmpty()) " · ${n.name}" else ""
+                                    } ?: "Widget"
+                                }
                             }
-
-                            is DragSource.FromHierarchy -> {
-                                state.activeFile?.root?.findNode(src.nodeId)?.node?.let { n ->
-                                    n.type.className.removeSuffix("WidgetClass") +
-                                        if (n.name.isNotEmpty()) " · ${n.name}" else ""
-                                } ?: "Widget"
-                            }
+                        val gx = (state.dragScreenPos.x + 14f).roundToInt()
+                        val gy = (state.dragScreenPos.y + 14f).roundToInt()
+                        Box(
+                            Modifier
+                                .size(0.dp)
+                                .absoluteOffset { IntOffset(gx, gy) }
+                                .wrapContentSize(Alignment.TopStart, unbounded = true)
+                                .background(ElementsBackground)
+                                .border(1.dp, Color(0xFF4A9EFF))
+                                .padding(horizontal = 8.dp, vertical = 4.dp),
+                        ) {
+                            Text(label, color = TextForeground, fontSize = 11.sp)
                         }
-                    val gx = (state.dragScreenPos.x + 14f).roundToInt()
-                    val gy = (state.dragScreenPos.y + 14f).roundToInt()
-                    Box(
-                        Modifier
-                            .size(0.dp)
-                            .absoluteOffset { IntOffset(gx, gy) }
-                            .wrapContentSize(Alignment.TopStart, unbounded = true)
-                            .background(ElementsBackground)
-                            .border(1.dp, Color(0xFF4A9EFF))
-                            .padding(horizontal = 8.dp, vertical = 4.dp),
-                    ) {
-                        Text(label, color = TextForeground, fontSize = 11.sp)
                     }
-                }
 
-                BulkEditDialog(state)
-                FontImportDialog(state)
-                StringPickerDialog(state)
-                IconPickerWindow(state)
-                McpConnectionWindow(state)
-                ConfirmDialog(state)
-                ShortcutsDialog(state)
-                if (state.debugOverlay) FpsOverlay(Modifier.align(Alignment.TopEnd).padding(top = 34.dp, end = 12.dp))
-                ToastHost(state, Modifier.align(Alignment.BottomEnd).padding(bottom = 22.dp))
-                CommandPalette(state) {
-                    scope.launch {
-                        pickFile(tr("Открыть файл"), "*", state.workDrivePath.ifBlank { null })?.let { state.openAny(it) }
+                    BulkEditDialog(state)
+                    FontImportDialog(state)
+                    StringPickerDialog(state)
+                    IconPickerWindow(state)
+                    McpConnectionWindow(state)
+                    ConfirmDialog(state)
+                    ShortcutsDialog(state)
+                    if (state.debugOverlay) FpsOverlay(Modifier.align(Alignment.TopEnd).padding(top = 34.dp, end = 12.dp))
+                    ToastHost(state, Modifier.align(Alignment.BottomEnd).padding(bottom = 22.dp))
+                    CommandPalette(state) {
+                        scope.launch {
+                            pickFile(str(Res.string.open_a_file), "*", state.workDrivePath.ifBlank { null })?.let { state.openAny(it) }
+                        }
                     }
                 }
             }
@@ -657,7 +667,7 @@ private fun FileTab(
                 Box(Modifier.size(6.dp).background(Color(0xFF4A9EFF), CircleShape))
             }
             Spacer(Modifier.width(6.dp))
-            Tip(tr("Закрыть вкладку (Ctrl+W)")) {
+            Tip(stringResource(Res.string.close_the_tab_ctrl_w)) {
                 Box(
                     Modifier
                         .size(14.dp)
@@ -696,13 +706,21 @@ private fun ChangedOnDiskBanner(
         horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         Text(
-            tr("Файл изменён на диске."),
+            stringResource(Res.string.the_file_was_changed_on_disk),
             color = Color(0xFFFFD04A),
             fontSize = 12.sp,
             modifier = Modifier.weight(1f),
         )
-        DarkButton(tr("Перезагрузить"), onClick = onReload, tooltip = tr("Прочитать файл с диска заново, правки в редакторе пропадут"))
-        DarkButton(tr("Игнорировать"), onClick = onIgnore, tooltip = tr("Оставить то, что открыто в редакторе"))
+        DarkButton(
+            stringResource(Res.string.reload),
+            onClick = onReload,
+            tooltip = stringResource(Res.string.read_the_file_from_disk_again_the_edits),
+        )
+        DarkButton(
+            stringResource(Res.string.ignore),
+            onClick = onIgnore,
+            tooltip = stringResource(Res.string.keep_what_is_open_in_the_editor),
+        )
     }
 }
 
@@ -733,10 +751,10 @@ private fun RightPanel(state: LayoutEditorState) {
                 Box(Modifier.weight(1f).fillMaxHeight()) {
                     Tip(
                         listOf(
-                            tr("Свойства выбранного виджета"),
-                            tr("Виджеты, которые можно добавить"),
-                            tr("Что в layout выглядит неверно"),
-                            tr("Действия в этом layout, можно вернуться к любому"),
+                            stringResource(Res.string.properties_of_the_selected_widget),
+                            stringResource(Res.string.widgets_you_can_add),
+                            stringResource(Res.string.what_looks_wrong_in_the_layout),
+                            stringResource(Res.string.actions_in_this_layout_you_can_return_to),
                         )[i],
                     ) {
                         Box(
