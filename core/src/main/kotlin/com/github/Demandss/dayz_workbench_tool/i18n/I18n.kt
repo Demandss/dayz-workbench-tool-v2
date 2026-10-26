@@ -31,9 +31,8 @@ enum class Language(
 }
 
 /**
- * The language of the interface. The texts in the code are written in Russian and stand for their own keys: a text is looked up in
- * the table of the chosen language, then in English, and shown as it is when neither has it. So a text that was not translated
- * yet still shows, and the code reads as before.
+ * The language of the interface. The texts are the strings of the resources (`composeResources/values-<code>/strings.xml`), which
+ * follow the default locale: the app sets it from [language] (see `Main.kt`) and draws its windows again when it changes.
  */
 object I18n {
     /** What the user chose: [SYSTEM] or the code of a language. A state, so that what shows a text is drawn again when it changes. */
@@ -44,33 +43,4 @@ object I18n {
     /** The language the texts are shown in now. */
     val language: Language
         get() = if (setting == SYSTEM) Language.ofSystem() else Language.byCode(setting) ?: Language.EN
-
-    fun translate(
-        text: String,
-        args: Array<out Any?>,
-    ): String {
-        val language = language
-        val translated =
-            if (language == Language.RU) {
-                text
-            } else {
-                Translations.of(language)[text] ?: Translations.of(Language.EN)[text] ?: text
-            }
-        if (args.isEmpty()) return translated
-        var out = translated
-        args.forEachIndexed { i, arg -> out = out.replace("{$i}", arg.toString()) }
-        return out
-    }
 }
-
-/** The text in the language of the interface; `{0}`, `{1}` in it are replaced by [args]. */
-fun tr(
-    text: String,
-    vararg args: Any?,
-): String = I18n.translate(text, args)
-
-/**
- * Marks a text that is a key of the translations but is shown later, through [tr] with a variable (the name of a page that an enum
- * holds, for instance). It is the text itself; the check of the translations reads these marks as it reads the calls of [tr].
- */
-fun trKey(text: String): String = text
