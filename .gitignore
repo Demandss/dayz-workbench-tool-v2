@@ -58,3 +58,6 @@ local.properties
 
 ### Windows ###
 Thumbs.db
+
+### Personal agent instructions ###
+CLAUDE.local.md
