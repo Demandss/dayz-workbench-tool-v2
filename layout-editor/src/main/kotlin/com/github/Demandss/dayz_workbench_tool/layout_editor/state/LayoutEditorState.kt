@@ -620,7 +620,19 @@ class LayoutEditorState(
 
     private fun scanMods() {
         val mods = connectedMods().map(::File).filter { it.isDirectory }
-        if (mods.isEmpty()) return
+        if (mods.isEmpty()) {
+            // Whatever the mods that are gone gave must not be drawn any more
+            if (modStyleFiles.isNotEmpty() || modImageSetFiles.isNotEmpty()) {
+                modStyleFiles = emptyList()
+                modImageSetFiles = emptyList()
+                vanillaSheetFrom = null
+                imageSetIndexFor = null
+                skinPlans.clear()
+                skinCache.clear()
+                modScanDone++
+            }
+            return
+        }
         scope.launch(Dispatchers.IO) {
             val styles = mutableListOf<File>()
             val sets = mutableListOf<File>()
