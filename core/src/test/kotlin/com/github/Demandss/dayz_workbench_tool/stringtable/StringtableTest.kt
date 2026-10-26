@@ -43,11 +43,6 @@ class StringtableTest {
         val craft = StringtableCsv.parse(vanilla, "game").first()
         assertEquals("Create", craft.textIn(Language.RU))
         assertEquals("Craft", craft.textIn(Language.EN))
-        assertEquals("Herstellen", craft.textIn(Language.DE))
-        assertEquals("制作", craft.textIn(Language.ZH))
-        // No column for Ukrainian, and an empty cell: the text stays as it is
-        assertNull(craft.textIn(Language.UK))
-        assertNull(craft.textIn(Language.FR))
     }
 
     @Test

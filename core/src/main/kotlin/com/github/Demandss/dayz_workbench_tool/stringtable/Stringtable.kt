@@ -21,21 +21,7 @@ val Language.stringtableColumn: String?
     get() =
         when (this) {
             Language.EN -> "english"
-
             Language.RU -> "russian"
-
-            Language.DE -> "german"
-
-            Language.FR -> "french"
-
-            Language.ES -> "spanish"
-
-            Language.PT -> "portuguese"
-
-            Language.ZH -> "chinesesimp"
-
-            // The game has no Ukrainian column
-            Language.UK -> null
         }
 
 /** The text of the entry in [language], or null when the language has no column or the cell is empty. */
@@ -54,7 +40,7 @@ object StringtableCsv {
         text: String,
         origin: String,
     ): List<StringtableEntry> {
-        val rows = rows(text.removePrefix("﻿"))
+        val rows = rows(text.removePrefix(""))
         if (rows.isEmpty()) return emptyList()
         val header = rows.first().map { normalize(it) }
         val out = ArrayList<StringtableEntry>(rows.size)

@@ -13,12 +13,6 @@ enum class Language(
 ) {
     EN("en", "English"),
     RU("ru", "Русский"),
-    UK("uk", "Українська"),
-    DE("de", "Deutsch"),
-    FR("fr", "Français"),
-    ES("es", "Español"),
-    PT("pt", "Português"),
-    ZH("zh", "简体中文"),
     ;
 
     companion object {
@@ -39,6 +33,9 @@ object I18n {
     var setting: String by mutableStateOf(SYSTEM)
 
     const val SYSTEM = "system"
+
+    /** A saved language as the setting: itself when the interface has it, [SYSTEM] when it is empty, unknown or from a time with more languages. */
+    fun settingOf(saved: String?): String = saved?.trim()?.let { Language.byCode(it)?.code ?: SYSTEM } ?: SYSTEM
 
     /** The language the texts are shown in now. */
     val language: Language
