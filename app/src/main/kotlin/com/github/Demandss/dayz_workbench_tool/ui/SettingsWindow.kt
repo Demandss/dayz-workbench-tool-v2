@@ -28,6 +28,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.github.demandss.dayz_workbench_tool.config.AppConfig
+import com.github.demandss.dayz_workbench_tool.config.ConfigManager
+import com.github.demandss.dayz_workbench_tool.config.LayoutEditorConfig
+import com.github.demandss.dayz_workbench_tool.config.withSettingsFrom
+import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.LayoutEditorSettingsForm
 import com.github.demandss.dayz_workbench_tool.state.AppState
 import com.github.demandss.dayz_workbench_tool.state.Screen
 import com.github.demandss.dayz_workbench_tool.ui.components.ColorPickerDialog
@@ -44,6 +48,8 @@ import java.util.stream.Collectors
 @Composable
 fun SettingsScreen(state: AppState) {
     var localConfig by remember { mutableStateOf(state.config) }
+    // A local copy of the settings of the layout editor, stored by Save like the rest
+    var localEditor by remember { mutableStateOf(ConfigManager.LayoutEditor.load()) }
     var selectedTab by remember { mutableStateOf(0) }
 
     Column(modifier = Modifier.fillMaxSize()) {
@@ -62,14 +68,18 @@ fun SettingsScreen(state: AppState) {
             SettingsMenuButton("← Back") { state.navigate(Screen.MAIN) }
             SettingsMenuButton("Save") {
                 state.updateConfig(localConfig)
+                state.saveLayoutEditorSettings(localEditor)
                 state.navigate(Screen.MAIN)
             }
-            SettingsMenuButton("Reset") { localConfig = AppConfig() }
+            SettingsMenuButton("Reset") {
+                localConfig = AppConfig()
+                localEditor = localEditor.withSettingsFrom(LayoutEditorConfig())
+            }
         }
         HorizontalDivider(color = DarkenedBorder)
 
         DarkTabRow(
-            tabs = listOf("Global", "Advanced", "Theme"),
+            tabs = listOf("Global", "Advanced", "Theme", "Layout Editor"),
             selectedIndex = selectedTab,
             onTabSelected = { selectedTab = it },
         )
@@ -80,6 +90,7 @@ fun SettingsScreen(state: AppState) {
                 0 -> GlobalTab(localConfig) { localConfig = it }
                 1 -> AdvancedTab(localConfig) { localConfig = it }
                 2 -> ThemeTab(localConfig) { localConfig = it }
+                3 -> LayoutEditorTab(localEditor) { localEditor = it }
             }
         }
 
@@ -693,6 +704,20 @@ private fun ProcessPickerDialog(
 
             DarkButton("Cancel", onClick = onDismiss, modifier = Modifier.fillMaxWidth())
         }
+    }
+}
+
+/** The settings of the layout editor: the same form as in the preferences window of the editor, on a copy that Save stores. */
+@Composable
+private fun LayoutEditorTab(
+    config: LayoutEditorConfig,
+    onChange: (LayoutEditorConfig) -> Unit,
+) {
+    Column(
+        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(12.dp),
+        verticalArrangement = Arrangement.spacedBy(5.dp),
+    ) {
+        LayoutEditorSettingsForm(config, onChange)
     }
 }
 

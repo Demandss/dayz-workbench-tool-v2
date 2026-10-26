@@ -3,7 +3,9 @@ package com.github.demandss.dayz_workbench_tool.state
 import androidx.compose.runtime.*
 import com.github.demandss.dayz_workbench_tool.config.AppConfig
 import com.github.demandss.dayz_workbench_tool.config.ConfigManager
+import com.github.demandss.dayz_workbench_tool.config.LayoutEditorConfig
 import com.github.demandss.dayz_workbench_tool.config.ModEntry
+import com.github.demandss.dayz_workbench_tool.config.withSettingsFrom
 import com.github.demandss.dayz_workbench_tool.manager.ModificationManager
 import com.github.demandss.dayz_workbench_tool.manager.ToolsManager
 import com.github.demandss.dayz_workbench_tool.model.ModSide
@@ -28,6 +30,19 @@ class AppState {
 
     fun navigate(screen: Screen) {
         currentScreen = screen
+    }
+
+    /** Changes when the settings of the layout editor were stored from the settings window, so that an open editor reads them. */
+    var layoutEditorSettingsTick by mutableStateOf(0)
+        private set
+
+    /**
+     * Stores the settings of the layout editor that were edited in the settings window. Only the settings are taken from
+     * [edited]: the window size and the sessions are written by the editor itself and stay as they are on the disk.
+     */
+    fun saveLayoutEditorSettings(edited: LayoutEditorConfig) {
+        ConfigManager.LayoutEditor.save(ConfigManager.LayoutEditor.load().withSettingsFrom(edited))
+        layoutEditorSettingsTick++
     }
 
     fun updateConfig(newConfig: AppConfig) {

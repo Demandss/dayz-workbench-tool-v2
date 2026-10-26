@@ -52,6 +52,10 @@ fun main() =
                     LayoutEditorState(state.config.workDrivePath, scope, state.config.gamePath, enabledMods)
                 }
             // The window is kept while the game path or the enabled mods change in the main window: the editor takes them too
+            // The same for the settings of the editor stored from the Layout Editor tab of the settings window
+            LaunchedEffect(state.layoutEditorSettingsTick) {
+                if (state.layoutEditorSettingsTick > 0) leState.reloadSettingsFromDisk()
+            }
             LaunchedEffect(state.config.workDrivePath, state.config.gamePath, enabledMods) {
                 leState.updateRoots(state.config.workDrivePath, state.config.gamePath, enabledMods)
             }
