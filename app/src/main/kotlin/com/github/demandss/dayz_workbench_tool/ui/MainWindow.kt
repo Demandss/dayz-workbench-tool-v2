@@ -7,9 +7,6 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.FolderOpen
-import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -40,6 +37,8 @@ import com.github.demandss.dayz_workbench_tool.ui.components.DarkButton
 import com.github.demandss.dayz_workbench_tool.ui.components.ModsPanel
 import com.github.demandss.dayz_workbench_tool.ui.components.PoweredByFooter
 import com.github.demandss.dayz_workbench_tool.ui.components.ToolsPanel
+import com.github.demandss.dayz_workbench_tool.ui.icons.AppIcon
+import com.github.demandss.dayz_workbench_tool.ui.icons.AppIconView
 import com.github.demandss.dayz_workbench_tool.ui.theme.*
 import com.github.demandss.dayz_workbench_tool.ui.theme.resolveTheme
 import com.github.demandss.dayz_workbench_tool.util.SteamDetector
@@ -335,7 +334,7 @@ private fun SetupField(
                         },
                 contentAlignment = Alignment.Center,
             ) {
-                Icon(Icons.Default.FolderOpen, contentDescription = null, tint = TextForeground, modifier = Modifier.size(14.dp))
+                AppIconView(AppIcon.FOLDER_OPEN, size = 14.dp, tint = TextForeground)
             }
         }
     }

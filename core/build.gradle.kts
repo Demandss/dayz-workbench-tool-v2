@@ -16,11 +16,11 @@ repositories {
 }
 
 dependencies {
-    api(compose.material3)
-    api(compose.foundation)
-    api(compose.ui)
-    api(compose.runtime)
-    api(compose.components.resources)
+    api(libs.compose.material3)
+    api(libs.compose.foundation)
+    api(libs.compose.ui)
+    api(libs.compose.runtime)
+    api(libs.compose.components.resources)
     api("org.jetbrains.kotlinx:kotlinx-serialization-json:1.12.0")
     api("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.11.0")
 

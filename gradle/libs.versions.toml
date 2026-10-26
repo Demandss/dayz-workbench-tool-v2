@@ -1,0 +1,13 @@
+[versions]
+# The same as the version of the org.jetbrains.compose plugin in the root build.gradle.kts
+compose = "1.12.2"
+# Material 3 of Compose Multiplatform is versioned on its own; this is the one the plugin above brings
+material3 = "1.9.0"
+
+[libraries]
+compose-runtime = { module = "org.jetbrains.compose.runtime:runtime", version.ref = "compose" }
+compose-foundation = { module = "org.jetbrains.compose.foundation:foundation", version.ref = "compose" }
+compose-ui = { module = "org.jetbrains.compose.ui:ui", version.ref = "compose" }
+compose-uitest = { module = "org.jetbrains.compose.ui:ui-test", version.ref = "compose" }
+compose-components-resources = { module = "org.jetbrains.compose.components:components-resources", version.ref = "compose" }
+compose-material3 = { module = "org.jetbrains.compose.material3:material3", version.ref = "material3" }

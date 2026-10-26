@@ -6,10 +6,7 @@ import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -48,6 +45,8 @@ import com.github.demandss.dayz_workbench_tool.ui.components.SettingRow
 import com.github.demandss.dayz_workbench_tool.ui.components.SettingsGroup
 import com.github.demandss.dayz_workbench_tool.ui.components.SettingsPages
 import com.github.demandss.dayz_workbench_tool.ui.components.SettingsSection
+import com.github.demandss.dayz_workbench_tool.ui.icons.AppIcon
+import com.github.demandss.dayz_workbench_tool.ui.icons.AppIconView
 import com.github.demandss.dayz_workbench_tool.ui.theme.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -366,7 +365,7 @@ private fun RowScope.PathField(
                     },
             contentAlignment = Alignment.Center,
         ) {
-            Icon(Icons.Default.FolderOpen, contentDescription = null, tint = TextForeground, modifier = Modifier.size(14.dp))
+            AppIconView(AppIcon.FOLDER_OPEN, size = 14.dp, tint = TextForeground)
         }
     }
 }
