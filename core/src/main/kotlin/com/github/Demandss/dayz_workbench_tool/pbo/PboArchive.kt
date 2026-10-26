@@ -4,6 +4,7 @@ import java.io.BufferedInputStream
 import java.io.DataInputStream
 import java.io.File
 import java.io.FileInputStream
+import java.io.IOException
 import java.io.RandomAccessFile
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
@@ -60,9 +61,23 @@ class PboArchive private constructor(
     /** The bytes of one entry, read from the archive when asked for and not kept; null when it is not in the archive. */
     fun read(path: String): ByteArray? {
         val entry = entry(path) ?: return null
+        // A size or an offset that the file cannot hold is a broken archive: say so instead of returning zeros
+        val tooBig = entry.size < 0 || entry.size > Int.MAX_VALUE - 8
+        if (tooBig) {
+            throw IOException("${file.name}: entry $path is too big (${entry.size} bytes)")
+        }
         RandomAccessFile(file, "r").use { raf ->
+            if (entry.offset < 0 || entry.offset + entry.size > raf.length()) {
+                throw IOException("${file.name}: entry $path lies past the end of the file")
+            }
             val buffer = ByteBuffer.allocate(entry.size.toInt())
-            raf.channel.read(buffer, entry.offset)
+            var position = entry.offset
+            // One read may stop short: go on until the buffer is full
+            while (buffer.hasRemaining()) {
+                val n = raf.channel.read(buffer, position)
+                if (n < 0) throw IOException("${file.name}: entry $path is cut off")
+                position += n
+            }
             return buffer.array()
         }
     }

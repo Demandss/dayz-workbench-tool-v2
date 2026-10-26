@@ -7,6 +7,7 @@ import java.nio.ByteOrder
 import kotlin.test.Test
 import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertNull
 
 private val SEP = 92.toChar()
@@ -93,5 +94,14 @@ class PboArchiveTest {
     @Test
     fun packedEntriesAreNotSupported() {
         assertNull(PboArchive.open(pbo(listOf("a.txt" to byteArrayOf(1)), method = 0x43707273)))
+    }
+
+    @Test
+    fun aTruncatedArchiveFailsInsteadOfReturningZeros() {
+        val file = pbo(listOf("a.txt" to ByteArray(100) { 7 }))
+        val archive = PboArchive.open(file)!!
+        // The data of the entry is cut in half
+        file.writeBytes(file.readBytes().copyOf((file.length() - 50).toInt()))
+        assertFailsWith<java.io.IOException> { archive.read("a.txt") }
     }
 }
