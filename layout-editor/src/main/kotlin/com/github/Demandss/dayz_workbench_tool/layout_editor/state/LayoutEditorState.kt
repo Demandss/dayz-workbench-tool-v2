@@ -348,7 +348,6 @@ class LayoutEditorState(
         snapToGrid = config.snapToGrid
         gridSize = config.gridSize.coerceIn(1, 512)
         showWidgetNames = config.showWidgetNames
-        I18n.setting = config.language
         zoomOnOpen = config.zoomOnOpen
         rememberWindow = config.rememberWindow
         historyDepth = config.undoLimit.coerceIn(1, 200)
@@ -368,7 +367,6 @@ class LayoutEditorState(
             snapToGrid = snapToGrid,
             gridSize = gridSize,
             showWidgetNames = showWidgetNames,
-            language = I18n.setting,
             zoomOnOpen = zoomOnOpen,
             rememberWindow = rememberWindow,
         )
@@ -386,7 +384,6 @@ class LayoutEditorState(
         snapToGrid = config.snapToGrid
         gridSize = config.gridSize.coerceIn(1, 512)
         showWidgetNames = config.showWidgetNames
-        I18n.setting = config.language
         zoomOnOpen = config.zoomOnOpen
         rememberWindow = config.rememberWindow
         historyDepth = config.undoLimit.coerceIn(1, 200)
@@ -411,7 +408,6 @@ class LayoutEditorState(
                     snapToGrid = snapToGrid,
                     gridSize = gridSize,
                     showWidgetNames = showWidgetNames,
-                    language = I18n.setting,
                     zoomOnOpen = zoomOnOpen,
                     rememberWindow = rememberWindow,
                     undoLimit = historyDepth,

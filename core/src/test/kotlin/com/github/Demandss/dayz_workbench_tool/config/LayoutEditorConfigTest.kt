@@ -18,7 +18,6 @@ class LayoutEditorConfigTest {
                 mcpEnabled = false,
                 mcpPort = 40000,
                 gridSize = 16,
-                language = "de",
                 undoLimit = 20,
                 // The copy kept by the settings window has an old window size and no sessions
                 windowWidth = 800,
@@ -28,7 +27,6 @@ class LayoutEditorConfigTest {
         assertEquals(false, merged.mcpEnabled)
         assertEquals(40000, merged.mcpPort)
         assertEquals(16, merged.gridSize)
-        assertEquals("de", merged.language)
         assertEquals(20, merged.undoLimit)
         assertEquals(1500, merged.windowWidth)
         assertEquals(900, merged.windowHeight)

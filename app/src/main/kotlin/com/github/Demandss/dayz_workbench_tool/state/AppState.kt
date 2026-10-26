@@ -6,6 +6,7 @@ import com.github.demandss.dayz_workbench_tool.config.ConfigManager
 import com.github.demandss.dayz_workbench_tool.config.LayoutEditorConfig
 import com.github.demandss.dayz_workbench_tool.config.ModEntry
 import com.github.demandss.dayz_workbench_tool.config.withSettingsFrom
+import com.github.demandss.dayz_workbench_tool.i18n.I18n
 import com.github.demandss.dayz_workbench_tool.manager.ModificationManager
 import com.github.demandss.dayz_workbench_tool.manager.ToolsManager
 import com.github.demandss.dayz_workbench_tool.model.ModSide
@@ -25,6 +26,13 @@ class AppState {
     var showLayoutEditor by mutableStateOf(false)
 
     init {
+        // The language was a setting of the editor before: whoever chose one keeps it
+        if (config.language == null) {
+            val carried = ConfigManager.LayoutEditor.readRawString("language") ?: I18n.SYSTEM
+            config = config.copy(language = carried)
+            ConfigManager.App.save(config)
+        }
+        I18n.setting = config.language ?: I18n.SYSTEM
         loadModsFromConfig()
     }
 
@@ -51,6 +59,7 @@ class AppState {
             ModificationManager.createScriptsSymlink(newConfig.effectiveScriptsPath(), newConfig.gamePath)
         }
         config = newConfig
+        I18n.setting = newConfig.language ?: I18n.SYSTEM
         ConfigManager.App.save(newConfig)
         loadModsFromConfig()
         ToolsManager.writeUserSettings(newConfig, mods.toList())

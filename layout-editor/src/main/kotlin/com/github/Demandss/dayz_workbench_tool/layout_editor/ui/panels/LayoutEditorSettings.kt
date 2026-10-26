@@ -35,8 +35,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.github.demandss.dayz_workbench_tool.config.LayoutEditorConfig
-import com.github.demandss.dayz_workbench_tool.i18n.I18n
-import com.github.demandss.dayz_workbench_tool.i18n.Language
 import com.github.demandss.dayz_workbench_tool.i18n.tr
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.Resolution
 import com.github.demandss.dayz_workbench_tool.ui.theme.DarkenedBorder
@@ -64,29 +62,13 @@ fun LayoutEditorSettingsForm(
     }
 }
 
-/** Language, how a layout opens, the window, the history and the resolution at start. */
+/** How a layout opens, the window, the history and the resolution at start. */
 @Composable
 fun LayoutEditorGeneralSection(
     config: LayoutEditorConfig,
     onChange: (LayoutEditorConfig) -> Unit,
 ) {
     Heading(tr("Общие"))
-
-    Caption(tr("Язык"))
-    val system = Language.ofSystem()
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        Text(tr("Язык интерфейса"), color = TextForeground, fontSize = 12.sp)
-        DropdownField(
-            config.language,
-            listOf(I18n.SYSTEM) + Language.entries.map { it.code },
-            { code -> if (code == I18n.SYSTEM) tr("Как в системе: {0}", system.nativeName) else Language.byCode(code)?.nativeName ?: code },
-        ) { onChange(config.copy(language = it)) }
-    }
-    Text(
-        tr("По умолчанию берётся язык системы. Язык, которого нет в списке, заменяется английским."),
-        color = GhostlyText,
-        fontSize = 10.sp,
-    )
 
     Caption(tr("Открытие лайаута"))
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {

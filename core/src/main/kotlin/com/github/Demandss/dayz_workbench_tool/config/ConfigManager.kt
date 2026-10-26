@@ -20,6 +20,16 @@ class ConfigManager<T>(
     /** A file next to the settings (`mcp.json` of the layout editor), in the same versioned folder. */
     fun fileIn(name: String) = configDir.resolve(name)
 
+    /** A text value of the settings file by its key, whether or not the config class still has it; null when there is none. */
+    fun readRawString(key: String): String? =
+        runCatching {
+            (json.parseToJsonElement(configFile.readText()) as? kotlinx.serialization.json.JsonObject)
+                ?.get(key)
+                ?.let { it as? kotlinx.serialization.json.JsonPrimitive }
+                ?.takeIf { it.isString }
+                ?.content
+        }.getOrNull()
+
     fun load(): T {
         if (!configFile.exists()) return default()
         return runCatching { json.decodeFromString(serializer, configFile.readText()) }

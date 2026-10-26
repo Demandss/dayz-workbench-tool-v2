@@ -14,8 +14,6 @@ data class LayoutEditorConfig(
     val snapToGrid: Boolean = false,
     val gridSize: Int = 10,
     val showWidgetNames: Boolean = true,
-    // The language of the interface: `system` (the language of the computer) or the code of a language
-    val language: String = "system",
     // How a layout is shown when it is opened: `actual` is 100%, `fit` puts the whole screen into the window
     val zoomOnOpen: String = "actual",
     // Whether the editor opens in the size it was closed in
@@ -43,7 +41,6 @@ fun LayoutEditorConfig.withSettingsFrom(other: LayoutEditorConfig) =
         snapToGrid = other.snapToGrid,
         gridSize = other.gridSize,
         showWidgetNames = other.showWidgetNames,
-        language = other.language,
         zoomOnOpen = other.zoomOnOpen,
         rememberWindow = other.rememberWindow,
     )

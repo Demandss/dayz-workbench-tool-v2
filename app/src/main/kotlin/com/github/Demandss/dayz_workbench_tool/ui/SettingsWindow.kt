@@ -31,6 +31,9 @@ import com.github.demandss.dayz_workbench_tool.config.AppConfig
 import com.github.demandss.dayz_workbench_tool.config.ConfigManager
 import com.github.demandss.dayz_workbench_tool.config.LayoutEditorConfig
 import com.github.demandss.dayz_workbench_tool.config.withSettingsFrom
+import com.github.demandss.dayz_workbench_tool.i18n.I18n
+import com.github.demandss.dayz_workbench_tool.i18n.Language
+import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.DropdownField
 import com.github.demandss.dayz_workbench_tool.layout_editor.ui.panels.LayoutEditorSettingsForm
 import com.github.demandss.dayz_workbench_tool.state.AppState
 import com.github.demandss.dayz_workbench_tool.state.Screen
@@ -141,6 +144,14 @@ private fun GlobalTab(
         }
         SettingRow("Workbench plugin mod") {
             PathField(value = config.workbenchPluginPath, isFile = false) { onChange(config.copy(workbenchPluginPath = it)) }
+        }
+        SettingRow("Language") {
+            val system = Language.ofSystem()
+            DropdownField(
+                config.language ?: I18n.SYSTEM,
+                listOf(I18n.SYSTEM) + Language.entries.map { it.code },
+                { code -> if (code == I18n.SYSTEM) "System: ${system.nativeName}" else Language.byCode(code)?.nativeName ?: code },
+            ) { onChange(config.copy(language = it)) }
         }
         CheckRow("Lock window size", config.lockWindowSize) { onChange(config.copy(lockWindowSize = it)) }
         CheckRow("Adaptive scaling", config.adaptiveScale) { onChange(config.copy(adaptiveScale = it)) }
