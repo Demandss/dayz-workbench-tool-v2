@@ -45,6 +45,34 @@ fun LayoutEditorConfig.withSettingsFrom(other: LayoutEditorConfig) =
         rememberWindow = other.rememberWindow,
     )
 
+/**
+ * This config with only the settings that [edited] changed against [base]: what the person did not touch in the settings window
+ * stays as it is on the disk, so a toggle changed in the editor while the window was open is not put back by Save.
+ */
+fun LayoutEditorConfig.withChanges(
+    base: LayoutEditorConfig,
+    edited: LayoutEditorConfig,
+): LayoutEditorConfig {
+    fun <T> pick(
+        old: T,
+        new: T,
+        current: T,
+    ) = if (new != old) new else current
+    return copy(
+        undoLimit = pick(base.undoLimit, edited.undoLimit, undoLimit),
+        defaultResolution = pick(base.defaultResolution, edited.defaultResolution, defaultResolution),
+        mcpEnabled = pick(base.mcpEnabled, edited.mcpEnabled, mcpEnabled),
+        mcpPort = pick(base.mcpPort, edited.mcpPort, mcpPort),
+        workbenchColors = pick(base.workbenchColors, edited.workbenchColors, workbenchColors),
+        showGrid = pick(base.showGrid, edited.showGrid, showGrid),
+        snapToGrid = pick(base.snapToGrid, edited.snapToGrid, snapToGrid),
+        gridSize = pick(base.gridSize, edited.gridSize, gridSize),
+        showWidgetNames = pick(base.showWidgetNames, edited.showWidgetNames, showWidgetNames),
+        zoomOnOpen = pick(base.zoomOnOpen, edited.zoomOnOpen, zoomOnOpen),
+        rememberWindow = pick(base.rememberWindow, edited.rememberWindow, rememberWindow),
+    )
+}
+
 @Serializable
 data class EditorSession(
     val layouts: List<String> = emptyList(),

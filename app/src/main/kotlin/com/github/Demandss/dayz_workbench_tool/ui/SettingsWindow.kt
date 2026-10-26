@@ -52,8 +52,9 @@ import java.util.stream.Collectors
 fun SettingsScreen(state: AppState) {
     var localConfig by remember { mutableStateOf(state.config) }
     // A local copy of the settings of the layout editor, stored by Save like the rest
-    var localEditor by remember { mutableStateOf(ConfigManager.LayoutEditor.load()) }
-    var selectedTab by remember { mutableStateOf(0) }
+    val editorBase = remember { ConfigManager.LayoutEditor.load() }
+    var localEditor by remember { mutableStateOf(editorBase) }
+    var selectedTab by remember { mutableStateOf(state.settingsTab) }
 
     Column(modifier = Modifier.fillMaxSize()) {
         // Header: ← Back | Save | Reset
@@ -71,12 +72,12 @@ fun SettingsScreen(state: AppState) {
             SettingsMenuButton("← Back") { state.navigate(Screen.MAIN) }
             SettingsMenuButton("Save") {
                 state.updateConfig(localConfig)
-                state.saveLayoutEditorSettings(localEditor)
+                state.saveLayoutEditorSettings(editorBase, localEditor)
                 state.navigate(Screen.MAIN)
             }
             SettingsMenuButton("Reset") {
                 localConfig = AppConfig()
-                localEditor = localEditor.withSettingsFrom(LayoutEditorConfig())
+                localEditor = editorBase.withSettingsFrom(LayoutEditorConfig())
             }
         }
         HorizontalDivider(color = DarkenedBorder)

@@ -280,6 +280,7 @@ internal val translationsPt: Map<String, String> =
         "Найдено: {0}. Текст показан на языке редактора: {1}." to "Encontrados: {0}. O texto é mostrado no idioma do editor: {1}.",
         "Настройки" to "Configurações",
         "Настройки (Ctrl+,)" to "Configurações (Ctrl+,)",
+        "Настройки подключения: вкладка Layout Editor" to "Configurações da conexão: aba Layout Editor",
         "Настройки: MCP и отображение" to "Configurações: MCP e exibição",
         "Настройки: MCP и отображение (Ctrl+,)" to "Configurações: MCP e exibição (Ctrl+,)",
         "Не задан workdrive" to "O workdrive não está definido",

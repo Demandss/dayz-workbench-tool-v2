@@ -5,7 +5,7 @@ import com.github.demandss.dayz_workbench_tool.config.AppConfig
 import com.github.demandss.dayz_workbench_tool.config.ConfigManager
 import com.github.demandss.dayz_workbench_tool.config.LayoutEditorConfig
 import com.github.demandss.dayz_workbench_tool.config.ModEntry
-import com.github.demandss.dayz_workbench_tool.config.withSettingsFrom
+import com.github.demandss.dayz_workbench_tool.config.withChanges
 import com.github.demandss.dayz_workbench_tool.i18n.I18n
 import com.github.demandss.dayz_workbench_tool.manager.ModificationManager
 import com.github.demandss.dayz_workbench_tool.manager.ToolsManager
@@ -40,16 +40,29 @@ class AppState {
         currentScreen = screen
     }
 
+    /** The tab the settings window opens on: 0 Global, 3 Layout Editor (the editor asks for it). */
+    var settingsTab by mutableStateOf(0)
+
+    /** Brings the settings window of the app to the Layout Editor tab. */
+    fun openLayoutEditorSettings() {
+        settingsTab = 3
+        navigate(Screen.SETTINGS)
+    }
+
     /** Changes when the settings of the layout editor were stored from the settings window, so that an open editor reads them. */
     var layoutEditorSettingsTick by mutableStateOf(0)
         private set
 
     /**
-     * Stores the settings of the layout editor that were edited in the settings window. Only the settings are taken from
-     * [edited]: the window size and the sessions are written by the editor itself and stay as they are on the disk.
+     * Stores the settings of the layout editor that were edited in the settings window: only those that [edited] changed
+     * against [base] (what the window showed when it was opened). The rest stays as it is on the disk, because the editor writes
+     * the window size, the sessions and its toggles itself while the window is open.
      */
-    fun saveLayoutEditorSettings(edited: LayoutEditorConfig) {
-        ConfigManager.LayoutEditor.save(ConfigManager.LayoutEditor.load().withSettingsFrom(edited))
+    fun saveLayoutEditorSettings(
+        base: LayoutEditorConfig,
+        edited: LayoutEditorConfig,
+    ) {
+        ConfigManager.LayoutEditor.save(ConfigManager.LayoutEditor.load().withChanges(base, edited))
         layoutEditorSettingsTick++
     }
 

@@ -49,7 +49,9 @@ fun main() =
             val enabledMods = (state.config.clientMods + state.config.serverMods).filter { it.enabled }.map { it.path }.distinct()
             val leState =
                 remember {
-                    LayoutEditorState(state.config.workDrivePath, scope, state.config.gamePath, enabledMods)
+                    LayoutEditorState(state.config.workDrivePath, scope, state.config.gamePath, enabledMods).also { s ->
+                        s.openAppSettings = { state.openLayoutEditorSettings() }
+                    }
                 }
             // The window is kept while the game path or the enabled mods change in the main window: the editor takes them too
             // The same for the settings of the editor stored from the Layout Editor tab of the settings window

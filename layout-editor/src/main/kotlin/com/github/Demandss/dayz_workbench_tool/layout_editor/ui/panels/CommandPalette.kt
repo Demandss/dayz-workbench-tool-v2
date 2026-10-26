@@ -115,12 +115,7 @@ fun buildCommands(
             add(Command(tr("Шаблон скрипта: {0}", kind.title), AppIcon.UI_COPY, tr("в буфер"), hasDoc) { state.copyScriptTemplate(kind) })
         }
         add(Command(tr("Импорт шрифта…"), AppIcon.UI_COPY, "") { state.fontImportOpen = true })
-        add(
-            Command(tr("Настройки"), AppIcon.UI_GEAR, "Ctrl+,") {
-                state.preferencesPage = "GENERAL"
-                state.preferencesOpen = true
-            },
-        )
+        state.openAppSettings?.let { open -> add(Command(tr("Настройки"), AppIcon.UI_GEAR, "Ctrl+,") { open() }) }
         McpHost.url?.let { address ->
             add(Command(tr("Скопировать адрес MCP сервера"), AppIcon.UI_CMD, address) { state.copyMcpAddress(address) })
         }

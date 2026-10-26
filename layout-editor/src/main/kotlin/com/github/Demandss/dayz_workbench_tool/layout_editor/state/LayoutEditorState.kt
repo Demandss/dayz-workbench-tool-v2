@@ -321,11 +321,11 @@ class LayoutEditorState(
     // Bounds updated via onGloballyPositioned (window coordinate space)
     var canvasBoundsInWindow by mutableStateOf(Rect.Zero)
 
-    // The preferences window: what the MCP server does and how the view is drawn. Saved with the other settings of the editor.
-    var preferencesOpen by mutableStateOf(false)
+    /** The panel of the MCP connection (status, address, token, calls) is open. The settings are in the settings window of the app. */
+    var mcpInfoOpen by mutableStateOf(false)
 
-    // The page the preferences window opens on: the name of a page, so the connection button can open it on the MCP page
-    var preferencesPage by mutableStateOf("GENERAL")
+    /** Opens the Layout Editor tab of the settings window of the app; null when the editor runs without the app. */
+    var openAppSettings: (() -> Unit)? = null
     var mcpEnabled by mutableStateOf(true)
     var mcpPort by mutableStateOf(39871)
 

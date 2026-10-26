@@ -33,4 +33,17 @@ class LayoutEditorConfigTest {
         assertEquals(true, merged.windowMaximized)
         assertEquals(listOf("a.layout"), merged.sessions.getValue("k:/mods").layouts)
     }
+
+    @Test
+    fun onlyTheFieldsTheWindowChangedAreTaken() {
+        val opened = LayoutEditorConfig(gridSize = 10, showGrid = false, mcpPort = 39871)
+        // While the settings window was open, the editor toggled the grid on (a hotkey) and wrote it to the disk
+        val onDisk = opened.copy(showGrid = true)
+        // The person changed the port in the window and left the grid alone
+        val edited = opened.copy(mcpPort = 40001)
+        val merged = onDisk.withChanges(opened, edited)
+        assertEquals(40001, merged.mcpPort)
+        assertEquals(true, merged.showGrid)
+        assertEquals(10, merged.gridSize)
+    }
 }

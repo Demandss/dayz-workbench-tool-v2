@@ -64,61 +64,28 @@ import com.github.demandss.dayz_workbench_tool.ui.theme.TextForeground
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonPrimitive
 
-private enum class Page(
-    val key: String,
-) {
-    GENERAL(trKey("Общие")),
-    VIEW(trKey("Отображение")),
-    MCP(trKey("Подключение (MCP)")),
-    ;
-
-    /** The name of the page in the language of the interface, looked up when it is shown so that a change of language reaches it. */
-    val title: String get() = tr(key)
-}
-
-/** The preferences window, with the pages down the left side like Blender's: general settings, the view and the MCP server. */
+/**
+ * What the MCP server is doing, read-only: the status, the address and the token, the commands that connect an assistant, the
+ * tools and the latest calls. The settings themselves (the switch, the port, the view, the history) are only in the settings
+ * window of the app; the button here opens its Layout Editor tab.
+ */
 @Composable
-fun PreferencesWindow(state: LayoutEditorState) {
-    if (!state.preferencesOpen) return
+fun McpConnectionWindow(state: LayoutEditorState) {
+    if (!state.mcpInfoOpen) return
     DialogWindow(
-        onCloseRequest = { state.preferencesOpen = false },
-        state = rememberDialogState(size = DpSize(980.dp, 760.dp)),
-        title = tr("Настройки"),
+        onCloseRequest = { state.mcpInfoOpen = false },
+        state = rememberDialogState(size = DpSize(780.dp, 760.dp)),
+        title = tr("Подключение (MCP)"),
     ) {
-        var page by remember(state.preferencesPage) {
-            mutableStateOf(Page.entries.firstOrNull { it.name == state.preferencesPage } ?: Page.GENERAL)
-        }
-        Row(Modifier.fillMaxSize().background(FrameBackground)) {
-            Column(
-                Modifier
-                    .width(190.dp)
-                    .fillMaxHeight()
-                    .background(ElementsBackground)
-                    .padding(vertical = 8.dp),
-            ) {
-                Page.entries.forEach { p ->
-                    Box(
-                        Modifier
-                            .fillMaxWidth()
-                            .background(if (p == page) SelectColor else Color.Transparent)
-                            .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { page = p }
-                            .padding(horizontal = 14.dp, vertical = 8.dp),
-                    ) {
-                        Text(p.title, color = TextForeground, fontSize = 12.sp)
-                    }
-                }
-            }
-            Box(Modifier.width(1.dp).fillMaxHeight().background(DarkenedBorder))
-            Column(
-                Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
-            ) {
-                when (page) {
-                    Page.GENERAL -> GeneralPage(state)
-                    Page.VIEW -> ViewPage(state)
-                    Page.MCP -> McpPage(state)
-                }
-            }
+        Column(
+            Modifier
+                .fillMaxSize()
+                .background(FrameBackground)
+                .verticalScroll(rememberScrollState())
+                .padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            McpPage(state)
         }
     }
 }
@@ -175,7 +142,9 @@ private fun McpPage(state: LayoutEditorState) {
             fontSize = 12.sp,
         )
     }
-    LayoutEditorMcpSection(state.settings()) { state.applySettings(it) }
+    state.openAppSettings?.let { open ->
+        DarkButton(tr("Настройки подключения: вкладка Layout Editor"), { open() })
+    }
 
     if (url != null) {
         Caption(tr("Подключить"))
@@ -244,14 +213,4 @@ private fun McpPage(state: LayoutEditorState) {
         }
     }
     Spacer(Modifier.height(4.dp))
-}
-
-@Composable
-private fun ViewPage(state: LayoutEditorState) {
-    LayoutEditorViewSection(state.settings()) { state.applySettings(it) }
-}
-
-@Composable
-private fun GeneralPage(state: LayoutEditorState) {
-    LayoutEditorGeneralSection(state.settings()) { state.applySettings(it) }
 }

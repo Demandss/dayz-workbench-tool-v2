@@ -4,6 +4,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.window.application
 import com.github.demandss.dayz_workbench_tool.config.ConfigManager
+import com.github.demandss.dayz_workbench_tool.i18n.I18n
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.LayoutEditorState
 import java.io.File
 
@@ -15,6 +16,8 @@ import java.io.File
 fun main(args: Array<String>) =
     application {
         val scope = rememberCoroutineScope()
+        // The language is a setting of the app, also when the editor runs alone
+        remember { I18n.setting = ConfigManager.App.load().language ?: I18n.SYSTEM }
         val workDrivePath =
             remember {
                 args.firstOrNull()?.takeIf { File(it).isDirectory } ?: ConfigManager.App.load().workDrivePath

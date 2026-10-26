@@ -170,10 +170,7 @@ fun Toolbar(
         DarkToolButton(
             "MCP",
             tooltip = tr("Подключение (MCP)") + if (McpHost.url != null) tr("  ·  MCP работает") else "",
-            onClick = {
-                state.preferencesPage = "MCP"
-                state.preferencesOpen = true
-            },
+            onClick = { state.mcpInfoOpen = true },
             dot =
                 when {
                     McpHost.url != null -> Color(0xFF5CB85C)
@@ -181,14 +178,7 @@ fun Toolbar(
                     else -> Color(0xFF777777)
                 },
         )
-        DarkIconButton(
-            AppIcon.UI_GEAR,
-            tr("Настройки (Ctrl+,)"),
-            onClick = {
-                state.preferencesPage = "GENERAL"
-                state.preferencesOpen = true
-            },
-        )
+        state.openAppSettings?.let { open -> DarkIconButton(AppIcon.UI_GEAR, tr("Настройки (Ctrl+,)"), onClick = { open() }) }
         Spacer(Modifier.width(4.dp))
         DarkToolButton(
             "WB 1.30",
