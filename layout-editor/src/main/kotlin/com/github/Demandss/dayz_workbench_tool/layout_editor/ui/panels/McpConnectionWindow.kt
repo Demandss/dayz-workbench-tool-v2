@@ -48,6 +48,7 @@ import androidx.compose.ui.window.rememberDialogState
 import com.github.demandss.dayz_workbench_tool.i18n.I18n
 import com.github.demandss.dayz_workbench_tool.i18n.Language
 import com.github.demandss.dayz_workbench_tool.i18n.str
+import com.github.demandss.dayz_workbench_tool.layout_editor.mcp.McpGuide
 import com.github.demandss.dayz_workbench_tool.layout_editor.mcp.McpHost
 import com.github.demandss.dayz_workbench_tool.layout_editor.mcp.McpTools
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.LayoutEditorState
@@ -109,13 +110,7 @@ private fun CopyRow(
             ) {
                 Text(text, color = TextForeground, fontSize = 11.sp, fontFamily = FontFamily.Monospace)
             }
-            DarkButton(stringResource(Res.string.copy), {
-                java.awt.Toolkit
-                    .getDefaultToolkit()
-                    .systemClipboard
-                    .setContents(java.awt.datatransfer.StringSelection(text), null)
-                state.notify(str(Res.string.copied), ToastKind.SUCCESS)
-            })
+            DarkButton(stringResource(Res.string.copy), { copyToClipboard(state, text) })
         }
     }
 }
@@ -125,8 +120,7 @@ private fun McpPage(state: LayoutEditorState) {
     val url = McpHost.url
     Heading(stringResource(Res.string.connecting_an_assistant_mcp))
     Text(
-        "Редактор отдаёт ассистенту, например Claude Code, свои инструменты: читать и править открытый лейаут, " +
-            "менять вид и снимать скриншоты. Сервер слушает только этот компьютер.",
+        stringResource(Res.string.mcp_intro),
         color = GhostlyText,
         fontSize = 11.sp,
     )
@@ -153,6 +147,10 @@ private fun McpPage(state: LayoutEditorState) {
         val token = McpHost.token.orEmpty()
         CopyRow(state, stringResource(Res.string.address), url)
         CopyRow(state, stringResource(Res.string.token), token)
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            DarkButton(stringResource(Res.string.new_token), { McpHost.regenerateToken() })
+            Text(stringResource(Res.string.new_token_hint), color = GhostlyText, fontSize = 10.sp, modifier = Modifier.weight(1f))
+        }
         CopyRow(
             state,
             stringResource(Res.string.claude_code_one_command_in_the_terminal),
@@ -160,9 +158,28 @@ private fun McpPage(state: LayoutEditorState) {
         )
         CopyRow(
             state,
-            "Файл .mcp.json проекта",
+            stringResource(Res.string.mcp_project_file),
             """{"mcpServers":{"dayz-layout-editor":{"type":"http","url":"$url","headers":{"Authorization":"Bearer $token"}}}}""",
         )
+    }
+
+    if (url != null) {
+        Caption(stringResource(Res.string.mcp_prompt))
+        Text(stringResource(Res.string.mcp_prompt_hint), color = GhostlyText, fontSize = 10.sp)
+        val token = McpHost.token
+
+        fun prompt(withConnection: Boolean) =
+            McpGuide.assistantPrompt(
+                url,
+                token.takeIf { withConnection },
+                state.workDrivePath,
+                state.gameFolderPath(),
+                state.modFolderPaths(),
+            )
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            DarkButton(stringResource(Res.string.copy_prompt), { copyToClipboard(state, prompt(false)) })
+            DarkButton(stringResource(Res.string.copy_prompt_with_connection), { copyToClipboard(state, prompt(true)) })
+        }
     }
 
     Caption(stringResource(Res.string.tools_x, McpTools.definitions().size))
@@ -225,4 +242,15 @@ private fun Heading(text: String) {
 @Composable
 private fun Caption(text: String) {
     Text(text.uppercase(), color = GhostlyText, fontSize = 10.sp, modifier = Modifier.padding(top = 8.dp))
+}
+
+private fun copyToClipboard(
+    state: LayoutEditorState,
+    text: String,
+) {
+    java.awt.Toolkit
+        .getDefaultToolkit()
+        .systemClipboard
+        .setContents(java.awt.datatransfer.StringSelection(text), null)
+    state.notify(str(Res.string.copied), ToastKind.SUCCESS)
 }
