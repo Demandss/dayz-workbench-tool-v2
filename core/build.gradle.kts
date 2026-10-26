@@ -20,18 +20,22 @@ dependencies {
     api(compose.foundation)
     api(compose.ui)
     api(compose.runtime)
+    api(compose.components.resources)
     api("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
     api("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.1")
 
     testImplementation(kotlin("test"))
 }
 
+// The strings of the interface for every module: `Res.string.*` of this package, in src/main/composeResources
+compose.resources {
+    publicResClass = true
+    packageOfResClass = "com.github.demandss.dayz_workbench_tool.resources"
+}
+
 tasks.test {
     useJUnitPlatform()
     jvmArgs("-XX:ErrorFile=logs/hs_err_pid%p.log", "-XX:ReplayDataFile=logs/replay_pid%p.log")
-    // The test of the translations reads the sources of every module, so a change there has to run it again
-    inputs.dir(rootProject.file("layout-editor/src/main")).withPropertyName("layoutEditorSources")
-    inputs.dir(rootProject.file("app/src/main")).withPropertyName("appSources")
 }
 
 // Library module — disable the run task added by the compose plugin
