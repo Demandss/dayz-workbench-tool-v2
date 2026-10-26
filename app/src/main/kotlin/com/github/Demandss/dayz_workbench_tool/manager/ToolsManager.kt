@@ -63,14 +63,12 @@ object ToolsManager {
         toolsDir.resolve("UserSettings.bat").writeText(result)
     }
 
-    private val argRegex = Regex(""""[^"]*"|\S+""")
-
     // Quotes every argument, splits -connect=host:port into -connect/-port and enables Enfusion file patching resolve
     internal fun launchArgs(
         args: String,
         splitConnect: Boolean,
     ): String {
-        val tokens = argRegex.findAll(args.trim()).map { it.value.removeSurrounding("\"") }.toMutableList()
+        val tokens = ProcessManager.parseArgs(args).toMutableList()
         val connectIndex = tokens.indexOfFirst { it.startsWith("-connect=", ignoreCase = true) }
         if (splitConnect && connectIndex >= 0 && tokens.none { it.startsWith("-port=", ignoreCase = true) }) {
             val value = tokens[connectIndex].substringAfter('=')
@@ -81,9 +79,9 @@ object ToolsManager {
             }
         }
         if (tokens.any { it.equals("-filePatching", ignoreCase = true) } &&
-            tokens.none { it.startsWith("-resolveFilePatchingUsingEnfusion", ignoreCase = true) }
+            tokens.none { with(ProcessManager) { it.hasFlag(ENFUSION_FS_FLAG) } }
         ) {
-            tokens.add("-resolveFilePatchingUsingEnfusion=1")
+            tokens.add("${ProcessManager.ENFUSION_FS_FLAG}=1")
         }
         return tokens.joinToString(" ") { "\"" + it.replace("%", "%%") + "\"" }
     }

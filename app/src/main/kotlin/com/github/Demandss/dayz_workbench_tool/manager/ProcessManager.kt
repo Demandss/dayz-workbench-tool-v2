@@ -5,6 +5,16 @@ import java.io.File
 import java.nio.file.Path
 
 object ProcessManager {
+    /** Makes the game read the files of unpacked mods through the file system of Enfusion (named `resolveFilePatchingUsingEnfusion` before 1.30 Update 2). */
+    internal const val ENFUSION_FS_FLAG = "-loadRVFilesViaEnfusionFS"
+    internal const val OLD_ENFUSION_FS_FLAG = "-resolveFilePatchingUsingEnfusion"
+
+    internal fun String.hasFlag(flag: String): Boolean = substringBefore('=').equals(flag, ignoreCase = true)
+
+    /** The argument with the old name of the Enfusion file system flag under its new name and with its value; any other argument as it is. */
+    internal fun renamedLegacyFlag(arg: String): String =
+        if (arg.hasFlag(OLD_ENFUSION_FS_FLAG)) ENFUSION_FS_FLAG + arg.substring(OLD_ENFUSION_FS_FLAG.length) else arg
+
     /** The command line of Workbench: the program, the arguments of the settings, the flags it always needs, and the mods. */
     internal fun workbenchCommand(config: AppConfig): List<String> {
         val exe = File(config.workbenchPath, "workbenchApp.exe").absolutePath
@@ -24,7 +34,8 @@ object ProcessManager {
         val args = mutableListOf(exe)
         args.addAll(parseArgs(config.workbenchArgs))
         // Unpacked mods are resolved through file patching since 1.30
-        listOf("-filePatching", "-resolveFilePatchingUsingEnfusion=1", "-dologs").forEach { args.addIfMissing(it) }
+        listOf("-filePatching", "-dologs").forEach { args.addIfMissing(it) }
+        args.addIfMissing("$ENFUSION_FS_FLAG=1")
         if (allMods.isNotEmpty()) args.add("\"-mod=${allMods.joinToString(";")}\"")
         return args
     }
@@ -113,11 +124,11 @@ object ProcessManager {
             if (mods.isNotEmpty()) add("-mod=${mods.joinToString(";")}")
         }
 
-    // Splits args by whitespace, respecting double-quoted tokens
+    // Splits args by whitespace, respecting double-quoted tokens; the old name of the Enfusion file system flag becomes the new one
     internal fun parseArgs(args: String): List<String> {
         val result = mutableListOf<String>()
         Regex(""""[^"]*"|\S+""").findAll(args.trim()).forEach { match ->
-            result.add(match.value.removeSurrounding("\""))
+            result.add(renamedLegacyFlag(match.value.removeSurrounding("\"")))
         }
         return result
     }

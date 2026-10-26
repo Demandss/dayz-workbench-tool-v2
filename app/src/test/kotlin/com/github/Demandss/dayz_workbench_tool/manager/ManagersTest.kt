@@ -62,7 +62,7 @@ class ManagersTest {
         assertTrue(command.first().endsWith("workbenchApp.exe"))
         // -dologs was in the settings: it is not added a second time
         assertEquals(1, command.count { it.equals("-dologs", ignoreCase = true) })
-        assertTrue("-custom" in command && "-filePatching" in command && "-resolveFilePatchingUsingEnfusion=1" in command)
+        assertTrue("-custom" in command && "-filePatching" in command && "-loadRVFilesViaEnfusionFS=1" in command)
         assertEquals("\"-mod=${mod("Local")};${mod("Server")};${workshop("@Ws")}\"", command.last())
     }
 
@@ -120,13 +120,29 @@ class ManagersTest {
     }
 
     @Test
+    fun `the old name of the file system flag is renamed in the arguments of every program`() {
+        assertEquals(
+            listOf("DayZDiag_x64.exe", "-window", "-loadRVFilesViaEnfusionFS=0"),
+            ProcessManager.buildArgs("DayZDiag_x64.exe", "-window -resolveFilePatchingUsingEnfusion=0", emptyList()),
+        )
+        val workbench = ProcessManager.workbenchCommand(AppConfig(workbenchArgs = "-resolveFilePatchingUsingEnfusion=0"))
+        assertEquals(listOf("-loadRVFilesViaEnfusionFS=0"), workbench.filter { it.contains("EnfusionFS", ignoreCase = true) })
+        assertTrue(workbench.none { it.contains("resolveFilePatching", ignoreCase = true) })
+    }
+
+    @Test
     fun `file patching asks for the resolve flag unless it is there`() {
         assertEquals(
-            "\"-filePatching\" \"-resolveFilePatchingUsingEnfusion=1\"",
+            "\"-filePatching\" \"-loadRVFilesViaEnfusionFS=1\"",
             ToolsManager.launchArgs("-filePatching", splitConnect = false),
         )
         assertEquals(
-            "\"-filePatching\" \"-resolveFilePatchingUsingEnfusion=0\"",
+            "\"-filePatching\" \"-loadRVFilesViaEnfusionFS=0\"",
+            ToolsManager.launchArgs("-filePatching -loadRVFilesViaEnfusionFS=0", splitConnect = false),
+        )
+        // The name before 1.30 Update 2 that is in the settings becomes the new one with its value, and the new one is not added twice
+        assertEquals(
+            "\"-filePatching\" \"-loadRVFilesViaEnfusionFS=0\"",
             ToolsManager.launchArgs("-filePatching -resolveFilePatchingUsingEnfusion=0", splitConnect = false),
         )
         assertEquals("\"-window\"", ToolsManager.launchArgs("-window", splitConnect = false))
