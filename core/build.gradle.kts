@@ -21,8 +21,8 @@ dependencies {
     api(compose.ui)
     api(compose.runtime)
     api(compose.components.resources)
-    api("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
-    api("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.1")
+    api("org.jetbrains.kotlinx:kotlinx-serialization-json:1.12.0")
+    api("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.11.0")
 
     testImplementation(kotlin("test"))
     // The tests of what reads the string resources need the native library of the graphics, like the programs
