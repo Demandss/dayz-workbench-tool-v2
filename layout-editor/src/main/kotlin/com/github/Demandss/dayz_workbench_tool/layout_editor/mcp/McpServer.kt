@@ -72,10 +72,16 @@ object McpHost {
         }
     }
 
-    /** Serves [state] from now on and starts the server when it is switched on and not running. */
+    /**
+     * Serves [state] from now on. The server that kept running after the last window was closed is brought in line with the
+     * switch and the port of [state], which may have been changed in the meantime.
+     */
     @Synchronized
     fun attach(state: LayoutEditorState) {
         tools = McpTools(state)
+        val running = server != null
+        val portKept = boundPort in state.mcpPort until state.mcpPort + PORT_TRIES
+        if (running && (!state.mcpEnabled || !portKept)) stop()
         if (state.mcpEnabled && server == null) start(state.mcpPort)
     }
 
