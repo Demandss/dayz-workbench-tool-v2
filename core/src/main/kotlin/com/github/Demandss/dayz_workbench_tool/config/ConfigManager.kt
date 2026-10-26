@@ -2,6 +2,9 @@ package com.github.demandss.dayz_workbench_tool.config
 
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.json.Json
+import java.nio.file.AtomicMoveNotSupportedException
+import java.nio.file.Files
+import java.nio.file.StandardCopyOption
 import kotlin.io.path.*
 
 /**
@@ -37,12 +40,29 @@ class ConfigManager<T>(
     fun load(): T {
         if (!configFile.exists()) return default()
         return runCatching { json.decodeFromString(serializer, configFile.readText()) }
-            .getOrElse { default() }
+            .getOrElse {
+                // The next save writes the defaults over this file, so what could not be read is kept beside it
+                runCatching { configFile.copyTo(configDir.resolve("settings.json.broken"), overwrite = true) }
+                default()
+            }
     }
 
+    @Synchronized
     fun save(config: T) {
         configDir.createDirectories()
-        configFile.writeText(json.encodeToString(serializer, config))
+        // Written aside and moved over, so that a crash in the middle leaves the old file and not a cut one
+        val temp = configDir.resolve("settings.json.tmp")
+        temp.writeText(json.encodeToString(serializer, config))
+        try {
+            Files.move(
+                temp,
+                configFile,
+                StandardCopyOption.REPLACE_EXISTING,
+                StandardCopyOption.ATOMIC_MOVE,
+            )
+        } catch (_: AtomicMoveNotSupportedException) {
+            Files.move(temp, configFile, StandardCopyOption.REPLACE_EXISTING)
+        }
     }
 
     companion object {
