@@ -2162,14 +2162,7 @@ class LayoutEditorState(
         val root = workDrivePath.takeIf { it.isNotBlank() }?.let { File(it).canonicalFile }
         val canonical = runCatching { file.canonicalFile }.getOrDefault(file)
         val relative =
-            if (root != null && canonical.path.startsWith(root.path, ignoreCase = true)) {
-                canonical.path
-                    .substring(root.path.length)
-                    .trimStart(File.separatorChar)
-                    .replace(File.separatorChar, '/')
-            } else {
-                canonical.path.replace(File.separatorChar, '/')
-            }
+            root?.let { relativeInside(it, canonical) } ?: canonical.path.replace(File.separatorChar, '/')
         val guid =
             runCatching {
                 Regex("Name\\s+\"(\\{[0-9A-Fa-f]+})").find(File(canonical.path + ".meta").readText())?.groupValues?.get(1)
