@@ -514,6 +514,7 @@ internal val translationsFr: Map<String, String> =
         "Тень: {0}" to "Ombre : {0}",
         "Тип {0}" to "Type {0}",
         "Тип: {0}" to "Type : {0}",
+        "Токен" to "Jeton",
         "Только выбранные виджеты" to "Widgets sélectionnés uniquement",
         "Только символы ASCII" to "Caractères ASCII uniquement",
         "Точка поворота по вертикали, от 0 до 1" to "Le pivot à la verticale, de 0 à 1",

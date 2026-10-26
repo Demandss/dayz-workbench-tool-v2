@@ -291,9 +291,19 @@ private fun McpPage(state: LayoutEditorState) {
 
     if (url != null) {
         Caption(tr("Подключить"))
+        val token = McpHost.token.orEmpty()
         CopyRow(state, tr("Адрес"), url)
-        CopyRow(state, tr("Claude Code, одна команда в терминале"), "claude mcp add --transport http dayz-layout-editor $url")
-        CopyRow(state, "Файл .mcp.json проекта", """{"mcpServers":{"dayz-layout-editor":{"type":"http","url":"$url"}}}""")
+        CopyRow(state, tr("Токен"), token)
+        CopyRow(
+            state,
+            tr("Claude Code, одна команда в терминале"),
+            "claude mcp add --transport http dayz-layout-editor $url --header \"Authorization: Bearer $token\"",
+        )
+        CopyRow(
+            state,
+            "Файл .mcp.json проекта",
+            """{"mcpServers":{"dayz-layout-editor":{"type":"http","url":"$url","headers":{"Authorization":"Bearer $token"}}}}""",
+        )
     }
 
     Caption(tr("Инструменты ({0})", McpTools.definitions().size))

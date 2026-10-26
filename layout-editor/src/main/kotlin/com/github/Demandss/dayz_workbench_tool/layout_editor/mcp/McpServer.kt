@@ -5,6 +5,7 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.Snapshot
+import com.github.demandss.dayz_workbench_tool.config.ConfigManager
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.LayoutEditorState
 import com.sun.net.httpserver.HttpExchange
 import com.sun.net.httpserver.HttpServer
@@ -22,6 +23,8 @@ import kotlinx.serialization.json.put
 import java.io.File
 import java.net.InetAddress
 import java.net.InetSocketAddress
+import java.security.MessageDigest
+import java.security.SecureRandom
 import java.util.concurrent.Executors
 
 /**
@@ -45,6 +48,13 @@ object McpHost {
 
     /** Why the server could not start, or null. */
     var lastError: String? by mutableStateOf(null)
+        private set
+
+    /**
+     * What a request has to carry in `Authorization: Bearer <token>`. It is made again at every start of the server and written
+     * to the discovery file, which only the user can read, so a program that merely knows the port cannot drive the editor.
+     */
+    var token: String? by mutableStateOf(null)
         private set
 
     /** The latest calls, newest first, for the preferences window. */
@@ -81,6 +91,8 @@ object McpHost {
         server?.stop(0)
         server = null
         url = null
+        token = null
+        deleteDiscoveryFile()
     }
 
     private fun start(first: Int) {
@@ -88,24 +100,80 @@ object McpHost {
         for (port in first until first + PORT_TRIES) {
             val created =
                 runCatching { HttpServer.create(InetSocketAddress(InetAddress.getLoopbackAddress(), port), 0) }.getOrNull() ?: continue
-            created.createContext("/mcp") { exchange -> runCatching { handle(exchange) }.onFailure { exchange.close() } }
+            created.createContext("/mcp") { exchange ->
+                runCatching { handle(exchange) }.onFailure {
+                    // A failure outside the tools (a broken connection) cannot be answered; one that can be is
+                    runCatching { reply(exchange, 500, "internal error: ${it.message ?: it.javaClass.simpleName}") }
+                    exchange.close()
+                }
+            }
             created.executor = Executors.newFixedThreadPool(4) { r -> Thread(r, "layout-editor-mcp").apply { isDaemon = true } }
             created.start()
             server = created
             url = "http://127.0.0.1:$port/mcp"
-            writeDiscoveryFile(port)
+            token = newToken()
+            writeDiscoveryFile(port, token.orEmpty())
             return
         }
         lastError = "Порты $first–${first + PORT_TRIES - 1} заняты"
     }
 
-    /** Tells other programs where the server is: `%APPDATA%/.dayzworkbenchtool/layout-editor/mcp.json`. */
-    private fun writeDiscoveryFile(port: Int) {
+    private fun newToken(): String {
+        val bytes = ByteArray(32)
+        SecureRandom().nextBytes(bytes)
+        return bytes.joinToString("") { "%02x".format(it) }
+    }
+
+    /** The discovery file lies with the other settings of the layout editor: `%APPDATA%/.dayzworkbenchtool/v2/layout-editor/mcp.json`. */
+    private fun discoveryFile(): File = ConfigManager.LayoutEditor.fileIn("mcp.json").toFile()
+
+    private var hookInstalled = false
+
+    /** Tells other programs where the server is and what token it wants; removed again when the server stops or the editor exits. */
+    private fun writeDiscoveryFile(
+        port: Int,
+        token: String,
+    ) {
         runCatching {
-            val dir = File(System.getenv("APPDATA") ?: System.getProperty("user.home"), ".dayzworkbenchtool/layout-editor")
-            dir.mkdirs()
-            File(dir, "mcp.json").writeText("""{"url":"http://127.0.0.1:$port/mcp","port":$port,"pid":${ProcessHandle.current().pid()}}""")
+            val file = discoveryFile()
+            file.parentFile.mkdirs()
+            // The file of older versions lay one folder up, without the token: it would point at a dead port
+            File(System.getenv("APPDATA") ?: System.getProperty("user.home"), ".dayzworkbenchtool/layout-editor/mcp.json").delete()
+            file.writeText(
+                """{"url":"http://127.0.0.1:$port/mcp","port":$port,"pid":${ProcessHandle.current().pid()},"token":"$token"}""",
+            )
+            if (!hookInstalled) {
+                hookInstalled = true
+                Runtime.getRuntime().addShutdownHook(Thread { deleteDiscoveryFile() })
+            }
         }
+    }
+
+    /** Deletes the discovery file, unless it was written by another running editor (its pid is not ours). */
+    private fun deleteDiscoveryFile() {
+        runCatching {
+            val file = discoveryFile()
+            if (!file.isFile) return
+            val pid =
+                Regex("\"pid\"\\s*:\\s*(\\d+)")
+                    .find(file.readText())
+                    ?.groupValues
+                    ?.get(1)
+                    ?.toLongOrNull()
+            if (pid == null || pid == ProcessHandle.current().pid()) file.delete()
+        }
+    }
+
+    /** True when the request carries the token of this run (the comparison takes the same time for every token). */
+    private fun authorized(exchange: HttpExchange): Boolean {
+        val expected = token ?: return false
+        val given =
+            exchange.requestHeaders
+                .getFirst("Authorization")
+                .orEmpty()
+                .removePrefix("Bearer ")
+                .trim()
+        return MessageDigest.isEqual(given.toByteArray(Charsets.UTF_8), expected.toByteArray(Charsets.UTF_8))
     }
 
     private fun handle(exchange: HttpExchange) {
@@ -120,10 +188,26 @@ object McpHost {
             reply(exchange, 403, "forbidden")
             return
         }
+        if (!authorized(exchange)) {
+            exchange.responseHeaders.add("WWW-Authenticate", "Bearer")
+            reply(exchange, 401, "unauthorized: send the token of mcp.json as Authorization: Bearer <token>")
+            return
+        }
         when (exchange.requestMethod) {
             "POST" -> {
                 val body = exchange.requestBody.readBytes().toString(Charsets.UTF_8)
-                val response = runCatching { process(json.parseToJsonElement(body)) }.getOrElse { error(null, -32700, "Parse error") }
+                val parsed = runCatching { json.parseToJsonElement(body) }.getOrNull()
+                // -32700 only for a body that is not JSON; a failure inside is an internal error
+                val response =
+                    if (parsed == null) {
+                        error(null, -32700, "Parse error")
+                    } else {
+                        runCatching {
+                            process(
+                                parsed,
+                            )
+                        }.getOrElse { error(null, -32603, "Internal error: ${it.message ?: it.javaClass.simpleName}") }
+                    }
                 if (response == null) {
                     exchange.sendResponseHeaders(202, -1)
                     exchange.close()
@@ -228,7 +312,23 @@ object McpHost {
                 "tools/call" -> {
                     val current = tools ?: return error(id, -32000, "The layout editor window is not open")
                     val name = params["name"]?.jsonPrimitive?.contentOrNull ?: return error(id, -32602, "Missing tool name")
-                    current.call(name, params["arguments"] as? JsonObject ?: buildJsonObject { })
+                    // A tool that throws is an error of that tool (isError), not a dropped connection
+                    runCatching { current.call(name, params["arguments"] as? JsonObject ?: buildJsonObject { }) }.getOrElse {
+                        buildJsonObject {
+                            put("isError", true)
+                            put(
+                                "content",
+                                JsonArray(
+                                    listOf(
+                                        buildJsonObject {
+                                            put("type", "text")
+                                            put("text", "${it.javaClass.simpleName}: ${it.message.orEmpty()}")
+                                        },
+                                    ),
+                                ),
+                            )
+                        }
+                    }
                 }
 
                 else -> {

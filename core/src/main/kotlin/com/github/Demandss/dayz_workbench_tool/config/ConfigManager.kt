@@ -17,6 +17,9 @@ class ConfigManager<T>(
     private val configDir = Path(System.getenv("APPDATA")).resolve(".dayzworkbenchtool/v2/$subDir")
     private val configFile = configDir.resolve("settings.json")
 
+    /** A file next to the settings (`mcp.json` of the layout editor), in the same versioned folder. */
+    fun fileIn(name: String) = configDir.resolve(name)
+
     fun load(): T {
         if (!configFile.exists()) return default()
         return runCatching { json.decodeFromString(serializer, configFile.readText()) }

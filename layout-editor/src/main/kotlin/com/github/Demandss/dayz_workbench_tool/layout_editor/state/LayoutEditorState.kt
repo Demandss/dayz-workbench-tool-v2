@@ -423,6 +423,13 @@ class LayoutEditorState(
     /** The folder of the mod that holds [path], or null. */
     fun modRoot(path: String): File? = modRootOf(path)
 
+    /** Where the MCP tools may write: the work drive and the folders of the connected mods. */
+    fun writableRoots(): List<File> =
+        (listOf(workDrivePath) + connectedMods())
+            .filter { it.isNotBlank() }
+            .mapNotNull { runCatching { File(it).canonicalFile }.getOrNull() }
+            .distinct()
+
     /** Looks again at the imagesets, styles and fonts of the mods, after a tool wrote one. */
     fun refreshAssets(path: String? = null) {
         // The mod of a file a tool wrote is connected, so that its imagesets and styles are scanned

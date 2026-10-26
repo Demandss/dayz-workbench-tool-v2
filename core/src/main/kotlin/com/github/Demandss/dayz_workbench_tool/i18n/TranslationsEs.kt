@@ -513,6 +513,7 @@ internal val translationsEs: Map<String, String> =
         "Тень: {0}" to "Sombra: {0}",
         "Тип {0}" to "Tipo {0}",
         "Тип: {0}" to "Tipo: {0}",
+        "Токен" to "Token",
         "Только выбранные виджеты" to "Solo los widgets seleccionados",
         "Только символы ASCII" to "Solo caracteres ASCII",
         "Точка поворота по вертикали, от 0 до 1" to "El punto de giro vertical, de 0 a 1",

@@ -428,6 +428,7 @@ internal class McpTools(
     private fun createImageset(args: JsonObject): String {
         val output = java.io.File(args.string("output") ?: throw ToolFailure("output is required: the full path of the .imageset"))
         if (!output.name.endsWith(".imageset", ignoreCase = true)) throw ToolFailure("output must end with .imageset")
+        writable(output.path)
         if (output.exists() && args.bool("overwrite") != true) throw ToolFailure("${output.path} exists: pass overwrite=true to replace it")
         val sources = mutableListOf<Pair<String, java.io.File>>()
         (args["images"] as? JsonArray)?.forEachIndexed { i, raw ->
@@ -520,6 +521,7 @@ internal class McpTools(
     private fun createStyle(args: JsonObject): String {
         val file = java.io.File(args.string("file") ?: throw ToolFailure("file is required: the full path of the .styles"))
         if (!file.name.endsWith(".styles", ignoreCase = true)) throw ToolFailure("file must end with .styles")
+        writable(file.path)
         val widget = (args.string("widget") ?: "ButtonWidget").removeSuffix("Class")
         val name = assetName(args.string("name") ?: throw ToolFailure("name is required"))
         val imageSet = args.string("imageset") ?: throw ToolFailure("imageset is required: the name of the imageset the images are from")
@@ -634,6 +636,7 @@ internal class McpTools(
                 ?: state.activeFile?.path?.let { state.modRoot(it) }
                 ?: throw ToolFailure("mod is required: the folder of the mod (or open a layout of it)")
         if (!mod.isDirectory) throw ToolFailure("No such folder: ${mod.path}")
+        writable(mod.path)
         val config =
             mod.listFiles { f -> f.isFile && f.name.equals("config.cpp", ignoreCase = true) }?.firstOrNull()
                 ?: throw ToolFailure("${mod.path} has no config.cpp")
@@ -733,6 +736,7 @@ internal class McpTools(
         val target =
             args.string("output")?.let { java.io.File(it) }
                 ?: java.io.File(source.parentFile, source.nameWithoutExtension + if (toEdds) ".edds" else ".png")
+        writable(target.path)
         if (target.exists() && args.bool("overwrite") != true) throw ToolFailure("${target.path} exists: pass overwrite=true to replace it")
         target.parentFile?.mkdirs()
         val info =
@@ -765,6 +769,7 @@ internal class McpTools(
         if (!source.isFile) throw ToolFailure("No such file: ${source.path}")
         val outDir =
             java.io.File(args.string("output_dir") ?: throw ToolFailure("output_dir is required, e.g. the gui/fonts folder of a mod"))
+        writable(outDir.path)
         val name = sanitizeFontName(args.string("name") ?: source.nameWithoutExtension)
         val sizes =
             (args["sizes"] as? JsonArray)?.mapNotNull { (it as? JsonPrimitive)?.content?.toIntOrNull() }?.takeIf { it.isNotEmpty() }
@@ -818,6 +823,13 @@ internal class McpTools(
 
     private fun openLayout(args: JsonObject): String {
         val path = args.string("path") ?: throw ToolFailure("path is required")
+        // A file of the game (inside a PBO) is only read; any other file has to be in the work drive or a mod, because opening
+        // a layout connects the mod above it
+        if (com.github.demandss.dayz_workbench_tool.pbo.PboFile
+                .resolve(path) == null
+        ) {
+            writable(path)
+        }
         val before = state.openFiles.size
         state.openFile(path)
         val doc = state.activeFile
@@ -831,13 +843,39 @@ internal class McpTools(
     private fun openFile(args: JsonObject): String {
         val path = args.string("path") ?: throw ToolFailure("path is required")
         if (!java.io.File(path).isFile) throw ToolFailure("No such file: $path")
+        writable(path)
         state.openAny(path)
         return "Opened $path"
     }
 
+    /**
+     * The file for [path] when it lies inside the work drive or a connected mod, resolved with `canonicalFile` so that `..` and
+     * links cannot lead out of them. A tool writes nowhere else: a program that reaches the server must not be able to change
+     * files of the user outside the mods.
+     */
+    private fun writable(path: String): java.io.File {
+        val canonical =
+            runCatching { java.io.File(path).canonicalFile }.getOrElse { throw ToolFailure("Not a usable path: $path") }
+        val roots = state.writableRoots()
+        if (roots.none { canonical.toPath().startsWith(it.toPath()) }) {
+            throw ToolFailure(
+                "$path is outside the work drive and the connected mods, tools write only there" +
+                    if (roots.isEmpty()) {
+                        " (set the work drive in the preferences of the editor)"
+                    } else {
+                        ": ${roots.joinToString {
+                            it.path
+                        }}"
+                    },
+            )
+        }
+        return canonical
+    }
+
     private fun createLayout(args: JsonObject): String {
         val path = args.string("path") ?: throw ToolFailure("path is required")
-        val file = java.io.File(path)
+        if (!path.endsWith(".layout", ignoreCase = true)) throw ToolFailure("path must end with .layout")
+        val file = writable(path)
         if (file.exists() && args.bool("overwrite") != true) throw ToolFailure("$path exists: open_layout opens it, or pass overwrite=true")
         file.parentFile?.mkdirs()
         // The watcher of the editor must not take this write for a change from outside (it offered a reload that dropped the widgets)
@@ -867,6 +905,11 @@ internal class McpTools(
 
     private fun saveLayout(): String {
         val doc = requireDoc()
+        if (com.github.demandss.dayz_workbench_tool.pbo.PboFile
+                .resolve(doc.path) == null
+        ) {
+            writable(doc.path)
+        }
         state.saveActiveFile()
         return if (state.activeFile?.isModified == false) "Saved ${doc.path}" else throw ToolFailure("Not saved (game files are read-only)")
     }
