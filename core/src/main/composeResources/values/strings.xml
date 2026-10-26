@@ -739,4 +739,14 @@
     <string name="section_game">Game launch</string>
     <string name="section_processes">Processes</string>
     <string name="search">Search</string>
+    <string name="mcp_ports_busy">Ports %1$s–%2$s are busy</string>
+    <string name="mcp_address_copied">MCP address copied: %1$s</string>
+    <string name="mcp_intro">The editor gives an assistant, for example Claude Code, its tools: to read and edit the open layout, change the view and take screenshots. The server listens to this computer only.</string>
+    <string name="mcp_project_file">Project .mcp.json file</string>
+    <string name="mcp_prompt">Prompt for the assistant</string>
+    <string name="mcp_prompt_hint">Paste it into the chat of the assistant: it says where the editor is, which folders to look in and how to start. Write your task at the end.</string>
+    <string name="copy_prompt">Copy prompt</string>
+    <string name="copy_prompt_with_connection">Copy prompt with the connection</string>
+    <string name="new_token">New token</string>
+    <string name="new_token_hint">The token is kept, so a connected assistant keeps working after a restart. After a new token, give it to the clients again (copy the command).</string>
 </resources>

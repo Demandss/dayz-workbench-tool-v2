@@ -739,4 +739,14 @@
     <string name="section_game">Запуск гри</string>
     <string name="section_processes">Процеси</string>
     <string name="search">Пошук</string>
+    <string name="mcp_ports_busy">Порти %1$s–%2$s зайняті</string>
+    <string name="mcp_address_copied">Адресу MCP скопійовано: %1$s</string>
+    <string name="mcp_intro">Редактор надає асистенту, наприклад Claude Code, свої інструменти: читати й редагувати відкритий лайаут, змінювати вигляд і робити знімки екрана. Сервер слухає лише цей комп’ютер.</string>
+    <string name="mcp_project_file">Файл .mcp.json проєкту</string>
+    <string name="mcp_prompt">Промпт для асистента</string>
+    <string name="mcp_prompt_hint">Вставте його в чат асистента: він розповість, де редактор, у яких теках шукати і з чого почати. Своє завдання допишіть наприкінці.</string>
+    <string name="copy_prompt">Копіювати промпт</string>
+    <string name="copy_prompt_with_connection">Копіювати промпт із підключенням</string>
+    <string name="new_token">Новий токен</string>
+    <string name="new_token_hint">Токен зберігається, тому підключений асистент працює і після перезапуску. Після нового токена віддайте його клієнтам знову (скопіюйте команду).</string>
 </resources>

@@ -739,4 +739,14 @@
     <string name="section_game">启动游戏</string>
     <string name="section_processes">进程</string>
     <string name="search">搜索</string>
+    <string name="mcp_ports_busy">端口 %1$s–%2$s 已被占用</string>
+    <string name="mcp_address_copied">已复制 MCP 地址：%1$s</string>
+    <string name="mcp_intro">编辑器向助手（例如 Claude Code）提供工具：读取和编辑打开的 layout、更改视图、截取屏幕。服务器只监听本机。</string>
+    <string name="mcp_project_file">项目的 .mcp.json 文件</string>
+    <string name="mcp_prompt">助手提示词</string>
+    <string name="mcp_prompt_hint">将其粘贴到助手的聊天中：它会说明编辑器在哪里、在哪些文件夹中查找以及如何开始。请在末尾写上你的任务。</string>
+    <string name="copy_prompt">复制提示词</string>
+    <string name="copy_prompt_with_connection">复制含连接信息的提示词</string>
+    <string name="new_token">新令牌</string>
+    <string name="new_token_hint">令牌会被保存，已连接的助手在重启后仍可使用。生成新令牌后，请重新提供给客户端（复制命令）。</string>
 </resources>

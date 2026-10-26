@@ -739,4 +739,14 @@
     <string name="section_game">Lancement du jeu</string>
     <string name="section_processes">Processus</string>
     <string name="search">Rechercher</string>
+    <string name="mcp_ports_busy">Les ports %1$s–%2$s sont occupés</string>
+    <string name="mcp_address_copied">Adresse MCP copiée : %1$s</string>
+    <string name="mcp_intro">L’éditeur met ses outils à la disposition d’un assistant, par exemple Claude Code : lire et modifier le layout ouvert, changer la vue et prendre des captures d’écran. Le serveur n’écoute que cet ordinateur.</string>
+    <string name="mcp_project_file">Fichier .mcp.json du projet</string>
+    <string name="mcp_prompt">Prompt pour l’assistant</string>
+    <string name="mcp_prompt_hint">Collez-le dans le chat de l’assistant : il indique où se trouve l’éditeur, dans quels dossiers chercher et par où commencer. Écrivez votre tâche à la fin.</string>
+    <string name="copy_prompt">Copier le prompt</string>
+    <string name="copy_prompt_with_connection">Copier le prompt avec la connexion</string>
+    <string name="new_token">Nouveau jeton</string>
+    <string name="new_token_hint">Le jeton est conservé : un assistant connecté continue de fonctionner après un redémarrage. Après un nouveau jeton, redonnez-le aux clients (copiez la commande).</string>
 </resources>
