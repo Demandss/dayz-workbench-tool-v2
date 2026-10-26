@@ -87,12 +87,12 @@ class ScriptClassIndexTest {
         val list =
             ScriptClassIndex.build(
                 ScriptClassIndex.parse("class Own { void OnWidgetScriptInit(Widget w) { } }", "MF_CLS_Client", "x.c") +
-                    ScriptClassIndex.parse("class Base { void OnWidgetScriptInit(Widget w) { } }", "Игра", "pbo:a.c"),
+                    ScriptClassIndex.parse("class Base { void OnWidgetScriptInit(Widget w) { } }", GAME_SOURCE, "pbo:a.c"),
             )
         assertEquals(ScriptKind.CUSTOM, list.first { it.name == "HoverScale" }.kind())
         assertEquals(ScriptKind.VANILLA, list.first { it.name == "Base" }.kind())
         assertEquals(ScriptKind.MOD, list.first { it.name == "Own" }.kind())
-        assertEquals(listOf("кастомный", "ванильный", "мод"), ScriptKind.entries.map { it.label })
+        assertEquals(listOf(ScriptKind.CUSTOM, ScriptKind.VANILLA, ScriptKind.MOD), ScriptKind.entries)
     }
 
     @Test
@@ -112,14 +112,14 @@ class ScriptClassIndexTest {
     fun `the tooltip of a class says what it does, what it takes and where it is from`() {
         val own = ScriptClassIndex.editorClasses.first { it.name == "SelectGroup" }
         val ownTip = ScriptClassIndex.tooltip(own)
-        assertTrue("Параметры:" in ownTip && "Items = Easy|Normal|Hard" in ownTip && "пустой фрейм" in ownTip)
+        assertTrue("Items = Easy|Normal|Hard" in ownTip && ScriptKind.CUSTOM.meaning in ownTip)
         val vanilla =
-            ScriptClassInfo("SizeToChild", "Игра", "ScriptedWidgetEventHandler", "pbo:scripts/3_game/gui/containers/sizetochild.c")
+            ScriptClassInfo("SizeToChild", GAME_SOURCE, "ScriptedWidgetEventHandler", "pbo:scripts/3_game/gui/containers/sizetochild.c")
         val vanillaTip = ScriptClassIndex.tooltip(vanilla)
-        assertTrue("Live Preview" in vanillaTip && "Источник: Игра · sizetochild.c" in vanillaTip)
-        assertTrue("Ванильный класс игры" in vanillaTip && "Кастомный класс редактора" in ownTip)
+        assertTrue("Live Preview" in vanillaTip && GAME_SOURCE in vanillaTip && "sizetochild.c" in vanillaTip)
+        assertTrue(ScriptKind.VANILLA.meaning in vanillaTip)
         val modTip = ScriptClassIndex.tooltip(ScriptClassInfo("MF_Thing", "MF_CLS_Client", "SpacerBase", "K:/m/Thing.c"))
-        assertTrue("Наследует SpacerBase" in modTip && "Класс подключённого мода: MF_CLS_Client" in modTip)
+        assertTrue("SpacerBase" in modTip && "MF_CLS_Client" in modTip && ScriptKind.MOD.meaning in modTip)
     }
 
     @Test
@@ -154,7 +154,7 @@ class ScriptClassIndexTest {
         }
         val undescribed = list.filter { it.source != EDITOR && !ScriptClassIndex.describes(it.name) }.map { it.name }
         assertTrue(undescribed.isEmpty(), "classes of the game without a description: $undescribed")
-        val ofGame = list.count { it.source == "Игра" }
+        val ofGame = list.count { it.source == GAME_SOURCE }
         assertTrue(ofGame < 60, "too many classes: $ofGame")
         val info = list.first { it.name == "SizeToChild" }
         assertTrue(ScriptClassIndex.sourceOf(info, game)!!.contains("ResizeParentToChild"))

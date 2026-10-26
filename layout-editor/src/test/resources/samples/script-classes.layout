@@ -29,7 +29,7 @@ FrameWidgetClass Root {
    hexactsize 1
    vexactsize 1
    color 0.91 0.38 0.16 1
-   text "Кастомные классы редактора (17)"
+   text "Custom classes of the editor (17)"
    "exact text" 1
    "exact text size" 26
    "text valign" center
@@ -42,7 +42,7 @@ FrameWidgetClass Root {
    hexactsize 1
    vexactsize 1
    color 0.29 0.62 1 1
-   text "Ванильные классы игры (16)"
+   text "Vanilla classes of the game (16)"
    "exact text" 1
    "exact text size" 26
    "text valign" center
@@ -68,7 +68,7 @@ FrameWidgetClass Root {
    hexactsize 1
    vexactsize 1
    color 0.7 0.7 0.7 1
-   text "курсор над виджетом: растёт"
+   text "pointer over the widget: grows"
    "exact text" 1
    "exact text size" 11
    "text valign" center
@@ -109,7 +109,7 @@ FrameWidgetClass Root {
    hexactsize 1
    vexactsize 1
    color 0.7 0.7 0.7 1
-   text "зажми кнопку мыши: уменьшается"
+   text "hold the mouse button: shrinks"
    "exact text" 1
    "exact text size" 11
    "text valign" center
@@ -150,7 +150,7 @@ FrameWidgetClass Root {
    hexactsize 1
    vexactsize 1
    color 0.7 0.7 0.7 1
-   text "зажми кнопку мыши: сдвигается вниз"
+   text "hold the mouse button: moves down"
    "exact text" 1
    "exact text size" 11
    "text valign" center
@@ -192,7 +192,7 @@ FrameWidgetClass Root {
    hexactsize 1
    vexactsize 1
    color 0.7 0.7 0.7 1
-   text "курсор над виджетом: другой цвет"
+   text "pointer over the widget: another color"
    "exact text" 1
    "exact text size" 11
    "text valign" center
@@ -233,7 +233,7 @@ FrameWidgetClass Root {
    hexactsize 1
    vexactsize 1
    color 0.7 0.7 0.7 1
-   text "курсор над виджетом: появляется полоса"
+   text "pointer over the widget: a bar appears"
    "exact text" 1
    "exact text size" 11
    "text valign" center
@@ -283,7 +283,7 @@ FrameWidgetClass Root {
    hexactsize 1
    vexactsize 1
    color 0.7 0.7 0.7 1
-   text "курсор над значком: другая картинка"
+   text "pointer over the icon: another picture"
    "exact text" 1
    "exact text size" 11
    "text valign" center
@@ -335,7 +335,7 @@ FrameWidgetClass Root {
    hexactsize 1
    vexactsize 1
    color 0.7 0.7 0.7 1
-   text "курсор над текстом: другой цвет"
+   text "pointer over the text: another color"
    "exact text" 1
    "exact text size" 11
    "text valign" center
@@ -357,7 +357,7 @@ FrameWidgetClass Root {
     hexactsize 1
     vexactsize 1
     color 1 1 1 1
-    text "Наведи на меня"
+    text "Point at me"
     "exact text" 1
     "exact text size" 24
     "text valign" center
@@ -389,7 +389,7 @@ FrameWidgetClass Root {
    hexactsize 1
    vexactsize 1
    color 0.7 0.7 0.7 1
-   text "мигает сам"
+   text "blinks by itself"
    "exact text" 1
    "exact text size" 11
    "text valign" center
@@ -431,7 +431,7 @@ FrameWidgetClass Root {
    hexactsize 1
    vexactsize 1
    color 0.7 0.7 0.7 1
-   text "проявляется при включении Live Preview"
+   text "fades in when Live Preview is switched on"
    "exact text" 1
    "exact text size" 11
    "text valign" center
@@ -473,7 +473,7 @@ FrameWidgetClass Root {
    hexactsize 1
    vexactsize 1
    color 0.7 0.7 0.7 1
-   text "клик: трясётся"
+   text "click: shakes"
    "exact text" 1
    "exact text size" 11
    "text valign" center
@@ -515,7 +515,7 @@ FrameWidgetClass Root {
    hexactsize 1
    vexactsize 1
    color 0.7 0.7 0.7 1
-   text "полоса заполняется до 80 и заново"
+   text "the bar fills up to 80 and starts over"
    "exact text" 1
    "exact text size" 11
    "text valign" center
@@ -567,7 +567,7 @@ FrameWidgetClass Root {
    hexactsize 1
    vexactsize 1
    color 0.7 0.7 0.7 1
-   text "число растёт до 250 и заново"
+   text "the number grows to 250 and starts over"
    "exact text" 1
    "exact text size" 11
    "text valign" center
@@ -623,7 +623,7 @@ FrameWidgetClass Root {
    hexactsize 1
    vexactsize 1
    color 0.7 0.7 0.7 1
-   text "пустой фрейм строит ряд выбора, клик"
+   text "an empty frame builds a row of choices, click"
    "exact text" 1
    "exact text size" 11
    "text valign" center
@@ -664,7 +664,7 @@ FrameWidgetClass Root {
    hexactsize 1
    vexactsize 1
    color 0.7 0.7 0.7 1
-   text "клик по заголовку открывает и закрывает"
+   text "click on the header opens and closes"
    "exact text" 1
    "exact text size" 11
    "text valign" center
@@ -714,7 +714,7 @@ FrameWidgetClass Root {
    hexactsize 1
    vexactsize 1
    color 0.7 0.7 0.7 1
-   text "пустой фрейм строит кнопки, клик"
+   text "an empty frame builds buttons, click"
    "exact text" 1
    "exact text size" 11
    "text valign" center
@@ -756,7 +756,7 @@ FrameWidgetClass Root {
    hexactsize 1
    vexactsize 1
    color 0.7 0.7 0.7 1
-   text "клик в поле и печатай: только цифры, до 6"
+   text "click in the field and type: digits only, up to 6"
    "exact text" 1
    "exact text size" 11
    "text valign" center
@@ -807,7 +807,7 @@ FrameWidgetClass Root {
    hexactsize 1
    vexactsize 1
    color 0.7 0.7 0.7 1
-   text "тяни за оранжевую полосу"
+   text "drag the orange bar"
    "exact text" 1
    "exact text size" 11
    "text valign" center
@@ -858,7 +858,7 @@ FrameWidgetClass Root {
    hexactsize 1
    vexactsize 1
    color 0.7 0.7 0.7 1
-   text "коробка подгоняется под вложенный блок"
+   text "the box fits the nested block"
    "exact text" 1
    "exact text size" 11
    "text valign" center
@@ -914,7 +914,7 @@ FrameWidgetClass Root {
    hexactsize 1
    vexactsize 1
    color 0.7 0.7 0.7 1
-   text "размер становится долей родителя"
+   text "the size becomes a share of the parent"
    "exact text" 1
    "exact text size" 11
    "text valign" center
@@ -967,7 +967,7 @@ FrameWidgetClass Root {
    hexactsize 1
    vexactsize 1
    color 0.7 0.7 0.7 1
-   text "дети рядами, высота по стопке"
+   text "children in rows, height by the stack"
    "exact text" 1
    "exact text size" 11
    "text valign" center
@@ -1048,7 +1048,7 @@ FrameWidgetClass Root {
    hexactsize 1
    vexactsize 1
    color 0.7 0.7 0.7 1
-   text "то же, что AutoHeightSpacer"
+   text "the same as AutoHeightSpacer"
    "exact text" 1
    "exact text size" 11
    "text valign" center
@@ -1129,7 +1129,7 @@ FrameWidgetClass Root {
    hexactsize 1
    vexactsize 1
    color 0.7 0.7 0.7 1
-   text "ширина поровну между детьми"
+   text "width shared equally between the children"
    "exact text" 1
    "exact text size" 11
    "text valign" center
@@ -1200,7 +1200,7 @@ FrameWidgetClass Root {
    hexactsize 1
    vexactsize 1
    color 0.7 0.7 0.7 1
-   text "высота поровну между детьми"
+   text "height shared equally between the children"
    "exact text" 1
    "exact text size" 11
    "text valign" center
@@ -1271,7 +1271,7 @@ FrameWidgetClass Root {
    hexactsize 1
    vexactsize 1
    color 0.7 0.7 0.7 1
-   text "второй правее первого"
+   text "the second one is to the right of the first"
    "exact text" 1
    "exact text size" 11
    "text valign" center
@@ -1332,7 +1332,7 @@ FrameWidgetClass Root {
    hexactsize 1
    vexactsize 1
    color 0.7 0.7 0.7 1
-   text "ширина родителя без gap 60"
+   text "width of the parent without gap 60"
    "exact text" 1
    "exact text size" 11
    "text valign" center
@@ -1384,7 +1384,7 @@ FrameWidgetClass Root {
    hexactsize 1
    vexactsize 1
    color 0.7 0.7 0.7 1
-   text "клик по A, B, C показывает панель"
+   text "click on A, B, C shows a panel"
    "exact text" 1
    "exact text size" 11
    "text valign" center
@@ -1551,7 +1551,7 @@ FrameWidgetClass Root {
    hexactsize 1
    vexactsize 1
    color 0.7 0.7 0.7 1
-   text "клик по вкладке, наведение"
+   text "click on a tab, pointer over it"
    "exact text" 1
    "exact text size" 11
    "text valign" center
@@ -1706,7 +1706,7 @@ FrameWidgetClass Root {
    hexactsize 1
    vexactsize 1
    color 0.7 0.7 0.7 1
-   text "клик: текст красный и сдвинут"
+   text "click: the text is red and shifted"
    "exact text" 1
    "exact text size" 11
    "text valign" center
@@ -1758,7 +1758,7 @@ FrameWidgetClass Root {
    hexactsize 1
    vexactsize 1
    color 0.7 0.7 0.7 1
-   text "текст Caption на кнопке внутри"
+   text "the Caption text on the button inside"
    "exact text" 1
    "exact text size" 11
    "text valign" center
@@ -1785,7 +1785,7 @@ FrameWidgetClass Root {
     }
     {
      ScriptParamsClass {
-      Caption "Играть"
+      Caption "Play"
      }
     }
    }
@@ -1810,7 +1810,7 @@ FrameWidgetClass Root {
    hexactsize 1
    vexactsize 1
    color 0.7 0.7 0.7 1
-   text "начальный вид: половины скрыты"
+   text "initial view: the halves are hidden"
    "exact text" 1
    "exact text size" 11
    "text valign" center
@@ -1890,7 +1890,7 @@ FrameWidgetClass Root {
    hexactsize 1
    vexactsize 1
    color 0.7 0.7 0.7 1
-   text "по исходнику ничего не делает"
+   text "does nothing according to the source"
    "exact text" 1
    "exact text size" 11
    "text valign" center
@@ -1932,7 +1932,7 @@ FrameWidgetClass Root {
    hexactsize 1
    vexactsize 1
    color 0.7 0.7 0.7 1
-   text "по исходнику ничего не делает"
+   text "does nothing according to the source"
    "exact text" 1
    "exact text size" 11
    "text valign" center
@@ -1974,7 +1974,7 @@ FrameWidgetClass Root {
    hexactsize 1
    vexactsize 1
    color 0.7 0.7 0.7 1
-   text "по исходнику ничего не делает"
+   text "does nothing according to the source"
    "exact text" 1
    "exact text size" 11
    "text valign" center

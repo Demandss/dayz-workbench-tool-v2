@@ -27,6 +27,9 @@ internal class ScriptDeclaration(
 
 internal const val EDITOR = "Поведения редактора"
 
+/** The source of the classes of the game, as the list and the tooltips name it. */
+internal const val GAME_SOURCE = "Игра"
+
 /** Where a class comes from, as the list marks it: made for the editor, a class of the game, or a class of a connected mod. */
 internal enum class ScriptKind(
     val label: String,
@@ -42,7 +45,7 @@ internal enum class ScriptKind(
 internal fun ScriptClassInfo.kind(): ScriptKind =
     when (source) {
         EDITOR -> ScriptKind.CUSTOM
-        "Игра" -> ScriptKind.VANILLA
+        GAME_SOURCE -> ScriptKind.VANILLA
         else -> ScriptKind.MOD
     }
 
@@ -83,7 +86,9 @@ internal object ScriptClassIndex {
         val archive = PboArchive.open(pbo) ?: return emptyList()
         return archive.entries
             .filter { it.path.endsWith(".c", ignoreCase = true) }
-            .flatMap { entry -> archive.read(entry.path)?.let { parse(String(it, Charsets.UTF_8), "Игра", "pbo:${entry.path}") }.orEmpty() }
+            .flatMap { entry ->
+                archive.read(entry.path)?.let { parse(String(it, Charsets.UTF_8), GAME_SOURCE, "pbo:${entry.path}") }.orEmpty()
+            }
     }
 
     /** The declarations of every `.c` file of the mod in [dir]. */
@@ -120,7 +125,7 @@ internal object ScriptClassIndex {
             declarations
                 .filter { runsInit(it.name) }
                 .distinctBy { it.name }
-                .sortedWith(compareBy({ it.source != "Игра" }, { it.source }, { it.name.lowercase() }))
+                .sortedWith(compareBy({ it.source != GAME_SOURCE }, { it.source }, { it.name.lowercase() }))
                 .map { ScriptClassInfo(it.name, it.source, it.parent, it.location) }
         val names = found.map { it.name }.toSet()
         return editorClasses.filter { it.name !in names } + found
@@ -238,7 +243,7 @@ internal object ScriptClassIndex {
             lines += "Параметры: " + entry.params.joinToString(", ") { "${it.name} = ${it.default.ifEmpty { "\"\"" }}" }
             lines += if (entry.spawner != null) "Ставится на пустой фрейм, виджеты строит сам" else "Ставится на готовый виджет"
         }
-        if (info.source == "Игра") previewStatus(info.name)?.let { lines += it }
+        if (info.source == GAME_SOURCE) previewStatus(info.name)?.let { lines += it }
         if (info.source != EDITOR) {
             if (info.parent.isNotEmpty() && info.parent != ROOT) lines += "Наследует ${info.parent}"
             val file =

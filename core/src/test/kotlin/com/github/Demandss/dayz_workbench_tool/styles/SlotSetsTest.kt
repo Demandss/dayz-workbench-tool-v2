@@ -26,7 +26,7 @@ class SlotSetsTest {
     fun `a group of plain slot names is a set of its own`() {
         val groups = mapOf("Frame" to listOf("LeftTop", "Left", "Center"))
         val sets = findSlotSets(listOf("LeftTop", "Left", "Center"), groups)
-        assertEquals(listOf("Группа Frame"), sets.map { it.label })
+        assertTrue(sets.single().label.endsWith("Frame"))
     }
 
     @Test

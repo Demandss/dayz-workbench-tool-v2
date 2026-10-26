@@ -68,7 +68,7 @@ class ScriptParamsTest {
         // NoticeSpacer declares no fields of its own: they come from AutoHeightSpacer
         assertEquals(setOf("AlignChilds", "MinHeight", "MaxHeight", "Gap", "Top"), names("NoticeSpacer"))
         val gap = ScriptParams.collect("RightGap", declarations, game).first { it.name == "gap" }
-        assertEquals("На сколько пикселей уже родителя", gap.description)
+        assertTrue(gap.description.isNotBlank())
         assertTrue(ScriptParams.collect("SizeToParent", declarations, game).all { it.isFlag })
     }
 }

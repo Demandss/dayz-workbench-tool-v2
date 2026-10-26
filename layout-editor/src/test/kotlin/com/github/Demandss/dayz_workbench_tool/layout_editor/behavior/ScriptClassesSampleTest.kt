@@ -96,7 +96,7 @@ class ScriptClassesSampleTest {
         val panels = listOf(0, 1, 2).map { effects[tree.named("Panel${it}_v_Tabber").id]?.visible }
         assertEquals(listOf(true, false, false), panels)
         assertNotNull(effects[tree.named("Button_v_MainMenuButtonEffect").id]?.textColor)
-        assertEquals("Играть", effects[tree.named("Button_v_EmbededButtonScript").id]?.text)
+        assertEquals("Play", effects[tree.named("Button_v_EmbededButtonScript").id]?.text)
         assertEquals(false, effects[tree.named("BarPart2_Ring").id]?.visible)
         assertTrue(effects[tree.named("Card_v_HoverEffect").id] == null)
     }

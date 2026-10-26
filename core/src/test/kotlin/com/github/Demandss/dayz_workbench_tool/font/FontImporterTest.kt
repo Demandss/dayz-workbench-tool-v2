@@ -19,7 +19,7 @@ class FontImporterTest {
         assertEquals(-1, ranges.indexOf(0x400))
         assertEquals(98, ranges.count)
         assertTrue(ranges.covers("Ab c\n"))
-        assertTrue(!ranges.covers("Ж"))
+        assertTrue(!ranges.covers("\u0416"))
     }
 
     @Test
@@ -31,7 +31,7 @@ class FontImporterTest {
         assertEquals(22, header.size)
         assertEquals(out.glyphs, header.records)
         assertEquals(out.glyphs, header.ranges.count)
-        assertTrue(header.ranges.has('A'.code) && header.ranges.has('Ж'.code) && header.ranges.has(0x20BD))
+        assertTrue(header.ranges.has('A'.code) && header.ranges.has(0x0416) && header.ranges.has(0x20BD))
         val atlas = EddsCodec.decode(out.edds)
         assertEquals(out.atlasWidth, atlas.width)
         assertEquals(out.atlasHeight, atlas.height)

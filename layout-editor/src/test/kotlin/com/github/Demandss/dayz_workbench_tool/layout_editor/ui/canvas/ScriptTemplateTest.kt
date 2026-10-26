@@ -23,7 +23,7 @@ class ScriptTemplateTest {
             node(WidgetType.EDIT_BOX, "NameInput"),
             node(WidgetType.TEXT, "Label"),
             node(WidgetType.TEXT, "Label"),
-            node(WidgetType.TEXT, "Имя"),
+            node(WidgetType.TEXT, "Bad Name"),
         )
 
     @Test
@@ -41,7 +41,7 @@ class ScriptTemplateTest {
     fun repeatedAndInvalidNamesAreLeftOut() {
         val text = scriptTemplate(root, "x.layout", "A", TemplateKind.WIDGETS)
         assertTrue(text.split("ref TextWidget m_Label;").size == 2)
-        assertFalse("Имя" in text)
+        assertFalse("Bad Name" in text)
         assertFalse("rootFrame" in text)
     }
 

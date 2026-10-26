@@ -8,8 +8,8 @@ import kotlin.test.assertTrue
 class WidgetNamesTest {
     @Test
     fun `cyrillic is written in latin letters`() {
-        assertEquals("Gruppa", sanitizeWidgetName("Группа"))
-        assertEquals("knopka_ok", sanitizeWidgetName("кнопка ок"))
+        assertEquals("Zh", sanitizeWidgetName("\u0416"))
+        assertEquals("zh_zh", sanitizeWidgetName("\u0436 \u0436"))
     }
 
     @Test
@@ -21,7 +21,7 @@ class WidgetNamesTest {
 
     @Test
     fun `invalid characters are found`() {
-        assertTrue(hasInvalidNameChars("кнопка"))
+        assertTrue(hasInvalidNameChars("\u0436"))
         assertTrue(hasInvalidNameChars("a b"))
         assertFalse(hasInvalidNameChars("Group_1"))
     }

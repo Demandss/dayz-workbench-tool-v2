@@ -8,14 +8,14 @@ import kotlin.test.assertNull
 class StringtableTest {
     private val vanilla =
         "\"Language\",\"original\",\"english\",\"czech\",\"german\",\"russian\",\"chinesesimp\",\n" +
-            "\"STR_Craft\",\"Craft\",\"Craft\",\"Vyrobit\",\"Herstellen\",\"Создать\",\"制作\",\n" +
+            "\"STR_Craft\",\"Craft\",\"Craft\",\"Vyrobit\",\"Herstellen\",\"Create\",\"制作\",\n" +
             "\"STR_Multi\",\"a\",\"Line one\nLine two, \"\"quoted\"\"\",\"\",\"\",\"\",\"\",\n"
 
     @Test
     fun readsQuotedCellsWithLineBreaksAndTrailingComma() {
         val entries = StringtableCsv.parse(vanilla, "game")
         assertEquals(listOf("STR_Craft", "STR_Multi"), entries.map { it.key })
-        assertEquals("Создать", entries[0].texts["russian"])
+        assertEquals("Create", entries[0].texts["russian"])
         assertEquals("Line one\nLine two, \"quoted\"", entries[1].texts["english"])
     }
 
@@ -23,17 +23,17 @@ class StringtableTest {
     fun aByteOrderMarkIsNotPartOfTheFirstCell() {
         val entries = StringtableCsv.parse("﻿" + vanilla, "game")
         assertEquals(listOf("STR_Craft", "STR_Multi"), entries.map { it.key })
-        assertEquals("Создать", entries[0].texts["russian"])
+        assertEquals("Create", entries[0].texts["russian"])
     }
 
     @Test
     fun readsModTablesWithCapitalsAndUnquotedCells() {
         val entries =
             StringtableCsv.parse(
-                "LANGUAGE,ORIGINAL,ENGLISH,RUSSIAN,CHINESE SIMP.\r\nSTR_DF_NAME,Dabs,Dabs Framework,Дабс,中文\r\n",
+                "LANGUAGE,ORIGINAL,ENGLISH,RUSSIAN,CHINESE SIMP.\r\nSTR_DF_NAME,Dabs,Dabs Framework,Dabs RU,中文\r\n",
                 "DabsFramework",
             )
-        assertEquals("Дабс", entries.single().texts["russian"])
+        assertEquals("Dabs RU", entries.single().texts["russian"])
         assertEquals("中文", entries.single().texts["chinesesimp"])
         assertEquals("DabsFramework", entries.single().origin)
     }
@@ -41,7 +41,7 @@ class StringtableTest {
     @Test
     fun takesTheColumnOfTheInterfaceLanguage() {
         val craft = StringtableCsv.parse(vanilla, "game").first()
-        assertEquals("Создать", craft.textIn(Language.RU))
+        assertEquals("Create", craft.textIn(Language.RU))
         assertEquals("Craft", craft.textIn(Language.EN))
         assertEquals("Herstellen", craft.textIn(Language.DE))
         assertEquals("制作", craft.textIn(Language.ZH))

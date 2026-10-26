@@ -60,7 +60,7 @@ class ProblemsTest {
 
     @Test
     fun `a name with cyrillic is reported`() {
-        val root = frame("Root", widget("кнопка", "style" to "x"))
+        val root = frame("Root", widget("\u0436", "style" to "x"))
         assertEquals(1, findProblems(root).size)
     }
 
