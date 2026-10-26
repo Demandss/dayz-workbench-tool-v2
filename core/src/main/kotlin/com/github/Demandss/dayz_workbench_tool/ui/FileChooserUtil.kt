@@ -10,7 +10,7 @@ suspend fun pickFile(
     initialDir: String? = null,
 ): String? =
     withContext(Dispatchers.IO) {
-        runPs("-Command", fileDialogScript(title, extension, initialDir))
+        runPsScript(fileDialogScript(title, extension, initialDir))
     }
 
 suspend fun pickDirectory(
@@ -18,14 +18,22 @@ suspend fun pickDirectory(
     initialDir: String? = null,
 ): String? =
     withContext(Dispatchers.IO) {
-        val temp = File.createTempFile("dayz_pick_", ".ps1")
-        try {
-            writePowerShellFile(temp, folderPickerScript(title, initialDir))
-            runPs("-ExecutionPolicy", "Bypass", "-File", temp.absolutePath)
-        } finally {
-            temp.delete()
-        }
+        runPsScript(folderPickerScript(title, initialDir))
     }
+
+/**
+ * Runs [script] from a file: a command line reaches PowerShell in the code page of the system, so a title or a folder of another
+ * alphabet would turn into question marks there.
+ */
+private fun runPsScript(script: String): String? {
+    val temp = File.createTempFile("dayz_pick_", ".ps1")
+    try {
+        writePowerShellFile(temp, script)
+        return runPs("-ExecutionPolicy", "Bypass", "-File", temp.absolutePath)
+    } finally {
+        temp.delete()
+    }
+}
 
 /**
  * A text as a PowerShell string in single quotes. PowerShell takes the curly quotes (‘ ’ ‚ ‛) for the plain one, so each of
