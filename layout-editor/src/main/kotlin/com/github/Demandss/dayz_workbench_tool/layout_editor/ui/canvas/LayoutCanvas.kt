@@ -1,4 +1,4 @@
-package com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas
+﻿package com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.focusable
@@ -585,7 +585,7 @@ internal fun DrawScope.drawWidgetTree(
         val className =
             node.node.type.className
                 .removeSuffix("WidgetClass")
-        val label = if (node.node.name.isNotEmpty()) "$className · ${node.node.name}" else className
+        val label = if (node.node.name.isNotEmpty()) "$className В· ${node.node.name}" else className
         val measured =
             textMeasurer.measure(
                 label,
@@ -766,6 +766,10 @@ fun LayoutCanvas(
                         var pendingSelect: UUID? = null
                         var boxStartWorld = Offset.Zero
                         var currentBox: Rect? = null
+                        var lastStackClickNanos = 0L
+                        var lastStackClickPosition = Offset.Unspecified
+                        var lastStackHits: List<UUID> = emptyList()
+                        var cyclePressHandled = false
 
                         while (true) {
                             val event = awaitPointerEvent(PointerEventPass.Main)
@@ -836,6 +840,24 @@ fun LayoutCanvas(
                                             isPanning = true
                                             panStartScreen = pos
                                             panStartOffset = pan
+                                            event.changes.forEach { it.consume() }
+                                        }
+
+                                        isPrimary && !state.livePreview &&
+                                            !event.keyboardModifiers.isShiftPressed &&
+                                            !event.keyboardModifiers.isCtrlPressed &&
+                                            !event.keyboardModifiers.isAltPressed &&
+                                            System.nanoTime() - lastStackClickNanos < 500_000_000L &&
+                                            (pos - lastStackClickPosition).getDistance() < 8f &&
+                                            lastStackHits.size > 1 && state.selectedIds.singleOrNull() in lastStackHits -> {
+                                            val index = lastStackHits.indexOf(state.selectedIds.single())
+                                            state.selectBy(
+                                                lastStackHits[(index + 1).mod(lastStackHits.size)],
+                                                emptyList(),
+                                                SelectMode.REPLACE,
+                                            )
+                                            lastStackClickNanos = 0L
+                                            cyclePressHandled = true
                                             event.changes.forEach { it.consume() }
                                         }
 
@@ -998,7 +1020,7 @@ fun LayoutCanvas(
                                                 if (doc != null && parent != null && id != null) {
                                                     state.updateActiveRoot(withRect(doc.root, id, rect, parent))
                                                     state.resizeLabel =
-                                                        rect to "${formatNumber(round(rect.width))} × ${formatNumber(round(rect.height))}"
+                                                        rect to "${formatNumber(round(rect.width))} Г— ${formatNumber(round(rect.height))}"
                                                 }
                                             }
                                             event.changes.forEach { it.consume() }
@@ -1111,6 +1133,29 @@ fun LayoutCanvas(
                                 }
 
                                 PointerEventType.Release -> {
+                                    if (isDragging && !undoPushed && !state.livePreview) {
+                                        val docAtClick = state.activeFile
+                                        if (docAtClick != null) {
+                                            val hits = mutableListOf<EditorWidgetNode>()
+                                            val clickLayout = layoutOf(state, docAtClick.root, screenRect(state))
+                                            hitsAt(
+                                                docAtClick.root,
+                                                screenToWorld(pos, zoom, pan),
+                                                clickLayout,
+                                                state.hiddenIds.toSet(),
+                                                hits,
+                                            )
+                                            lastStackHits =
+                                                hits
+                                                    .filter {
+                                                        it.id != docAtClick.root.id &&
+                                                            it.id !in state.lockedIds &&
+                                                            it.prop("ignorepointer") != "1"
+                                                    }.map { it.id }
+                                            lastStackClickPosition = pos
+                                            lastStackClickNanos = System.nanoTime()
+                                        }
+                                    }
                                     if (isBoxSelecting) {
                                         val box = currentBox
                                         val doc = state.activeFile
@@ -1120,6 +1165,27 @@ fun LayoutCanvas(
                                         pendingSelect = null
                                         if (pending != null && !dragged) {
                                             state.selectBy(pending, emptyList(), SelectMode.REPLACE)
+                                            if (!state.livePreview) {
+                                                val hits = mutableListOf<EditorWidgetNode>()
+                                                val docAtClick = state.activeFile
+                                                if (docAtClick != null) {
+                                                    hitsAt(
+                                                        docAtClick.root,
+                                                        screenToWorld(pos, zoom, pan),
+                                                        layoutOf(state, docAtClick.root, screenRect(state)),
+                                                        state.hiddenIds.toSet(),
+                                                        hits,
+                                                    )
+                                                }
+                                                lastStackHits =
+                                                    hits
+                                                        .filter {
+                                                            it.id != docAtClick?.root?.id && it.id !in state.lockedIds &&
+                                                                it.prop("ignorepointer") != "1"
+                                                        }.map { it.id }
+                                                lastStackClickPosition = pos
+                                                lastStackClickNanos = System.nanoTime()
+                                            }
                                         } else if (box != null && dragged && doc != null) {
                                             val hits = mutableListOf<UUID>()
                                             selectInBox(
@@ -1149,6 +1215,7 @@ fun LayoutCanvas(
                                     state.snapGuides = emptyList()
                                     state.snapDistances = emptyList()
                                     isBoxSelecting = false
+                                    cyclePressHandled = false
                                     dragInfos = emptyList()
                                 }
 
@@ -1543,7 +1610,7 @@ internal fun DrawScope.drawSkinSlot(
     }
 }
 
-/** Whether the editor view writes "Type · name" in the corner of every widget; set from the state before a frame is drawn. */
+/** Whether the editor view writes "Type В· name" in the corner of every widget; set from the state before a frame is drawn. */
 internal object WidgetNames {
     @Volatile
     var shown = true
