@@ -6,7 +6,7 @@ plugins {
 }
 
 kotlin {
-    jvmToolchain(21)
+    jvmToolchain(25)
 }
 
 repositories {
@@ -16,13 +16,13 @@ repositories {
 }
 
 dependencies {
-    api(compose.material3)
-    api(compose.foundation)
-    api(compose.ui)
-    api(compose.runtime)
-    api(compose.components.resources)
-    api("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
-    api("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.1")
+    api(libs.compose.material3)
+    api(libs.compose.foundation)
+    api(libs.compose.ui)
+    api(libs.compose.runtime)
+    api(libs.compose.components.resources)
+    api("org.jetbrains.kotlinx:kotlinx-serialization-json:1.12.0")
+    api("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.11.0")
 
     testImplementation(kotlin("test"))
     // The tests of what reads the string resources need the native library of the graphics, like the programs
@@ -37,7 +37,11 @@ compose.resources {
 
 tasks.test {
     useJUnitPlatform()
-    jvmArgs("-XX:ErrorFile=logs/hs_err_pid%p.log", "-XX:ReplayDataFile=logs/replay_pid%p.log")
+    jvmArgs(
+        "-XX:ErrorFile=logs/hs_err_pid%p.log",
+        "-XX:ReplayDataFile=logs/replay_pid%p.log",
+        "--enable-native-access=ALL-UNNAMED",
+    )
 }
 
 // Library module — disable the run task added by the compose plugin

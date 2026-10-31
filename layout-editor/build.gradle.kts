@@ -7,7 +7,7 @@ plugins {
 }
 
 kotlin {
-    jvmToolchain(21)
+    jvmToolchain(25)
 }
 
 group = "com.github.demandss"
@@ -22,10 +22,9 @@ repositories {
 dependencies {
     implementation(project(":core"))
     implementation(compose.desktop.currentOs)
-    implementation(compose.material3)
-    implementation(compose.materialIconsExtended)
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.1")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-swing:1.8.1")
+    implementation(libs.compose.material3)
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.11.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-swing:1.11.0")
 }
 
 compose.desktop {
@@ -33,12 +32,17 @@ compose.desktop {
         mainClass = "com.github.demandss.dayz_workbench_tool.layout_editor.MainKt"
 
         // Crash dumps go to logs/ (ignored by git) instead of the working directory
-        jvmArgs += listOf("-XX:ErrorFile=logs/hs_err_pid%p.log", "-XX:ReplayDataFile=logs/replay_pid%p.log")
+        jvmArgs +=
+            listOf(
+                "-XX:ErrorFile=logs/hs_err_pid%p.log",
+                "-XX:ReplayDataFile=logs/replay_pid%p.log",
+                "--enable-native-access=ALL-UNNAMED",
+            )
 
         javaHome =
             javaToolchains
                 .launcherFor {
-                    languageVersion.set(JavaLanguageVersion.of(21))
+                    languageVersion.set(JavaLanguageVersion.of(25))
                 }.get()
                 .metadata
                 .installationPath
@@ -78,5 +82,9 @@ tasks.processResources {
 
 tasks.test {
     useJUnitPlatform()
-    jvmArgs("-XX:ErrorFile=logs/hs_err_pid%p.log", "-XX:ReplayDataFile=logs/replay_pid%p.log")
+    jvmArgs(
+        "-XX:ErrorFile=logs/hs_err_pid%p.log",
+        "-XX:ReplayDataFile=logs/replay_pid%p.log",
+        "--enable-native-access=ALL-UNNAMED",
+    )
 }

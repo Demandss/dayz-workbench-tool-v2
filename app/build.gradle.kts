@@ -8,7 +8,7 @@ plugins {
 }
 
 kotlin {
-    jvmToolchain(21)
+    jvmToolchain(25)
 }
 
 group = "com.github.demandss"
@@ -24,21 +24,23 @@ dependencies {
     implementation(project(":core"))
     implementation(project(":layout-editor"))
     implementation(compose.desktop.currentOs)
-    implementation(compose.material3)
-    implementation(compose.materialIconsExtended)
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.1")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-swing:1.8.1")
+    implementation(libs.compose.material3)
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.12.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.11.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-swing:1.11.0")
 
     testImplementation(kotlin("test"))
     // Tests of the windows: they are drawn without a screen and clicked by the tests
-    @OptIn(org.jetbrains.compose.ExperimentalComposeLibrary::class)
-    testImplementation(compose.uiTest)
+    testImplementation(libs.compose.uitest)
 }
 
 tasks.test {
     useJUnitPlatform()
-    jvmArgs("-XX:ErrorFile=logs/hs_err_pid%p.log", "-XX:ReplayDataFile=logs/replay_pid%p.log")
+    jvmArgs(
+        "-XX:ErrorFile=logs/hs_err_pid%p.log",
+        "-XX:ReplayDataFile=logs/replay_pid%p.log",
+        "--enable-native-access=ALL-UNNAMED",
+    )
 }
 
 compose.desktop {
@@ -46,11 +48,16 @@ compose.desktop {
         mainClass = "com.github.demandss.dayz_workbench_tool.MainKt"
 
         // Crash dumps go to logs/ (ignored by git) instead of the working directory
-        jvmArgs += listOf("-XX:ErrorFile=logs/hs_err_pid%p.log", "-XX:ReplayDataFile=logs/replay_pid%p.log")
+        jvmArgs +=
+            listOf(
+                "-XX:ErrorFile=logs/hs_err_pid%p.log",
+                "-XX:ReplayDataFile=logs/replay_pid%p.log",
+                "--enable-native-access=ALL-UNNAMED",
+            )
 
         javaHome =
             javaToolchains
-                .launcherFor { languageVersion.set(JavaLanguageVersion.of(21)) }
+                .launcherFor { languageVersion.set(JavaLanguageVersion.of(25)) }
                 .get()
                 .metadata
                 .installationPath

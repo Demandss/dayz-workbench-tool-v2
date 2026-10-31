@@ -1,0 +1,19 @@
+version: 2
+
+updates:
+  # Libraries and plugins of the Gradle build. Kotlin and Compose depend on each other, so a major step is made by hand.
+  - package-ecosystem: gradle
+    directory: "/"
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 5
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+
+  # The actions used by the workflows in .github/workflows
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 3
