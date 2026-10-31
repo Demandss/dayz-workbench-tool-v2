@@ -1,7 +1,7 @@
 package com.github.demandss.dayz_workbench_tool.layout
 
 object LayoutParser {
-    fun parse(input: String): WidgetNode = ParserState(input).parseWidget()
+    fun parse(input: String): WidgetNode = ParserState(input.removePrefix("\uFEFF")).parseWidget()
 }
 
 private class ParserState(
@@ -12,10 +12,16 @@ private class ParserState(
     fun parseWidget(): WidgetNode {
         skipWhitespaceAndComments()
         val className = readBareWord()
-        skipInlineWhitespace()
+        skipWhitespaceAndComments()
 
-        val name = if (pos < input.length && input[pos] != '{') readBareWord() else ""
-        skipInlineWhitespace()
+        val quotedHeader = pos < input.length && input[pos] == '"'
+        val header =
+            when {
+                quotedHeader -> readQuotedString()
+                pos < input.length && input[pos] != '{' -> readBareWord()
+                else -> ""
+            }
+        skipWhitespaceAndComments()
         expectChar('{')
 
         val props = LinkedHashMap<String, String>()
@@ -47,7 +53,22 @@ private class ParserState(
             }
         }
 
-        return WidgetNode(WidgetType.fromClassName(className), className, name, props, children, scriptParams)
+        // Detect the new syntax from its Name property or resource identifier before exposing the node.
+        val resourceId = header.takeIf { quotedHeader && it.matches(Regex("\\{[0-9a-fA-F]{16}\\}")) }
+        val name =
+            props.remove("Name")?.let { value ->
+                require(value.startsWith('"')) { "Expected quoted Name at offset $pos" }
+                ParserState(value).readQuotedString()
+            } ?: if (resourceId == null) header else ""
+        return WidgetNode(
+            WidgetType.fromClassName(className),
+            className,
+            name,
+            props,
+            children,
+            scriptParams,
+            resourceId ?: newWidgetResourceId(),
+        )
     }
 
     /** Reads `ScriptParamsClass { key value ... }` and the brace that closes the block around it. */
@@ -131,7 +152,12 @@ private class ParserState(
         pos++ // skip opening "
         val sb = StringBuilder()
         while (pos < input.length && input[pos] != '"' && input[pos] != '\n') {
-            sb.append(input[pos++])
+            val char = input[pos++]
+            if (char == '\\' && pos < input.length && input[pos] in "\\\"") {
+                sb.append(input[pos++])
+            } else {
+                sb.append(char)
+            }
         }
         if (pos < input.length && input[pos] == '"') pos++ // skip closing "
         return sb.toString()
@@ -144,6 +170,7 @@ private class ParserState(
     }
 
     private fun expectChar(c: Char) {
-        if (pos < input.length && input[pos] == c) pos++
+        require(pos < input.length && input[pos] == c) { "Expected '$c' at offset $pos" }
+        pos++
     }
 }

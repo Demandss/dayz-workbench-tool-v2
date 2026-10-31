@@ -1,10 +1,13 @@
 package com.github.demandss.dayz_workbench_tool.layout_editor.ui.canvas
 
 import androidx.compose.ui.geometry.Rect
+import com.github.demandss.dayz_workbench_tool.layout.LayoutParser
+import com.github.demandss.dayz_workbench_tool.layout.LayoutSerializer
 import com.github.demandss.dayz_workbench_tool.layout.WidgetNode
 import com.github.demandss.dayz_workbench_tool.layout.WidgetType
 import com.github.demandss.dayz_workbench_tool.layout_editor.EditorWidgetNode
 import com.github.demandss.dayz_workbench_tool.layout_editor.findNode
+import com.github.demandss.dayz_workbench_tool.layout_editor.toWidgetNode
 import java.util.UUID
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -85,6 +88,50 @@ class NodeOpsTest {
         val copy = newRoot.findNode(copyId)!!
         assertNotEquals(a.children[0].id, copy.children[0].id)
         assertNotNull(copy.children.firstOrNull())
+    }
+
+    @Test
+    fun `duplicate ids remain unique and stable across saves and reordering`() {
+        val original = panel("original", children = listOf(panel("child")))
+        val root = panel("root", children = listOf(original))
+        val (duplicated, copyId) = root.withCopyOf(original.id)!!
+        val copy = duplicated.findNode(copyId)!!
+        assertNotEquals(original.node.resourceId, copy.node.resourceId)
+        assertNotEquals(
+            original.children
+                .single()
+                .node.resourceId,
+            copy.children
+                .single()
+                .node.resourceId,
+        )
+        val saved = LayoutSerializer.serialize(duplicated.toWidgetNode())
+        assertEquals(saved, LayoutSerializer.serialize(duplicated.toWidgetNode()))
+        val reordered = duplicated.copy(children = duplicated.children.reversed().toMutableList())
+        val parsed = LayoutParser.parse(LayoutSerializer.serialize(reordered.toWidgetNode()))
+        assertEquals(copy.node.resourceId, parsed.children.first().resourceId)
+        assertEquals(original.node.resourceId, parsed.children.last().resourceId)
+    }
+
+    @Test
+    fun `each clipboard insertion gets fresh resource ids including descendants`() {
+        val original = panel("original", children = listOf(panel("child")))
+        val text = clipboardText(listOf(original))
+        val first = parseClipboard(text)!!.single()
+        val second = parseClipboard(text)!!.single()
+        assertNotEquals(original.node.resourceId, first.node.resourceId)
+        assertNotEquals(first.node.resourceId, second.node.resourceId)
+        assertNotEquals(
+            first.children
+                .single()
+                .node.resourceId,
+            second.children
+                .single()
+                .node.resourceId,
+        )
+        val root = panel("root", children = listOf(original, first, second))
+        val saved = LayoutSerializer.serialize(root.toWidgetNode())
+        assertEquals(saved, LayoutSerializer.serialize(root.toWidgetNode()))
     }
 
     @Test
