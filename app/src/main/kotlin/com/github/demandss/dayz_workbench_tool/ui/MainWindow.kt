@@ -28,7 +28,6 @@ import androidx.compose.ui.window.rememberWindowState
 import com.github.demandss.dayz_workbench_tool.config.ConfigManager
 import com.github.demandss.dayz_workbench_tool.i18n.I18n
 import com.github.demandss.dayz_workbench_tool.i18n.str
-import com.github.demandss.dayz_workbench_tool.manager.ModificationManager
 import com.github.demandss.dayz_workbench_tool.manager.ProcessManager
 import com.github.demandss.dayz_workbench_tool.resources.*
 import com.github.demandss.dayz_workbench_tool.state.AppState
@@ -37,6 +36,7 @@ import com.github.demandss.dayz_workbench_tool.ui.components.DarkButton
 import com.github.demandss.dayz_workbench_tool.ui.components.ModsPanel
 import com.github.demandss.dayz_workbench_tool.ui.components.PoweredByFooter
 import com.github.demandss.dayz_workbench_tool.ui.components.ToolsPanel
+import com.github.demandss.dayz_workbench_tool.ui.components.WorkbenchErrorDialog
 import com.github.demandss.dayz_workbench_tool.ui.icons.AppIcon
 import com.github.demandss.dayz_workbench_tool.ui.icons.AppIconView
 import com.github.demandss.dayz_workbench_tool.ui.theme.*
@@ -118,6 +118,7 @@ fun MainWindow(
                     } else {
                         WorkDriveCheck(state, onCloseRequest)
                     }
+                    WorkbenchErrorDialog(state)
                 }
             }
         }
@@ -394,7 +395,7 @@ internal fun MainContent(state: AppState) {
                     showPluginDialog = true
                 }
                 ToolsMenuItem(stringResource(Res.string.remove_mod_symlinks)) {
-                    runCatching { ModificationManager.removeAll(state.mods.toList(), state.config.gamePath) }
+                    state.removeGameLinks()
                     toolsOpen = false
                 }
             }

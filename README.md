@@ -16,7 +16,8 @@ A Windows desktop tool for debugging DayZ mods: it sets up and starts the game c
 **Main program**
 
 - Finds DayZ and DayZ Tools in your Steam libraries and keeps the paths of the game, the work drive and Workbench.
-- Keeps two lists of mods, client and server, with the Steam Workshop mods and your local ones. A mod is switched on by a symbolic link in the game folder, and the links are removed again when the program exits.
+- Keeps two lists of mods, client and server, with the Steam Workshop mods and your local ones. Enabled unpacked sources get junctions in the game folder for file patching and hot script recompilation; these game links are removed when the program exits.
+- Prepares a hidden `P:\.Workbench` folder for Workbench. It contains persistent junctions to enabled unpacked sources and a `mod.cpp` named `WorkDir`; packed mods are passed separately by their full paths.
 - Starts the client, a sandbox client, the server and Workbench with the launch arguments you set, and stops the processes you put on the auto kill list.
 - Opens the layout editor in a second window.
 - Interface in English and Russian.
@@ -47,6 +48,10 @@ Take the latest build from the [Releases](../../releases) page:
 On the first start the program asks for the paths of the game, the work drive and Workbench, and tries to detect them itself. After that, run **Tools → fixscripts**.
 
 To test a mod on a local server you also need the DayZ Server from Steam (it is a separate download). Copy its `mpmissions` folder and the `serverDZ.cfg` file into your game folder.
+
+Workbench always uses `P:\.Workbench`, independently of the selected work drive. A mod with an immediate `Addons\*.pbo` file is treated as packed; other enabled mod folders are linked into WorkDir under their folder names. Sources do not need their own `mod.cpp`, and an existing WorkDir `mod.cpp` is preserved. The whole `P:` drive is not mounted in Workbench. Workbench starts with its executable directory as the working directory.
+
+The WorkDir folder is managed by the application: do not place files or links there manually. Preparation errors, unavailable paths and conflicting source folder names stop Workbench from launching and show the affected paths. Only links recorded as created by the application are removed or replaced.
 
 ## MCP
 

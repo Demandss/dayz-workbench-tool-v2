@@ -8,11 +8,25 @@ import com.github.demandss.dayz_workbench_tool.config.ModEntry
 import com.github.demandss.dayz_workbench_tool.config.withChanges
 import com.github.demandss.dayz_workbench_tool.i18n.I18n
 import com.github.demandss.dayz_workbench_tool.manager.ModificationManager
+import com.github.demandss.dayz_workbench_tool.manager.PreparedWorkbench
+import com.github.demandss.dayz_workbench_tool.manager.ProcessManager
 import com.github.demandss.dayz_workbench_tool.manager.ToolsManager
+import com.github.demandss.dayz_workbench_tool.manager.WorkbenchPreparer
+import com.github.demandss.dayz_workbench_tool.manager.WorkbenchWorkspace
 import com.github.demandss.dayz_workbench_tool.model.ModSide
 import com.github.demandss.dayz_workbench_tool.model.ModType
 import com.github.demandss.dayz_workbench_tool.model.Modification
-import java.nio.file.Path
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 
 enum class Screen { MAIN, SETTINGS, MODS }
 
@@ -20,6 +34,11 @@ enum class Screen { MAIN, SETTINGS, MODS }
 class AppState(
     private val appConfig: ConfigManager<AppConfig> = ConfigManager.App,
     private val editorConfig: ConfigManager<LayoutEditorConfig> = ConfigManager.LayoutEditor,
+    private val workspace: WorkbenchPreparer = WorkbenchWorkspace(appConfig.fileIn("managed-links.json")),
+    private val workbenchLauncher: (AppConfig, PreparedWorkbench) -> Unit = { config, prepared ->
+        ProcessManager.launchWorkbench(config, prepared)
+    },
+    private val customScriptsLauncher: (List<String>) -> Unit = ProcessManager::launchCustomScripts,
 ) {
     var config by mutableStateOf(appConfig.load())
         private set
@@ -28,6 +47,31 @@ class AppState(
 
     var currentScreen by mutableStateOf(Screen.MAIN)
     var showLayoutEditor by mutableStateOf(false)
+
+    var workbenchError by mutableStateOf<Throwable?>(null)
+        private set
+
+    var isWorkbenchStarting by mutableStateOf(false)
+        private set
+
+    private val preparationMutex = Mutex()
+    private var preparationScope: CoroutineScope? = null
+    private var preparationJob: Job? = null
+    private var launchJob: Job? = null
+    private var toolsDeployed = false
+    private var scriptsConfig: AppConfig? = null
+
+    @Volatile
+    private var revision = 0L
+
+    @Volatile
+    private var closing = false
+
+    private data class PreparationSnapshot(
+        val config: AppConfig,
+        val mods: List<Modification>,
+        val revision: Long,
+    )
 
     init {
         // The language was a setting of the editor before: whoever chose one keeps it
@@ -85,27 +129,23 @@ class AppState(
     }
 
     fun updateConfig(newConfig: AppConfig) {
-        if (config.effectiveScriptsPath() != newConfig.effectiveScriptsPath() || config.gamePath != newConfig.gamePath) {
-            ModificationManager.removeScriptsSymlink(config.effectiveScriptsPath(), config.gamePath)
-            ModificationManager.createScriptsSymlink(newConfig.effectiveScriptsPath(), newConfig.gamePath)
-        }
         config = newConfig
+        revision++
+        workbenchError = null
         I18n.setting = newConfig.language ?: I18n.SYSTEM
         appConfig.save(newConfig)
         loadModsFromConfig()
-        ToolsManager.writeUserSettings(newConfig, mods.toList())
+        requestPreparation()
     }
 
     fun addMod(mod: Modification) {
         mods += mod
         persistMods()
-        if (mod.enabled) symlinkOp(mod, create = true)
     }
 
     fun removeMod(mod: Modification) {
         mods -= mod
         persistMods()
-        symlinkOp(mod, create = false)
     }
 
     fun toggleEnabled(mod: Modification) {
@@ -113,7 +153,6 @@ class AppState(
         if (idx >= 0) {
             mods[idx] = mod.copy(enabled = !mod.enabled)
             persistMods()
-            symlinkOp(mod, create = !mod.enabled)
         }
     }
 
@@ -135,23 +174,149 @@ class AppState(
         val clientEntries = mods.filter { it.side == ModSide.CLIENT }.map { it.toEntry() }
         val serverEntries = mods.filter { it.side == ModSide.SERVER }.map { it.toEntry() }
         config = config.copy(clientMods = clientEntries, serverMods = serverEntries)
+        revision++
+        workbenchError = null
         appConfig.save(config)
-        ToolsManager.writeUserSettings(config, mods.toList())
+        requestPreparation()
     }
 
-    private fun symlinkOp(
-        mod: Modification,
-        create: Boolean,
-    ) {
-        val gameDir = config.gamePath
-        if (gameDir.isBlank()) return
-        runCatching {
-            val modPath = Path.of(mod.path)
-            val gameDirPath = Path.of(gameDir)
-            if (create) {
-                ModificationManager.createSymlink(modPath, gameDirPath)
-            } else {
-                ModificationManager.removeSymlink(modPath, gameDirPath)
+    /** Attaches preparation to the lifetime of the app window; constructing state never touches the work drive. */
+    fun start(scope: CoroutineScope) {
+        if (preparationScope != null || closing) return
+        preparationScope = CoroutineScope(scope.coroutineContext + SupervisorJob(scope.coroutineContext[Job]))
+        requestPreparation(deployOnly = !config.setupDone)
+    }
+
+    fun dismissWorkbenchError() {
+        workbenchError = null
+    }
+
+    private fun snapshot() = PreparationSnapshot(config, mods.toList(), revision)
+
+    private fun requestPreparation(deployOnly: Boolean = false) {
+        val scope = preparationScope ?: return
+        if (closing || (!config.setupDone && !deployOnly)) return
+        val requested = snapshot()
+        preparationJob =
+            scope.launch {
+                try {
+                    withContext(Dispatchers.IO) {
+                        preparationMutex.withLock {
+                            if (closing || requested.revision != revision) return@withLock
+                            deployTools()
+                            if (!deployOnly) prepareLocked(requested)
+                        }
+                    }
+                } catch (cancelled: CancellationException) {
+                    throw cancelled
+                } catch (failure: Exception) {
+                    if (!closing && requested.revision == revision) workbenchError = failure
+                }
+            }
+    }
+
+    /** Waits for the latest scheduled preparation; useful for callers that need the generated tool settings. */
+    suspend fun awaitPreparation() {
+        do {
+            val requested = preparationJob
+            requested?.join()
+        } while (requested !== preparationJob)
+    }
+
+    private fun deployTools() {
+        if (!toolsDeployed) {
+            ToolsManager.deploy()
+            toolsDeployed = true
+        }
+    }
+
+    /** Called only under preparationMutex on an IO dispatcher. */
+    private fun prepareLocked(requested: PreparationSnapshot): PreparedWorkbench {
+        deployTools()
+        ToolsManager.writeUserSettings(requested.config, requested.mods)
+        val prepared = workspace.prepare(requested.config, requested.mods)
+        val previous = scriptsConfig
+        if (previous == null ||
+            previous.effectiveScriptsPath() != requested.config.effectiveScriptsPath() ||
+            previous.gamePath != requested.config.gamePath
+        ) {
+            if (previous != null) ModificationManager.removeScriptsSymlink(previous.effectiveScriptsPath(), previous.gamePath)
+            ModificationManager.createScriptsSymlink(requested.config.effectiveScriptsPath(), requested.config.gamePath)
+            scriptsConfig = requested.config
+        }
+        return prepared
+    }
+
+    /** Revalidates the latest selection, then starts Workbench and its scripts in that order. */
+    fun launchWorkbench(scope: CoroutineScope): Job {
+        if (closing) return Job().also { it.cancel() }
+        start(scope)
+        launchJob?.takeIf { it.isActive }?.let { return it }
+        val currentScope = preparationScope ?: return Job().also { it.cancel() }
+        isWorkbenchStarting = true
+        workbenchError = null
+        val job =
+            currentScope.launch {
+                try {
+                    while (!closing) {
+                        val requested = snapshot()
+                        val launched =
+                            try {
+                                withContext(Dispatchers.IO) {
+                                    preparationMutex.withLock {
+                                        if (closing || requested.revision != revision) return@withLock false
+                                        val prepared = prepareLocked(requested)
+                                        if (closing || requested.revision != revision) return@withLock false
+                                        workbenchLauncher(requested.config, prepared)
+                                        customScriptsLauncher(requested.config.customWorkbenchScripts)
+                                        true
+                                    }
+                                }
+                            } catch (cancelled: CancellationException) {
+                                throw cancelled
+                            } catch (failure: Exception) {
+                                if (requested.revision != revision) continue
+                                throw failure
+                            }
+                        if (launched) break
+                    }
+                } catch (cancelled: CancellationException) {
+                    throw cancelled
+                } catch (failure: Exception) {
+                    if (!closing) workbenchError = failure
+                } finally {
+                    isWorkbenchStarting = false
+                }
+            }
+        launchJob = job
+        return job
+    }
+
+    /** The manual cleanup tool shares the same ownership checks and serialization as preparation. */
+    fun removeGameLinks() {
+        val scope = preparationScope ?: return
+        scope.launch {
+            try {
+                withContext(Dispatchers.IO) { preparationMutex.withLock { workspace.cleanupGameLinks() } }
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (failure: Exception) {
+                if (!closing) workbenchError = failure
+            }
+        }
+    }
+
+    /** The shutdown hook waits for in-flight IO before removing only game links; WorkDir survives. */
+    fun shutdown() {
+        closing = true
+        preparationScope?.cancel()
+        runBlocking(Dispatchers.IO) {
+            preparationMutex.withLock {
+                try {
+                    workspace.cleanupGameLinks()
+                } finally {
+                    scriptsConfig?.let { ModificationManager.removeScriptsSymlink(it.effectiveScriptsPath(), it.gamePath) }
+                }
             }
         }
     }

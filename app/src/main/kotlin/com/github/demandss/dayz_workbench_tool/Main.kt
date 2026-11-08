@@ -7,42 +7,29 @@ import androidx.compose.ui.window.application
 import com.github.demandss.dayz_workbench_tool.i18n.I18n
 import com.github.demandss.dayz_workbench_tool.layout_editor.LayoutEditorWindow
 import com.github.demandss.dayz_workbench_tool.layout_editor.state.LayoutEditorState
-import com.github.demandss.dayz_workbench_tool.manager.ModificationManager
 import com.github.demandss.dayz_workbench_tool.manager.ProcessManager
-import com.github.demandss.dayz_workbench_tool.manager.ToolsManager
 import com.github.demandss.dayz_workbench_tool.state.AppState
 import com.github.demandss.dayz_workbench_tool.ui.MainWindow
 import com.github.demandss.dayz_workbench_tool.ui.theme.resolveTheme
 import com.github.demandss.dayz_workbench_tool.update.UpdateStatus
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import java.util.Locale
 
 fun main() =
     application {
         val state = remember { AppState() }
+        val preparationScope = rememberCoroutineScope()
 
         remember {
             val hook =
                 Thread {
-                    runCatching {
-                        ModificationManager.removeAll(state.mods.toList(), state.config.gamePath)
-                        ModificationManager.removeScriptsSymlink(state.config.effectiveScriptsPath(), state.config.gamePath)
-                        ProcessManager.killTasks(state.config.autoKillTasks)
-                    }
+                    runCatching { state.shutdown() }.onFailure { it.printStackTrace() }
+                    ProcessManager.killTasks(state.config.autoKillTasks)
                 }
             Runtime.getRuntime().addShutdownHook(hook)
         }
 
         LaunchedEffect(Unit) {
-            withContext(Dispatchers.IO) {
-                ToolsManager.deploy()
-                if (state.config.setupDone) {
-                    ToolsManager.writeUserSettings(state.config, state.mods.toList())
-                    ModificationManager.createAll(state.mods.toList(), state.config.gamePath)
-                    ModificationManager.createScriptsSymlink(state.config.effectiveScriptsPath(), state.config.gamePath)
-                }
-            }
+            state.start(preparationScope)
         }
 
         // Asks GitHub for the latest release; asks again when the setting is switched on

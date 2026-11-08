@@ -15,14 +15,14 @@ object ProcessManager {
     internal fun renamedLegacyFlag(arg: String): String =
         if (arg.hasFlag(OLD_ENFUSION_FS_FLAG)) ENFUSION_FS_FLAG + arg.substring(OLD_ENFUSION_FS_FLAG.length) else arg
 
-    /** The command line of Workbench: the program, the arguments of the settings, the flags it always needs, and the mods. */
-    internal fun workbenchCommand(config: AppConfig): List<String> {
+    /** Builds the command only from a successfully prepared workspace and the packed mods it resolved. */
+    internal fun workbenchCommand(
+        config: AppConfig,
+        prepared: PreparedWorkbench,
+    ): List<String> {
         val exe = File(config.workbenchPath, "workbenchApp.exe").absolutePath
         val allMods =
-            (config.clientMods + config.serverMods)
-                .filter { it.enabled }
-                .map { it.path }
-                .sortedBy { if (it.contains("@")) 1 else 0 }
+            prepared.modPaths
                 .let { mods ->
                     // Workbench plugin mod is an unpacked folder, loaded first
                     if (config.workbenchPluginPath.isNotBlank() && File(config.workbenchPluginPath).isDirectory) {
@@ -40,15 +40,15 @@ object ProcessManager {
         return args
     }
 
-    /** The folder Workbench starts in: dayz.gproj sets the project root to "./", so it is the game folder when there is one. */
-    internal fun workbenchDirectory(config: AppConfig): File {
-        val gameDir = File(config.gamePath).let { if (it.isFile) it.parentFile else it }
-        return if (config.gamePath.isNotBlank() && gameDir.isDirectory) gameDir else File(config.workbenchPath)
-    }
+    /** Workbench starts next to its executable so relative resource paths use its installation directory. */
+    internal fun workbenchDirectory(config: AppConfig): File = File(config.workbenchPath).absoluteFile
 
-    fun launchWorkbench(config: AppConfig): Process {
+    fun launchWorkbench(
+        config: AppConfig,
+        prepared: PreparedWorkbench,
+    ): Process {
         val workbench =
-            ProcessBuilder(workbenchCommand(config))
+            ProcessBuilder(workbenchCommand(config, prepared))
                 .directory(workbenchDirectory(config))
                 .inheritIO()
                 .start()
