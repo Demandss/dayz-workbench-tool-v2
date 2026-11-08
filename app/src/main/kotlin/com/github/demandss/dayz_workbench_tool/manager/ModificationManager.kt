@@ -1,71 +1,56 @@
 package com.github.demandss.dayz_workbench_tool.manager
 
-import com.github.demandss.dayz_workbench_tool.model.Modification
 import java.io.File
 import java.nio.file.Files
-import java.nio.file.LinkOption
 import java.nio.file.Path
 
+/** The legacy vanilla scripts link; mod links are owned and reconciled by [WorkbenchWorkspace]. */
 object ModificationManager {
-    fun createSymlink(
-        modPath: Path,
-        gameDirPath: Path,
-    ) {
-        val link = gameDirPath.resolve(modPath.fileName)
-        if (Files.exists(link, LinkOption.NOFOLLOW_LINKS)) return
-        ProcessBuilder("cmd", "/c", """mklink /J "$link" "$modPath"""")
-            .redirectErrorStream(true)
-            .start()
-            .waitFor()
-    }
+    private val createdScriptsLinks = mutableMapOf<Path, Path>()
 
-    fun removeSymlink(
-        modPath: Path,
-        gameDirPath: Path,
-    ) {
-        val link = gameDirPath.resolve(modPath.fileName)
-        if (!Files.exists(link, LinkOption.NOFOLLOW_LINKS)) return
-        ProcessBuilder("cmd", "/c", "rmdir", link.toString())
-            .start()
-            .waitFor()
-    }
-
-    fun createAll(
-        mods: List<Modification>,
-        gameDirPath: String,
-    ) {
-        if (gameDirPath.isBlank()) return
-        val gameDir = File(gameDirPath).let { if (it.isFile) it.parentFile else it }.toPath()
-        mods
-            .filter { it.enabled }
-            .sortedBy { it.priority }
-            .forEach { mod -> runCatching { createSymlink(Path.of(mod.path), gameDir) } }
-    }
-
-    fun removeAll(
-        mods: List<Modification>,
-        gameDirPath: String,
-    ) {
-        if (gameDirPath.isBlank()) return
-        val gameDir = File(gameDirPath).let { if (it.isFile) it.parentFile else it }.toPath()
-        mods.forEach { mod -> runCatching { removeSymlink(Path.of(mod.path), gameDir) } }
-    }
-
+    @Synchronized
     fun createScriptsSymlink(
         scriptsPath: String,
         gameDirPath: String,
     ) {
         if (scriptsPath.isBlank() || gameDirPath.isBlank()) return
-        val gameDir = File(gameDirPath).let { if (it.isFile) it.parentFile else it }.toPath()
-        runCatching { createSymlink(Path.of(scriptsPath), gameDir) }
+        runCatching {
+            val scripts = Path.of(scriptsPath).toAbsolutePath().normalize()
+            if (!Files.isDirectory(scripts)) return
+            val target = scripts.toRealPath()
+            val link = gameDirectory(gameDirPath).resolve(scripts.fileName)
+            if (WindowsJunctions.inspect(link).kind == JunctionKind.MISSING) {
+                WindowsJunctions.create(link, target)
+                createdScriptsLinks[link] = target
+            }
+        }
     }
 
+    @Synchronized
     fun removeScriptsSymlink(
         scriptsPath: String,
         gameDirPath: String,
     ) {
         if (scriptsPath.isBlank() || gameDirPath.isBlank()) return
-        val gameDir = File(gameDirPath).let { if (it.isFile) it.parentFile else it }.toPath()
-        runCatching { removeSymlink(Path.of(scriptsPath), gameDir) }
+        runCatching {
+            val link = gameDirectory(gameDirPath).resolve(Path.of(scriptsPath).fileName)
+            val target = createdScriptsLinks[link] ?: return
+            val actual = WindowsJunctions.inspect(link)
+            val actualTarget =
+                actual.target
+                    ?.toAbsolutePath()
+                    ?.normalize()
+                    ?.toString()
+            if (actual.kind == JunctionKind.JUNCTION && actualTarget.equals(target.toString(), ignoreCase = true)) {
+                WindowsJunctions.remove(link)
+            }
+            createdScriptsLinks.remove(link)
+        }
     }
+
+    private fun gameDirectory(path: String): Path =
+        File(path)
+            .let { if (it.isFile) it.parentFile else it }
+            .toPath()
+            .toRealPath()
 }

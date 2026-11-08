@@ -6,8 +6,6 @@ import com.github.demandss.dayz_workbench_tool.model.ModSide
 import com.github.demandss.dayz_workbench_tool.model.Modification
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import java.io.File
-import java.nio.file.Files
-import java.nio.file.LinkOption
 import kotlin.io.path.createTempDirectory
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -44,7 +42,7 @@ class ManagersTest {
     }
 
     @Test
-    fun `workbench gets the flags it needs once, and the enabled mods with the workshop ones last`() {
+    fun `workbench uses prepared mounts instead of rereading the raw source paths`() {
         val config =
             AppConfig(
                 workbenchPath = File(dir, "workbench").path,
@@ -57,47 +55,74 @@ class ManagersTest {
                     ),
                 serverMods = listOf(ModEntry(mod("Server"))),
             )
-        val command = ProcessManager.workbenchCommand(config)
+        val workspace = File(dir, ".Workbench").path
+        val command = ProcessManager.workbenchCommand(config, PreparedWorkbench(listOf(workspace, workshop("@Ws"))))
 
         assertTrue(command.first().endsWith("workbenchApp.exe"))
         // -dologs was in the settings: it is not added a second time
         assertEquals(1, command.count { it.equals("-dologs", ignoreCase = true) })
         assertTrue("-custom" in command && "-filePatching" in command && "-loadRVFilesViaEnfusionFS=1" in command)
-        assertEquals("\"-mod=${mod("Local")};${mod("Server")};${workshop("@Ws")}\"", command.last())
+        assertEquals("\"-mod=$workspace;${workshop("@Ws")}\"", command.last())
+        assertFalse(command.last().contains(mod("Local")))
+        assertFalse(command.last().contains(mod("Server")))
+        assertFalse(command.last().contains(mod("Off")))
     }
 
     @Test
     fun `a plugin mod that is an existing folder is loaded first`() {
         val plugin = folder("plugin")
+        val workspace = File(dir, ".Workbench").path
+        val prepared = PreparedWorkbench(listOf(workspace))
         val command =
             ProcessManager.workbenchCommand(
                 AppConfig(workbenchPluginPath = plugin.path, clientMods = listOf(ModEntry(mod("A")))),
+                prepared,
             )
-        assertEquals("\"-mod=${plugin.path};${mod("A")}\"", command.last())
+        assertEquals("\"-mod=${plugin.path};$workspace\"", command.last())
 
         val missing =
             ProcessManager.workbenchCommand(
                 AppConfig(workbenchPluginPath = File(dir, "no-such").path, clientMods = listOf(ModEntry(mod("A")))),
+                prepared,
             )
-        assertEquals("\"-mod=${mod("A")}\"", missing.last())
+        assertEquals("\"-mod=$workspace\"", missing.last())
     }
 
     @Test
-    fun `workbench without mods gets no mod argument`() {
-        assertFalse(ProcessManager.workbenchCommand(AppConfig()).any { it.contains("-mod=") })
+    fun `workbench keeps its workspace mount when no source mods are enabled`() {
+        val workspace = File(dir, ".Workbench").path
+        val command = ProcessManager.workbenchCommand(AppConfig(), PreparedWorkbench(listOf(workspace)))
+        assertEquals("\"-mod=$workspace\"", command.last())
     }
 
     @Test
-    fun `workbench starts in the game folder when there is one, and next to itself otherwise`() {
+    fun `prepared packed paths with spaces and unicode keep their order in one mod argument`() {
+        val paths = listOf(File(dir, ".Workbench").path, mod("Локальный PBO"), workshop("@Packed Mod"))
+        val command = ProcessManager.workbenchCommand(AppConfig(), PreparedWorkbench(paths))
+        assertEquals("\"-mod=${paths.joinToString(";")}\"", command.last())
+        assertEquals(1, command.count { it.contains("-mod=") })
+    }
+
+    @Test
+    fun `workbench always starts next to its executable regardless of the game path`() {
         val game = folder("game")
-        assertEquals(game, ProcessManager.workbenchDirectory(AppConfig(gamePath = game.path, workbenchPath = File(dir, "wb").path)))
         val exe = File(game, "DayZDiag_x64.exe").also { it.writeText("") }
-        assertEquals(game, ProcessManager.workbenchDirectory(AppConfig(gamePath = exe.path)), "a path to the program is its folder")
-        assertEquals(File(dir, "wb"), ProcessManager.workbenchDirectory(AppConfig(gamePath = "", workbenchPath = File(dir, "wb").path)))
-        assertEquals(
-            File(dir, "wb"),
-            ProcessManager.workbenchDirectory(AppConfig(gamePath = File(dir, "no-such").path, workbenchPath = File(dir, "wb").path)),
-        )
+        val workbench = folder("Workbench Tools").absoluteFile
+        for (gamePath in listOf(game.path, exe.path, File(dir, "no-such").path, "")) {
+            assertEquals(
+                workbench,
+                ProcessManager.workbenchDirectory(AppConfig(gamePath = gamePath, workbenchPath = workbench.path)),
+                "the game path must not affect Workbench's working directory: $gamePath",
+            )
+        }
+    }
+
+    @Test
+    fun `a relative workbench directory is resolved to an absolute path`() {
+        val workbench = File("relative tools", "Workbench")
+        val directory = ProcessManager.workbenchDirectory(AppConfig(workbenchPath = workbench.path))
+        assertTrue(directory.isAbsolute)
+        assertEquals(workbench.absoluteFile, directory)
     }
 
     // ---- the settings file of the tools
@@ -125,7 +150,11 @@ class ManagersTest {
             listOf("DayZDiag_x64.exe", "-window", "-loadRVFilesViaEnfusionFS=0"),
             ProcessManager.buildArgs("DayZDiag_x64.exe", "-window -resolveFilePatchingUsingEnfusion=0", emptyList()),
         )
-        val workbench = ProcessManager.workbenchCommand(AppConfig(workbenchArgs = "-resolveFilePatchingUsingEnfusion=0"))
+        val workbench =
+            ProcessManager.workbenchCommand(
+                AppConfig(workbenchArgs = "-resolveFilePatchingUsingEnfusion=0"),
+                PreparedWorkbench(listOf(File(dir, ".Workbench").path)),
+            )
         assertEquals(listOf("-loadRVFilesViaEnfusionFS=0"), workbench.filter { it.contains("EnfusionFS", ignoreCase = true) })
         assertTrue(workbench.none { it.contains("resolveFilePatching", ignoreCase = true) })
     }
@@ -171,64 +200,43 @@ class ManagersTest {
         }
     }
 
-    // ---- the junctions of the mods in the game folder
-
-    private fun onWindows() = assumeTrue(System.getProperty("os.name").startsWith("Windows"))
-
-    private fun isLink(path: File) = Files.exists(path.toPath(), LinkOption.NOFOLLOW_LINKS)
-
     @Test
-    fun `a mod gets a junction in the game folder, once, and loses it without losing its files`() {
-        onWindows()
+    fun `vanilla scripts remain linked until cleanup without changing the source`() {
+        assumeTrue(System.getProperty("os.name").startsWith("Windows"))
+        val scripts = folder("vanilla/scripts")
+        val marker = File(scripts, "source.txt").also { it.writeText("original") }
         val game = folder("game")
-        val mod = folder("MyMod").also { File(it, "config.cpp").writeText("class CfgPatches {};") }
-
-        ModificationManager.createSymlink(mod.toPath(), game.toPath())
-        val link = File(game, "MyMod")
-        assertTrue(isLink(link))
-        assertEquals("class CfgPatches {};", File(link, "config.cpp").readText(), "the junction shows the files of the mod")
-        ModificationManager.createSymlink(mod.toPath(), game.toPath())
-        assertTrue(isLink(link), "a second call changes nothing")
-
-        ModificationManager.removeSymlink(mod.toPath(), game.toPath())
-        assertFalse(isLink(link))
-        assertTrue(File(mod, "config.cpp").isFile, "the mod itself is not touched")
-    }
-
-    @Test
-    fun `all the enabled mods get a junction, and a blank game folder is left alone`() {
-        onWindows()
-        val game = folder("game2")
-        val a = folder("ModA")
-        val b = folder("ModB")
-        val off = folder("ModOff")
-        val mods =
-            listOf(
-                Modification(a.path, ModSide.CLIENT, priority = 2),
-                Modification(b.path, ModSide.CLIENT, priority = 1),
-                Modification(off.path, ModSide.CLIENT, enabled = false),
-            )
-        ModificationManager.createAll(mods, "")
-        assertFalse(isLink(File(game, "ModA")))
-
-        ModificationManager.createAll(mods, game.path)
-        assertTrue(isLink(File(game, "ModA")) && isLink(File(game, "ModB")))
-        assertFalse(isLink(File(game, "ModOff")))
-
-        ModificationManager.removeAll(mods, game.path)
-        assertFalse(isLink(File(game, "ModA")) || isLink(File(game, "ModB")))
-        assertTrue(a.isDirectory && b.isDirectory)
-    }
-
-    @Test
-    fun `the game folder may be given as the path of the program in it`() {
-        onWindows()
-        val game = folder("game3")
         val exe = File(game, "DayZDiag_x64.exe").also { it.writeText("") }
-        val mod = folder("ModC")
-        ModificationManager.createAll(listOf(Modification(mod.path, ModSide.CLIENT)), exe.path)
-        assertTrue(isLink(File(game, "ModC")))
-        ModificationManager.removeAll(listOf(Modification(mod.path, ModSide.CLIENT)), exe.path)
-        assertFalse(isLink(File(game, "ModC")))
+        val link = File(game, "scripts").toPath()
+
+        ModificationManager.createScriptsSymlink(scripts.path, exe.path)
+        ModificationManager.createScriptsSymlink(scripts.path, exe.path)
+        assertEquals(JunctionKind.JUNCTION, WindowsJunctions.inspect(link).kind)
+        assertEquals("original", File(link.toFile(), marker.name).readText())
+
+        ModificationManager.removeScriptsSymlink(scripts.path, exe.path)
+        assertEquals(JunctionKind.MISSING, WindowsJunctions.inspect(link).kind)
+        assertEquals("original", marker.readText())
+    }
+
+    @Test
+    fun `vanilla cleanup preserves foreign folders and replaced junctions`() {
+        assumeTrue(System.getProperty("os.name").startsWith("Windows"))
+        val scripts = folder("vanilla/scripts")
+        val game = folder("game")
+        val foreign = File(game, "scripts").also { it.mkdirs() }
+        ModificationManager.createScriptsSymlink(scripts.path, game.path)
+        ModificationManager.removeScriptsSymlink(scripts.path, game.path)
+        assertTrue(foreign.isDirectory)
+
+        foreign.delete()
+        ModificationManager.createScriptsSymlink(scripts.path, game.path)
+        WindowsJunctions.remove(foreign.toPath())
+        val replacement = folder("replacement")
+        WindowsJunctions.create(foreign.toPath(), replacement.toPath())
+        ModificationManager.removeScriptsSymlink(scripts.path, game.path)
+        assertEquals(JunctionKind.JUNCTION, WindowsJunctions.inspect(foreign.toPath()).kind)
+        assertEquals(replacement.toPath(), WindowsJunctions.inspect(foreign.toPath()).target)
+        WindowsJunctions.remove(foreign.toPath())
     }
 }

@@ -921,4 +921,19 @@
     <string name="integer_range">Integer</string>
     <string name="float_range">Float</string>
     <string name="pick_colour_from_screen">Pick colour from screen</string>
+    <string name="tool_workbench">Workbench</string>
+    <string name="tool_layout_editor">Layout Editor</string>
+    <string name="tool_addon_builder">Addon Builder</string>
+    <string name="preparing_workbench">Preparing Workbench…</string>
+    <string name="workbench_error_title">Workbench preparation or launch failed</string>
+    <string name="workbench_error_unknown">The operation could not be completed.</string>
+    <string name="workspace_error_invalid_path">A selected path is invalid.</string>
+    <string name="workspace_error_unavailable_path">A required directory is missing or inaccessible.</string>
+    <string name="workspace_error_name_collision">Different unpacked mods have the same folder name. Change the selection before starting Workbench.</string>
+    <string name="workspace_error_path_cycle">The source and destination paths overlap and would create a junction cycle.</string>
+    <string name="workspace_error_foreign_entry">This path is occupied by a file or link that the app does not own. It has been left unchanged.</string>
+    <string name="workspace_error_link_changed">A managed junction was replaced or points to a different source. It has been left unchanged.</string>
+    <string name="workspace_error_link_operation">Unable to create or remove a junction.</string>
+    <string name="workspace_error_journal">Unable to read or save the junction ownership journal.</string>
+    <string name="workspace_error_workspace">Unable to prepare the Workbench directory.</string>
 </resources>

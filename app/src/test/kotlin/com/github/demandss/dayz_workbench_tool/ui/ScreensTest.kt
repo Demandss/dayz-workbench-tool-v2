@@ -13,11 +13,17 @@ import com.github.demandss.dayz_workbench_tool.config.ConfigManager
 import com.github.demandss.dayz_workbench_tool.config.LayoutEditorConfig
 import com.github.demandss.dayz_workbench_tool.config.ModEntry
 import com.github.demandss.dayz_workbench_tool.i18n.I18n
+import com.github.demandss.dayz_workbench_tool.manager.PreparedWorkbench
 import com.github.demandss.dayz_workbench_tool.manager.ToolsManager
+import com.github.demandss.dayz_workbench_tool.manager.WorkbenchPreparer
+import com.github.demandss.dayz_workbench_tool.manager.WorkspaceFailure
+import com.github.demandss.dayz_workbench_tool.manager.WorkspacePreparationException
 import com.github.demandss.dayz_workbench_tool.model.ModSide
 import com.github.demandss.dayz_workbench_tool.model.ModType
+import com.github.demandss.dayz_workbench_tool.model.Modification
 import com.github.demandss.dayz_workbench_tool.state.AppState
 import com.github.demandss.dayz_workbench_tool.state.Screen
+import com.github.demandss.dayz_workbench_tool.ui.components.WorkbenchErrorDialog
 import com.github.demandss.dayz_workbench_tool.ui.theme.AppTheme
 import java.util.Locale
 import kotlin.io.path.createTempDirectory
@@ -60,7 +66,16 @@ class ScreensTest {
 
     private fun state(config: AppConfig = AppConfig(setupDone = true, language = "en")): AppState {
         app.save(config)
-        return AppState(app, editor)
+        val workspace =
+            object : WorkbenchPreparer {
+                override fun prepare(
+                    config: AppConfig,
+                    mods: List<Modification>,
+                ) = PreparedWorkbench(listOf(base.resolve(".Workbench").toString()))
+
+                override fun cleanupGameLinks() = Unit
+            }
+        return AppState(app, editor, workspace, { _, _ -> }, {})
     }
 
     /** A text may be on the screen twice (a menu and a panel have the same word): it only has to be there. */
@@ -187,5 +202,45 @@ class ScreensTest {
 
             assertShown("Язык")
             assertShown("Интерфейс")
+        }
+
+    @Test
+    fun `Workbench preparation errors show the reason and path without a launch anyway action`() =
+        runComposeUiTest {
+            val missing = mod("Missing")
+            val workspace =
+                object : WorkbenchPreparer {
+                    override fun prepare(
+                        config: AppConfig,
+                        mods: List<Modification>,
+                    ): PreparedWorkbench = throw WorkspacePreparationException(WorkspaceFailure.UNAVAILABLE_PATH, listOf(missing))
+
+                    override fun cleanupGameLinks() = Unit
+                }
+            var launches = 0
+            var scripts = 0
+            app.save(AppConfig(setupDone = true, language = "en"))
+            val state = AppState(app, editor, workspace, { _, _ -> launches++ }, { scripts++ })
+            setContent {
+                AppTheme {
+                    MainContent(state)
+                    WorkbenchErrorDialog(state)
+                }
+            }
+
+            try {
+                onNodeWithText("Workbench").performClick()
+                waitUntil(timeoutMillis = 5_000) { state.workbenchError != null && !state.isWorkbenchStarting }
+                assertShown("Workbench preparation or launch failed")
+                assertShown("A required directory is missing or inaccessible.")
+                assertShown(missing)
+                assertTrue(onAllNodesWithText("Launch anyway").fetchSemanticsNodes().isEmpty())
+                assertEquals(0, launches)
+                assertEquals(0, scripts)
+                onNodeWithText("Close").performClick()
+                assertEquals(null, state.workbenchError)
+            } finally {
+                state.shutdown()
+            }
         }
 }

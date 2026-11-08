@@ -921,4 +921,19 @@
     <string name="integer_range">Целые</string>
     <string name="float_range">Дробные</string>
     <string name="pick_colour_from_screen">Взять цвет с экрана</string>
+    <string name="tool_workbench">Workbench</string>
+    <string name="tool_layout_editor">Layout Editor</string>
+    <string name="tool_addon_builder">Addon Builder</string>
+    <string name="preparing_workbench">Подготовка Workbench…</string>
+    <string name="workbench_error_title">Не удалось подготовить или запустить Workbench</string>
+    <string name="workbench_error_unknown">Не удалось выполнить операцию.</string>
+    <string name="workspace_error_invalid_path">Указан недопустимый путь.</string>
+    <string name="workspace_error_unavailable_path">Необходимый каталог отсутствует или недоступен.</string>
+    <string name="workspace_error_name_collision">Разные распакованные моды имеют одинаковое имя каталога. Измените список модов перед запуском Workbench.</string>
+    <string name="workspace_error_path_cycle">Пути исходников и назначения пересекаются и создадут цикл junction.</string>
+    <string name="workspace_error_foreign_entry">Этот путь занят файлом или ссылкой, которыми приложение не управляет. Объект оставлен без изменений.</string>
+    <string name="workspace_error_link_changed">Управляемый junction был заменён или указывает на другой источник. Ссылка оставлена без изменений.</string>
+    <string name="workspace_error_link_operation">Не удалось создать или удалить junction.</string>
+    <string name="workspace_error_journal">Не удалось прочитать или сохранить журнал управляемых junction.</string>
+    <string name="workspace_error_workspace">Не удалось подготовить каталог Workbench.</string>
 </resources>
