@@ -60,6 +60,7 @@ compose.desktop {
                 "java.management",
                 "java.naming",
                 "java.net.http",
+                "jdk.httpserver", // The MCP server uses com.sun.net.httpserver.HttpServer.
                 "jdk.unsupported",
             )
             windows {
